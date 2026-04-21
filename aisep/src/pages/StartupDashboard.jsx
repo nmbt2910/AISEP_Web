@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, Users, FileText, CheckCircle, AlertCircle, Calendar, MessageSquare, PlusCircle, Eye, Shield, Send, Zap, Sparkles, RefreshCw, X, ArrowRight, Loader2, Upload, ExternalLink, Trash2, History, Search, Maximize2, User, Crown, DollarSign, Settings, Info, Download, Check } from 'lucide-react';
+import { TrendingUp, Users, FileText, CheckCircle, AlertCircle, Calendar, MessageSquare, PlusCircle, Eye, Shield, Send, Zap, Sparkles, RefreshCw, X, XCircle, ArrowRight, Loader2, Upload, ExternalLink, Trash2, History, Search, Maximize2, User, Crown, DollarSign, Settings, Info, Download, Check } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import styles from '../styles/SharedDashboard.module.css';
 import contractStyles from './ContractSigningModal.module.css';
@@ -203,6 +203,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
     const [dealsToApprove, setDealsToApprove] = React.useState([]);
     const [isLoadingDeals, setIsLoadingDeals] = React.useState(false);
     const [isRespondingToDeal, setIsRespondingToDeal] = React.useState(null);
+    const [showRejectDealModal, setShowRejectDealModal] = React.useState(false);
+    const [rejectDealId, setRejectDealId] = React.useState(null);
+    const [rejectReason, setRejectReason] = React.useState('');
 
     // Contract Preview States
     const [showContractModal, setShowContractModal] = React.useState(false);
@@ -211,6 +214,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
     const [contractDealData, setContractDealData] = React.useState(null);
     const [contractStatus, setContractStatus] = React.useState(null); // Track deal status
     const [isSigningContract, setIsSigningContract] = React.useState(false);
+    const [showRejectContractModal, setShowRejectContractModal] = React.useState(false);
+    const [rejectContractReason, setRejectContractReason] = React.useState('');
+    const [isRejectingContract, setIsRejectingContract] = React.useState(false);
 
     // Contract signing form states
     const [signFormData, setSignFormData] = React.useState({
@@ -846,13 +852,23 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         setIsRespondingToDeal(dealId);
         try {
             console.log('[StartupDashboard] Rejecting deal:', dealId);
-            const response = await dealsService.respondToDeal(dealId, false);
+            const normalizedReason = rejectReason.trim();
+            if (!normalizedReason) {
+                setSuccessMessage('Vui lòng nhập lý do từ chối trước khi gửi');
+                setShowSuccessModal(true);
+                return;
+            }
+
+            const response = await dealsService.respondToDeal(dealId, false, normalizedReason);
             console.log('[StartupDashboard] Rejected deal:', response);
 
             if (response && (response.success || response.data)) {
                 setDealsToApprove(dealsToApprove.filter(d => d.dealId !== dealId));
                 setSuccessMessage('✓ Đã từ chối đầu tư');
                 setShowSuccessModal(true);
+                setShowRejectDealModal(false);
+                setRejectDealId(null);
+                setRejectReason('');
             }
         } catch (error) {
             console.error('[StartupDashboard] Failed to reject deal:', error);
@@ -861,6 +877,19 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         } finally {
             setIsRespondingToDeal(null);
         }
+    };
+
+    const handleOpenRejectDealModal = (dealId) => {
+        setRejectDealId(dealId);
+        setRejectReason('');
+        setShowRejectDealModal(true);
+    };
+
+    const handleCloseRejectDealModal = () => {
+        if (isRespondingToDeal) return;
+        setShowRejectDealModal(false);
+        setRejectDealId(null);
+        setRejectReason('');
     };
 
     const handleShowContractPreview = async (deal) => {
@@ -1127,6 +1156,52 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         signatureDataRef.current = ''; // Clear ref
         if (signatureCanvasRef.current) {
             signatureCanvasRef.current.clear();
+        }
+    };
+
+    const handleOpenRejectContractModal = () => {
+        setRejectContractReason('');
+        // Hide contract preview modal first so it does not cover rejection form.
+        setShowContractModal(false);
+        setShowRejectContractModal(true);
+    };
+
+    const handleCloseRejectContractModal = () => {
+        if (isRejectingContract) return;
+        setShowRejectContractModal(false);
+        setRejectContractReason('');
+    };
+
+    const handleRejectContractAsStartup = async () => {
+        if (!contractDealData?.dealId) return;
+
+        const normalizedReason = rejectContractReason.trim();
+        if (!normalizedReason) {
+            setSuccessMessage('Vui lòng nhập lý do từ chối hợp đồng');
+            setShowSuccessModal(true);
+            return;
+        }
+
+        setIsRejectingContract(true);
+        try {
+            const response = await dealsService.rejectContractByStartup(contractDealData.dealId, normalizedReason);
+            if (response && (response.success || response.data)) {
+                setSuccessMessage('✓ Đã từ chối hợp đồng và gửi lý do cho nhà đầu tư');
+                setShowSuccessModal(true);
+                setShowRejectContractModal(false);
+                setRejectContractReason('');
+                handleCloseContractModal();
+                await fetchDealsToApprove();
+            } else {
+                setSuccessMessage('Lỗi: Không thể từ chối hợp đồng');
+                setShowSuccessModal(true);
+            }
+        } catch (error) {
+            console.error('[StartupDashboard] Failed to reject contract as startup:', error);
+            setSuccessMessage('Lỗi: Không thể từ chối hợp đồng - ' + (error.message || 'Vui lòng thử lại'));
+            setShowSuccessModal(true);
+        } finally {
+            setIsRejectingContract(false);
         }
     };
 
@@ -2596,7 +2671,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                                     transition: 'all 0.2s',
                                                                     opacity: isRespondingToDeal === deal.dealId ? 0.7 : 1
                                                                 }}
-                                                                onClick={() => handleRejectDeal(deal.dealId)}
+                                                                onClick={() => handleOpenRejectDealModal(deal.dealId)}
                                                                 disabled={isRespondingToDeal === deal.dealId}
                                                             >
                                                                 {isRespondingToDeal === deal.dealId ? (
@@ -2683,7 +2758,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                         </button>
                                                     )}
 
-                                                    {(deal.status === 'Minted_NFT' || deal.status === 4 || deal.status === 'Rejected' || deal.status === 5 || deal.status === 'Failed' || deal.status === 6) && (
+                                                    {(deal.status === 'Minted_NFT' || deal.status === 4 || deal.status === 'Failed' || deal.status === 6) && (
                                                         <button
                                                             style={{
                                                                 flex: 1,
@@ -3586,6 +3661,92 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                 />
             )}
 
+            {showRejectDealModal && (
+                <div className={styles.modalOverlay} onClick={handleCloseRejectDealModal}>
+                    <div className={styles.modalContent} style={{ maxWidth: '520px', padding: '20px 22px' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Từ chối đề nghị đầu tư</h3>
+                            <button
+                                type="button"
+                                className={styles.modalCloseBtn}
+                                onClick={handleCloseRejectDealModal}
+                                disabled={!!isRespondingToDeal}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Lý do này sẽ được gửi cho nhà đầu tư để họ biết vì sao đề nghị chưa phù hợp.
+                        </p>
+
+                        <div className={styles.formGroup} style={{ marginBottom: '18px' }}>
+                            <label>Lý do từ chối *</label>
+                            <textarea
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                placeholder="Ví dụ: Startup chưa phù hợp mức định giá/điều khoản đầu tư hiện tại."
+                                rows={4}
+                                maxLength={1000}
+                                disabled={!!isRespondingToDeal}
+                                style={{
+                                    minHeight: '110px',
+                                    resize: 'vertical',
+                                    borderRadius: '10px',
+                                    border: '1px solid var(--border-color, #e2e8f0)',
+                                    background: 'var(--bg-secondary)',
+                                    padding: '12px 14px',
+                                    fontSize: '14px',
+                                    lineHeight: 1.45
+                                }}
+                            />
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                                {rejectReason.trim().length}/1000 ký tự
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '2px' }}>
+                            <button
+                                type="button"
+                                className={styles.secondaryBtn}
+                                onClick={handleCloseRejectDealModal}
+                                disabled={!!isRespondingToDeal}
+                                style={{
+                                    minWidth: '96px',
+                                    borderRadius: '10px',
+                                    height: '40px'
+                                }}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.dangerBtn}
+                                onClick={() => handleRejectDeal(rejectDealId)}
+                                disabled={!rejectDealId || !rejectReason.trim() || !!isRespondingToDeal}
+                                style={{
+                                    minWidth: '152px',
+                                    borderRadius: '10px',
+                                    height: '40px',
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {isRespondingToDeal ? (
+                                    <>
+                                        <Loader2 size={14} className={styles.spinner} />
+                                        Đang gửi...
+                                    </>
+                                ) : (
+                                    'Gửi từ chối'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Contract Preview Modal - Modernized */}
             {showContractModal && contractPreviewHtml && (
                 <div className={contractStyles.modalOverlay} onClick={handleCloseContractModal}>
@@ -3758,22 +3919,119 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                             )}
 
                             {contractStatus !== 'Contract_Signed' && (
-                                <button
-                                    onClick={handleSignContractAsStartup}
-                                    disabled={isSigningContract}
-                                    className={styles.primaryBtn}
-                                    style={{ padding: '10px 32px' }}
-                                >
-                                    {isSigningContract ? (
-                                        <>
-                                            <Loader2 size={16} className="animate-spin" />
-                                            Đang ký...
-                                        </>
-                                    ) : (
-                                        <><Check size={16} /> Ký (Startup)</>
+                                <>
+                                    {['Waiting_For_Startup_Signature', 2, '2'].includes(contractStatus) && (
+                                        <button
+                                            onClick={handleOpenRejectContractModal}
+                                            disabled={isSigningContract || isRejectingContract}
+                                            className={styles.dangerBtn}
+                                            style={{ padding: '10px 22px' }}
+                                        >
+                                            <XCircle size={16} /> Hủy ký hợp đồng
+                                        </button>
                                     )}
-                                </button>
+                                    <button
+                                        onClick={handleSignContractAsStartup}
+                                        disabled={isSigningContract || isRejectingContract}
+                                        className={styles.primaryBtn}
+                                        style={{ padding: '10px 32px' }}
+                                    >
+                                        {isSigningContract ? (
+                                            <>
+                                                <Loader2 size={16} className="animate-spin" />
+                                                Đang ký...
+                                            </>
+                                        ) : (
+                                            <><Check size={16} /> Ký (Startup)</>
+                                        )}
+                                    </button>
+                                </>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showRejectContractModal && (
+                <div className={styles.modalOverlay} onClick={handleCloseRejectContractModal}>
+                    <div className={styles.modalContent} style={{ maxWidth: '520px', padding: '20px 22px' }} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Hủy ký hợp đồng</h3>
+                            <button
+                                type="button"
+                                className={styles.modalCloseBtn}
+                                onClick={handleCloseRejectContractModal}
+                                disabled={isRejectingContract}
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Lý do từ chối sẽ được gửi cho nhà đầu tư và hiển thị ở deal bị từ chối.
+                        </p>
+
+                        <div className={styles.formGroup} style={{ marginBottom: '18px' }}>
+                            <label>Lý do từ chối hợp đồng *</label>
+                            <textarea
+                                value={rejectContractReason}
+                                onChange={(e) => setRejectContractReason(e.target.value)}
+                                placeholder="Ví dụ: Điều khoản số tiền/cổ phần trong hợp đồng chưa đúng với thỏa thuận."
+                                rows={4}
+                                maxLength={1000}
+                                disabled={isRejectingContract}
+                                style={{
+                                    minHeight: '110px',
+                                    resize: 'vertical',
+                                    borderRadius: '10px',
+                                    border: '1px solid var(--border-color, #e2e8f0)',
+                                    background: 'var(--bg-secondary)',
+                                    padding: '12px 14px',
+                                    fontSize: '14px',
+                                    lineHeight: 1.45
+                                }}
+                            />
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                                {rejectContractReason.trim().length}/1000 ký tự
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                            <button
+                                type="button"
+                                className={styles.secondaryBtn}
+                                onClick={handleCloseRejectContractModal}
+                                disabled={isRejectingContract}
+                                style={{ minWidth: '96px', borderRadius: '10px', height: '40px' }}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.dangerBtn}
+                                onClick={handleRejectContractAsStartup}
+                                disabled={!rejectContractReason.trim() || isRejectingContract}
+                                style={{
+                                    minWidth: '170px',
+                                    borderRadius: '10px',
+                                    height: '40px',
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontWeight: 600
+                                }}
+                            >
+                                {isRejectingContract ? (
+                                    <>
+                                        <Loader2 size={14} className={styles.spinner} />
+                                        Đang gửi...
+                                    </>
+                                ) : (
+                                    <>
+                                        <AlertCircle size={14} /> Gửi từ chối hợp đồng
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>

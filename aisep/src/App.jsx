@@ -9,6 +9,7 @@ import StartupDashboard from './pages/StartupDashboard';
 import InvestorDashboard from './pages/InvestorDashboard';
 import AdvisorDashboard from './pages/AdvisorDashboard';
 import OperationStaffDashboard from './pages/OperationStaffDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import InvestorBookings from './components/investor/InvestorBookings';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -86,8 +87,9 @@ function App() {
       const isStaff = roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'staff' || roleNum === 3;
       const isAdvisor = roleStr === 'advisor' || roleNum === 2;
       const isInvestor = roleStr === 'investor' || roleNum === 1;
+      const isAdmin = roleStr === 'admin' || roleNum === 4;
       
-      if (isStaff || isAdvisor || isInvestor) {
+      if (isStaff || isAdvisor || isInvestor || isAdmin) {
         setCurrentView('dashboard');
       } else {
         setCurrentView('main');
@@ -107,8 +109,9 @@ function App() {
     const isStaff = roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'staff' || roleNum === 3;
     const isAdvisor = roleStr === 'advisor' || roleNum === 2;
     const isInvestor = roleStr === 'investor' || roleNum === 1;
+    const isAdmin = roleStr === 'admin' || roleNum === 4;
 
-    if (isStaff || isAdvisor || isInvestor) {
+    if (isStaff || isAdvisor || isInvestor || isAdmin) {
       setCurrentView('dashboard');
       return;
     }
@@ -215,6 +218,7 @@ function App() {
     const isStaff = roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'staff' || roleNum === 3;
     const isAdvisor = roleStr === 'advisor' || roleNum === 2;
     const isInvestor = roleStr === 'investor' || roleNum === 1;
+    const isAdmin = roleStr === 'admin' || roleNum === 4;
     const isStartup = roleStr === 'startup' || roleNum === 0;
 
     console.log(`[App] Navigating for notification: type=${referenceType}, id=${safeRefId}`);
@@ -273,7 +277,8 @@ function App() {
         break;
 
       default:
-        handleShowDashboard('');
+        if (isAdmin) handleShowDashboard('overview');
+        else handleShowDashboard('');
         break;
     }
   };
@@ -333,6 +338,7 @@ function App() {
               const roleStr = user?.role?.toString().toLowerCase() || '';
               const roleNum = Number(user?.role);
               const isStaff = roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'staff' || roleNum === 3;
+              const isAdmin = roleStr === 'admin' || roleNum === 4;
               
               if (roleStr === 'startup' || roleNum === 0) {
                 const section = currentView.startsWith('dashboard_') ? currentView.replace('dashboard_', '') : 'my-projects';
@@ -383,6 +389,9 @@ function App() {
               } else if (isStaff) {
                 const section = currentView.startsWith('dashboard_') ? currentView.replace('dashboard_', '') : 'statistics';
                 return <OperationStaffDashboard user={user} initialSection={section} targetId={dashboardTargetId} onLogout={handleLogout} />;
+              } else if (isAdmin) {
+                const section = currentView.startsWith('dashboard_') ? currentView.replace('dashboard_', '') : 'overview';
+                return <AdminDashboard user={user} initialSection={section} />;
               } else {
                 return <div style={{ padding: '20px', textAlign: 'center' }}><p>Dashboard not available for your role</p></div>;
               }

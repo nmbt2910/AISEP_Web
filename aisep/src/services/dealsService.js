@@ -176,18 +176,25 @@ const dealsService = {
    * Respond to a deal (approve or reject) - For startups
    * @param {number} dealId - The ID of the deal
    * @param {boolean} isAccepted - Whether to accept the deal
+   * @param {string} reason - Optional rejection reason
    * @returns {Promise} - API response
    */
-  respondToDeal: async (dealId, isAccepted) => {
+  respondToDeal: async (dealId, isAccepted, reason = '') => {
     try {
-      console.log(`[dealsService] PATCH /api/Deals/${dealId}/respond with isAccepted:`, isAccepted);
-      const response = await apiClient.patch(`/api/Deals/${dealId}/respond`, {
+      const payload = {
         isAccepted: isAccepted,
+        reason: reason || ''
+      };
+      console.log(`[dealsService] PATCH /api/Deals/${dealId}/respond`, payload);
+      const response = await apiClient.patch(`/api/Deals/${dealId}/respond`, {
+        isAccepted: payload.isAccepted,
+        reason: payload.reason
       });
       console.log(`[dealsService] PATCH /api/Deals/${dealId}/respond - Response:`, {
         success: response?.success,
         dealId: dealId,
-        isAccepted: isAccepted
+        isAccepted: isAccepted,
+        reasonLength: payload.reason.length
       });
       return response;
     } catch (error) {
@@ -297,6 +304,31 @@ const dealsService = {
         status: error.response?.status,
         message: error.message,
         dealId: dealId
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Reject a contract by startup after investor signed
+   * @param {number} dealId - The ID of the deal
+   * @param {string} reason - Rejection reason
+   * @returns {Promise} - API response
+   */
+  rejectContractByStartup: async (dealId, reason) => {
+    try {
+      const payload = {
+        reason: reason || ''
+      };
+      console.log(`[dealsService] PATCH /api/Deals/${dealId}/startup-reject`, payload);
+      const response = await apiClient.patch(`/api/Deals/${dealId}/startup-reject`, payload);
+      console.log(`[dealsService] Startup rejected contract for dealId ${dealId} - Success:`, response?.success);
+      return response;
+    } catch (error) {
+      console.error(`[dealsService] PATCH /api/Deals/${dealId}/startup-reject - Error:`, {
+        status: error.response?.status,
+        message: error.message,
+        dealId
       });
       throw error;
     }

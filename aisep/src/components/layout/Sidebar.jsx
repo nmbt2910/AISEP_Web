@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Compass, Search, TrendingUp, Users, User, Rocket, X, LogOut, Sun, Moon, LayoutDashboard, Sparkles, LogIn, UserPlus, FileText, Calendar, ShieldCheck, Activity, MessageSquare, Award, AlertCircle, Loader, Shield, History, ChevronUp, ChevronDown, DollarSign, CreditCard, Newspaper, Landmark } from 'lucide-react';
+import { Home, Compass, Search, TrendingUp, Users, User, Rocket, X, LogOut, Sun, Moon, LayoutDashboard, Sparkles, LogIn, UserPlus, FileText, Calendar, ShieldCheck, Activity, MessageSquare, Award, AlertCircle, Loader, Shield, Settings, History, ChevronUp, ChevronDown, DollarSign, CreditCard, Newspaper, Landmark } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import Button from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
@@ -42,6 +42,20 @@ function Sidebar({
     const roleStr = user?.role?.toString().toLowerCase() || '';
     const roleNum = user?.role !== undefined ? Number(user.role) : -1;
     const isStaff = roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'staff' || roleNum === 3;
+    const isAdmin = roleStr === 'admin' || roleNum === 4;
+
+    if (isAdmin) {
+      const adminItems = [
+        { icon: LayoutDashboard, label: 'Dashboard', displayLabel: 'Bảng điều khiển', href: '#', showWhenLoggedIn: true },
+        { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
+        { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
+        { icon: FileText, label: 'AdminDeals', displayLabel: 'Quản lý Deals', href: '#', showWhenLoggedIn: true },
+        { icon: ShieldCheck, label: 'AdminContracts', displayLabel: 'Quản lý hợp đồng', href: '#', showWhenLoggedIn: true },
+        { icon: Settings, label: 'AdminSystem', displayLabel: 'Cấu hình hệ thống', href: '#', showWhenLoggedIn: true },
+        { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
+      ];
+      return adminItems;
+    }
 
     if (isStaff) {
       const staffItems = [
@@ -145,6 +159,8 @@ function Sidebar({
         onShowDashboard('investments');
       } else if (roleStr === 'operationstaff' || roleStr === 'staff' || roleNum === 3) {
         onShowDashboard('statistics');
+      } else if (roleStr === 'admin' || roleNum === 4) {
+        onShowDashboard('overview');
       } else {
         onShowDashboard('overview');
       }
@@ -198,6 +214,21 @@ function Sidebar({
 
     if (label === 'AccountProfile' && onShowDashboard) {
       onShowDashboard('account_profile');
+    }
+    if (label === 'AdminUsers' && onShowDashboard) {
+      onShowDashboard('users');
+    }
+    if (label === 'AdminDeals' && onShowDashboard) {
+      onShowDashboard('deals');
+    }
+    if (label === 'AdminTransactions' && onShowDashboard) {
+      onShowDashboard('transactions');
+    }
+    if (label === 'AdminContracts' && onShowDashboard) {
+      onShowDashboard('contracts');
+    }
+    if (label === 'AdminSystem' && onShowDashboard) {
+      onShowDashboard('system');
     }
 
     // Navigate to home when clicking Home
@@ -333,6 +364,11 @@ function Sidebar({
                       if (activeView === 'dashboard_package_management') return 'PackageManagement';
                       if (activeView === 'dashboard_subscription_history') return 'SubscriptionHistory';
                       if (activeView === 'dashboard_investor_approval') return 'InvestorApproval';
+                      if (activeView === 'dashboard_users') return 'AdminUsers';
+                      if (activeView === 'dashboard_transactions') return 'AdminTransactions';
+                      if (activeView === 'dashboard_deals') return 'AdminDeals';
+                      if (activeView === 'dashboard_contracts') return 'AdminContracts';
+                      if (activeView === 'dashboard_system') return 'AdminSystem';
                       if (activeView === 'dashboard_account_profile') return 'AccountProfile';
                       if (activeView === 'profile') return 'Profile';
                       if (activeView === 'advisors') return 'Advisors';

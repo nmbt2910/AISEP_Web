@@ -11,6 +11,7 @@ import connectionService from '../services/connectionService';
 import chatService from '../services/chatService';
 import signalRService from '../services/signalRService';
 import dealsService from '../services/dealsService';
+import notificationService from '../services/notificationService';
 import AIEvaluationService from '../services/AIEvaluationService';
 import projectSubmissionService from '../services/projectSubmissionService';
 import SuccessModal from '../components/common/SuccessModal';
@@ -256,6 +257,33 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
     const signatureDataRef = useRef(''); // Keep latest signature value
     const [isSignatureEmpty, setIsSignatureEmpty] = useState(true);
 
+    const extractRejectionReasonFromNotification = React.useCallback((notification) => {
+        if (!notification) return '';
+
+        const explicitReason =
+            notification.reason ||
+            notification.rejectionReason ||
+            notification?.data?.reason ||
+            notification?.data?.rejectionReason ||
+            notification?.metadata?.reason ||
+            notification?.metadata?.rejectionReason;
+
+        if (explicitReason && String(explicitReason).trim()) {
+            return String(explicitReason).trim();
+        }
+
+        const message = String(notification.message || '').trim();
+        if (!message) return '';
+
+        // Try to parse common formats: "Lý do: ...", "Reason: ..."
+        const reasonMatch = message.match(/(?:lý do|reason)\s*[:\-]\s*(.+)$/i);
+        if (reasonMatch?.[1]) {
+            return reasonMatch[1].trim();
+        }
+
+        return '';
+    }, []);
+
     // Initialize SignalR on mount
     React.useEffect(() => {
         const initSignalR = async () => {
@@ -349,14 +377,15 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
             try {
                 console.log('[InvestorDashboard] Starting fetch of all data (First load:', isFirstLoad.current, ')');
 
-                const [followingRes, connectRes, dealsRes, profileRes, aiReportsRes, allProjectsRes, industriesRes] = await Promise.all([
+                const [followingRes, connectRes, dealsRes, profileRes, aiReportsRes, allProjectsRes, industriesRes, notificationsRes] = await Promise.all([
                     followerService.getMyFollowing().catch(err => null),
                     connectionService.getMyConnectionRequests().catch(err => null),
                     dealsService.getInvestorDeals({ pageSize: 100 }).catch(err => null),
                     investorService.getMyProfile().catch(err => null),
                     AIEvaluationService.getAllInvestorAnalyses({ pageSize: 100 }).catch(err => null),
                     projectSubmissionService.getAllProjects().catch(err => null),
-                    enumService.getEnumOptions('Industry').catch(err => [])
+                    enumService.getEnumOptions('Industry').catch(err => []),
+                    notificationService.getNotifications({ pageSize: 100 }).catch(err => null)
                 ]);
 
                 if (industriesRes && industriesRes.length > 0) {
@@ -451,7 +480,44 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
 
                 let dealsData = dealsRes?.data?.items || dealsRes?.data || dealsRes || [];
                 if (!Array.isArray(dealsData)) dealsData = [];
-                setDeals(dealsData);
+
+                // Build lookup of rejection reason from notifications for deal cards.
+                const notificationItems = notificationsRes?.data?.items || notificationsRes?.items || [];
+                const reasonByDealId = new Map();
+
+                if (Array.isArray(notificationItems)) {
+                    const sortedNotifications = [...notificationItems].sort((a, b) => {
+                        const aTime = new Date(a?.createdAt || 0).getTime();
+                        const bTime = new Date(b?.createdAt || 0).getTime();
+                        return bTime - aTime;
+                    });
+
+                    sortedNotifications.forEach((notification) => {
+                        const refType = notification.referenceType || notification.ReferenceType || notification.type || notification.Type;
+                        const refId = notification.referenceId || notification.ReferenceId || notification.dealId;
+                        const isDealNotification = String(refType || '').toLowerCase().includes('deal');
+                        const reason = extractRejectionReasonFromNotification(notification);
+
+                        if (isDealNotification && refId && reason && !reasonByDealId.has(String(refId))) {
+                            reasonByDealId.set(String(refId), reason);
+                        }
+                    });
+                }
+
+                const enhancedDeals = dealsData.map((deal) => {
+                    const isRejectedDeal = deal.status === 'Rejected' || deal.status === 5;
+                    if (!isRejectedDeal) return deal;
+
+                    const normalizedDealId = String(deal.dealId || '');
+                    const notificationReason = reasonByDealId.get(normalizedDealId);
+
+                    return {
+                        ...deal,
+                        rejectionReason: deal.rejectionReason || notificationReason || ''
+                    };
+                });
+
+                setDeals(enhancedDeals);
 
                 // Handle AI Reports
                 if (aiReportsRes?.data?.items) {
@@ -1623,10 +1689,12 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                         'Confirmed': { label: 'Đã xác nhận', color: '#10b981' },
                                         'Contract_Signed': { label: 'Đã ký kết', color: '#667eea' },
                                         'Minted_NFT': { label: 'Đã mint NFT', color: '#8b5cf6' },
+                                        'Rejected': { label: 'Đã từ chối', color: '#ef4444' },
                                         'Failed': { label: 'Thất bại', color: '#ef4444' }
                                     };
                                     const statusInfo = statusMap[deal.status] || { label: deal.status || 'Unknown', color: '#64748b' };
                                     const isContractSigned = !!deal.contractSignedAt;
+                                    const isRejectedDeal = deal.status === 'Rejected' || deal.status === 5;
 
                                     return (
                                         <div
@@ -1670,20 +1738,33 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             </div>
 
                                             {/* Deal Details */}
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
-                                                <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '6px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Số tiền</div>
-                                                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#10b981' }}>
-                                                        {deal.amount > 0 ? `${deal.amount.toLocaleString('vi-VN')} VNĐ` : 'Chưa có'}
+                                            {!isRejectedDeal && (
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                                                    <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '6px' }}>
+                                                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Số tiền</div>
+                                                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#10b981' }}>
+                                                            {deal.amount > 0 ? `${deal.amount.toLocaleString('vi-VN')} VNĐ` : 'Chưa có'}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px' }}>
+                                                        <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Cổ phần</div>
+                                                        <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                                            {deal.equityPercentage !== null && deal.equityPercentage > 0 ? `${deal.equityPercentage}%` : 'Chưa có'}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px' }}>
-                                                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Cổ phần</div>
-                                                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                                        {deal.equityPercentage !== null && deal.equityPercentage > 0 ? `${deal.equityPercentage}%` : 'Chưa có'}
+                                            )}
+
+                                            {isRejectedDeal && !!deal.rejectionReason && (
+                                                <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '8px', padding: '10px', marginTop: '4px' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#dc2626', marginBottom: '4px' }}>
+                                                        Lý do từ chối
+                                                    </div>
+                                                    <div style={{ fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                                                        {deal.rejectionReason}
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )}
 
                                             {deal.contractSignedAt && (
                                                 <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1715,17 +1796,19 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
 
                                                     return (
                                                         <>
-                                                            <button
-                                                                style={{
-                                                                    ...btnStyle,
-                                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                                                    color: 'var(--text-primary)',
-                                                                    border: '1px solid rgba(255, 255, 255, 0.1)'
-                                                                }}
-                                                                onClick={() => handleShowDealDetail(deal)}
-                                                            >
-                                                                <Eye size={14} /> Chi tiết
-                                                            </button>
+                                                            {!isRejectedDeal && (
+                                                                <button
+                                                                    style={{
+                                                                        ...btnStyle,
+                                                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                                        color: 'var(--text-primary)',
+                                                                        border: '1px solid rgba(255, 255, 255, 0.1)'
+                                                                    }}
+                                                                    onClick={() => handleShowDealDetail(deal)}
+                                                                >
+                                                                    <Eye size={14} /> Chi tiết
+                                                                </button>
+                                                            )}
 
                                                             {(deal.status === 'Confirmed' || deal.status === 1) && (
                                                                 <button
