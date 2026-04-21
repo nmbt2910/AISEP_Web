@@ -331,3 +331,71 @@
   background: rgba(244, 33, 46, 0.1) !important;
   border-color: rgba(244, 33, 46, 0.4) !important;
 }
+
+/* --- Guidance Banner (Adaptive Theme Support) --- */
+.guidanceBanner {
+  display: flex;
+  gap: 14px;
+  padding: 16px 28px;
+  margin: 0;
+  border-radius: 0;
+  border: 1px solid transparent;
+  align-items: flex-start;
+  animation: bannerFadeIn 0.3s ease-out;
+}
+
+@keyframes bannerFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.guidanceIcon {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.guidanceContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guidanceTitle {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.guidanceDesc {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--text-secondary); /* Balanced color for description */
+}
+
+/* ===== Unified Banners - Matching "Thông tin nhân sự" (#1d9bf0) ===== */
+.guidanceInfo, .guidanceWarning, .guidanceSuccess {
+  background: rgba(29, 155, 240, 0.05);
+  border: 1px solid rgba(29, 155, 240, 0.15);
+}
+
+/* Title and Icon color consistently #1d9bf0 */
+.guidanceInfo .guidanceTitle, .guidanceWarning .guidanceTitle, .guidanceSuccess .guidanceTitle { color: #1d9bf0; }
+.guidanceInfo .guidanceIcon, .guidanceWarning .guidanceIcon, .guidanceSuccess .guidanceIcon { color: #1d9bf0; }
+
+/* Dark Mode Overrides for clearer visibility */
+:global([data-theme='dark']) .guidanceInfo, 
+:global([data-theme='dark']) .guidanceWarning, 
+:global([data-theme='dark']) .guidanceSuccess {
+  background: rgba(29, 155, 240, 0.1);
+  border: 1px solid rgba(29, 155, 240, 0.25);
+}
+
+:global([data-theme='dark']) .guidanceInfo .guidanceDesc,
+:global([data-theme='dark']) .guidanceWarning .guidanceDesc,
+:global([data-theme='dark']) .guidanceSuccess .guidanceDesc {
+  color: var(--text-secondary);
+}

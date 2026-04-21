@@ -329,12 +329,35 @@
 
 .fileInfo {
     flex: 1;
+    min-width: 0;
 }
 
 .fileName {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.viewBtn {
+    background: rgba(29, 155, 240, 0.1);
+    color: var(--primary-blue);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.viewBtn:hover {
+    background: rgba(29, 155, 240, 0.2);
+    transform: scale(1.1);
 }
 
 .fileHint {

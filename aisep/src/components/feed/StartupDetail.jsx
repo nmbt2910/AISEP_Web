@@ -111,19 +111,7 @@ export default function StartupDetail({ startupId, onBack, user, onShowLogin }) 
             )}
           </div>
           <div className={styles.headerActions}>
-            {(() => {
-                const roleValue = user?.role;
-                const roleStr = typeof roleValue === 'string' ? roleValue.toLowerCase() : '';
-                const canConnect = roleStr === 'startup' || roleStr === 'advisor' || roleValue === 0 || roleValue === 2;
-                
-                return canConnect && (
-                    <button className={styles.connectBtn} onClick={() => {
-                        alert(`Yêu cầu kết nối đã được gửi tới ${startup.companyName}!`);
-                    }}>
-                      Kết nối
-                    </button>
-                );
-            })()}
+            {/* Connection button removed per user request */}
           </div>
         </div>
 

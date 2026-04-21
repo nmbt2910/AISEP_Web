@@ -867,6 +867,10 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
                             setSelectedReportForView(b);
                             setSelectedBooking(null);
                         }
+                        if (act === 'viewProject') {
+                            onNavigate(`project_${b.projectId}`);
+                            setSelectedBooking(null);
+                        }
                         if (act !== 'reject') setSelectedBooking(null);
                     }}
                 />,
@@ -1136,6 +1140,10 @@ function IncomingBookingsSection({ bookings, userReports = [], targetId, loading
                             setSelectedReportForView(b);
                             setSelectedBooking(null);
                         }
+                        if (act === 'viewProject') {
+                            onNavigate(`project_${b.projectId}`);
+                            setSelectedBooking(null);
+                        }
                         if (act !== 'reject') setSelectedBooking(null);
                     }}
                 />
@@ -1261,7 +1269,18 @@ function AvailabilitySection({ availabilities, loading, onRefresh }) {
 
     const handleCreate = async () => {
         setFormError(null);
-        if (previewSlots.length === 0) { setFormError('Thời gian kết thúc phải sau thời gian bắt đầu.'); return; }
+        if (previewSlots.length === 0) { 
+            setFormError('Thời gian kết thúc phải sau thời gian bắt đầu.'); 
+            return; 
+        }
+
+        // Frontend validation for future dates
+        const now = new Date();
+        const selectedDateObj = new Date(`${modalDate}T${formData.startTime}:00`);
+        if (selectedDateObj <= now) {
+            setFormError('Thời gian đăng ký lịch rảnh phải sau thời điểm hiện tại.');
+            return;
+        }
 
         setFormSubmitting(true);
         try {
@@ -1277,7 +1296,11 @@ function AvailabilitySection({ availabilities, loading, onRefresh }) {
             closeAddSlotModal();
             onRefresh();
         } catch (e) {
-            setFormError(e.message || 'Không thể tạo lịch rảnh.');
+            let msg = e.message || 'Không thể tạo lịch rảnh.';
+            if (msg.includes('Availability slot must be in the future')) {
+                msg = 'Thời gian đăng ký lịch rảnh phải sau thời điểm hiện tại.';
+            }
+            setFormError(msg);
         } finally {
             setFormSubmitting(false);
         }
@@ -1504,9 +1527,22 @@ function AvailabilitySection({ availabilities, loading, onRefresh }) {
                                         options={timeOptions.slice(1)}
                                     />
                                 </div>
+
+                                {formError && (
+                                    <div style={{ gridColumn: '1 / -1' }}>
+                                        <div className={avStyles.formError}>
+                                            <div className={avStyles.errorIconWrapper}>
+                                                <AlertCircle size={16} />
+                                            </div>
+                                            <div className={avStyles.errorMsgContent}>
+                                                <strong>Lỗi thông tin</strong>
+                                                <p>{formError}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {formError && <div className={styles.formError} style={{ margin: '0 24px 16px' }}><AlertCircle size={14} /><span>{formError}</span></div>}
                         </div>
 
                         <div className={styles.addSlotFooter}>

@@ -3083,9 +3083,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                         )}
                                         <div style={{
                                             padding: '24px',
-                                            backgroundColor: 'rgba(29, 155, 240, 0.03)',
+                                            backgroundColor: 'rgba(29, 155, 240, 0.06)',
                                             borderRadius: '24px',
-                                            border: '1px solid rgba(29, 155, 240, 0.1)',
+                                            border: '1px solid rgba(29, 155, 240, 0.2)',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             gap: '20px'
@@ -3163,6 +3163,19 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                             <span className={styles.advisorSectionSubtitle}>Hỗ trợ chuyên môn trực tiếp</span>
                                                         </div>
                                                     </div>
+
+                                                    {canBookDetailProject && detailProjectAdvisors.length > 0 && detailProject?.status === 'Draft' && (
+                                                        <button
+                                                            className={`${styles.primaryBtn} ${styles.advisorBookingBtn} ${styles.desktopOnly} `}
+                                                            style={{ margin: 0, padding: '8px 16px', fontSize: '12px', fontWeight: 700 }}
+                                                            onClick={() => {
+                                                                setBookingInitialAdvisorId(detailProjectAdvisors[0].advisorId);
+                                                                setShowBookingWizard(true);
+                                                            }}
+                                                        >
+                                                            Đặt lịch ngay
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 <div className={styles.advisorNames}>
@@ -3185,7 +3198,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                 </div>
 
                                                 {canBookDetailProject && detailProjectAdvisors.length > 0 && detailProject?.status === 'Draft' && (
-                                                    <div className={styles.advisorActionRow}>
+                                                    <div className={`${styles.advisorActionRow} ${styles.mobileOnly}`}>
                                                         <button
                                                             className={`${styles.primaryBtn} ${styles.advisorBookingBtn}`}
                                                             onClick={() => {

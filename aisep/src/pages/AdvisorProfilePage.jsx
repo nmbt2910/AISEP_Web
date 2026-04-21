@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     User, Mail, MapPin, Globe, Award, Briefcase, 
     DollarSign, Camera, FileText, CheckCircle, AlertCircle, 
-    Loader, Trash2, Plus, X, ChevronRight, Save
+    Loader, Trash2, Plus, X, ChevronRight, Save, Eye
 } from 'lucide-react';
 import styles from './AdvisorProfilePage.module.css';
 import advisorService from '../services/advisorService';
@@ -33,7 +33,6 @@ export default function AdvisorProfilePage({ user, onBack }) {
     const [formData, setFormData] = useState({
         bio: '',
         expertise: '',
-        industry: 'Other',
         industries: [],
         previousExperience: '',
         languagesSpoken: '',
@@ -48,7 +47,8 @@ export default function AdvisorProfilePage({ user, onBack }) {
 
     const [previews, setPreviews] = useState({
         profileImage: null,
-        certificationName: ''
+        certificationName: '',
+        certificationUrl: null
     });
 
     const fileInputRef = useRef(null);
@@ -116,18 +116,22 @@ export default function AdvisorProfilePage({ user, onBack }) {
                 setFormData({
                     bio: data.bio || '',
                     expertise: data.expertise || '',
-                    industry: data.industry || 'Other',
                     industries: Array.isArray(data.industries) ? data.industries : [],
                     previousExperience: data.previousExperience || '',
                     languagesSpoken: data.languagesSpoken || '',
                     location: data.location || '',
                     hourlyRate: data.hourlyRate || 0
                 });
-                if (data.profileImageUrl) {
-                    setPreviews(prev => ({ ...prev, profileImage: data.profileImageUrl }));
+                if (data.profileImage) {
+                    setPreviews(prev => ({ ...prev, profileImage: data.profileImage }));
                 }
-                if (data.certificationUrl) {
-                    setPreviews(prev => ({ ...prev, certificationName: 'Chứng chỉ hiện tại' }));
+                if (data.certifications) {
+                    const filename = data.certifications.split('/').pop();
+                    setPreviews(prev => ({ 
+                        ...prev, 
+                        certificationName: filename || 'Chứng chỉ hiện tại',
+                        certificationUrl: data.certifications
+                    }));
                 }
             }
         } finally {
@@ -186,7 +190,6 @@ export default function AdvisorProfilePage({ user, onBack }) {
             const submitData = new FormData();
             submitData.append('Bio', formData.bio);
             submitData.append('Expertise', formData.expertise);
-            submitData.append('Industry', formData.industry);
             
             // Append multiple industries
             formData.industries.forEach(ind => {
@@ -311,7 +314,7 @@ export default function AdvisorProfilePage({ user, onBack }) {
                         <div className={styles.cardBody}>
                             <div className={styles.grid2}>
                                 <div className={styles.formGroup}>
-                                    <label>Vị trí hiện tại</label>
+                                    <label>Vị trí / Địa điểm hiện tại</label>
                                     <div className={styles.inputWrapper}>
                                         <MapPin size={16} className={styles.inputIcon} />
                                         <input 
@@ -357,14 +360,16 @@ export default function AdvisorProfilePage({ user, onBack }) {
                         <div className={styles.cardBody}>
                             <div className={styles.grid2}>
                                 <div className={styles.formGroup}>
-                                    <label>Lĩnh vực chính</label>
-                                    <CustomSelect 
-                                        name="industry"
-                                        value={formData.industry}
-                                        onChange={handleInputChange}
-                                        options={INDUSTRY_OPTIONS}
-                                        placeholder="Chọn lĩnh vực chính..."
-                                    />
+                                    <label>Kỹ năng chuyên sâu</label>
+                                    <div className={styles.inputWrapper}>
+                                        <Briefcase size={16} className={styles.inputIcon} />
+                                        <input 
+                                            name="expertise"
+                                            value={formData.expertise}
+                                            onChange={handleInputChange}
+                                            placeholder="VD: Gọi vốn, Growth Hacking, Quản trị rủi ro..." 
+                                        />
+                                    </div>
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Phí tư vấn theo giờ (VNĐ)</label>
@@ -382,20 +387,7 @@ export default function AdvisorProfilePage({ user, onBack }) {
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label>Kỹ năng chuyên sâu</label>
-                                <div className={styles.inputWrapper}>
-                                    <Briefcase size={16} className={styles.inputIcon} />
-                                    <input 
-                                        name="expertise"
-                                        value={formData.expertise}
-                                        onChange={handleInputChange}
-                                        placeholder="VD: Gọi vốn, Growth Hacking, Quản trị rủi ro..." 
-                                    />
-                                </div>
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label>Các lĩnh vực quan tâm khác</label>
+                                <label>Lĩnh vực chuyên môn</label>
                                 <div className={styles.industryPills}>
                                     {INDUSTRIES.map(ind => (
                                         <button
@@ -443,6 +435,20 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                         </p>
                                         <p className={styles.fileHint}>Kích thước tối đa 5MB</p>
                                     </div>
+                                    {previews.certificationUrl && (
+                                        <button
+                                            type="button"
+                                            className={styles.viewBtn}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(previews.certificationUrl, '_blank');
+                                            }}
+                                            title="Xem chứng chỉ"
+                                        >
+                                            <Eye size={16} />
+                                        </button>
+                                    )}
+                                    </div>
                                     <input 
                                         ref={certInputRef}
                                         type="file" 
@@ -452,7 +458,6 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                 </div>
                             </div>
                         </div>
-                    </div>
 
                     {/* Action Bar */}
                     <div className={styles.actionBar}>

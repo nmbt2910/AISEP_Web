@@ -11,7 +11,7 @@ const payoutService = {
    * @param {Object} data { fromDate: "YYYY-MM-DD", toDate: "YYYY-MM-DD", advisorId?: number }
    */
   async generateBatch(data) {
-    const response = await apiClient.post('/api/monthly-payout-batches/generate', data);
+    const response = await apiClient.post('/api/payout-groups/generate', data);
     return response.data;
   },
 
@@ -19,7 +19,7 @@ const payoutService = {
    * Get all payout batches
    */
   async getBatches(params) {
-    const response = await apiClient.get('/api/monthly-payout-batches', { params });
+    const response = await apiClient.get('/api/payout-groups', { params });
     return response.data;
   },
 
@@ -27,7 +27,7 @@ const payoutService = {
    * Get specific batch by ID
    */
   async getBatchById(id) {
-    const response = await apiClient.get(`/api/monthly-payout-batches/${id}`);
+    const response = await apiClient.get(`/api/payout-groups/${id}`);
     return response.data;
   },
 
@@ -35,7 +35,7 @@ const payoutService = {
    * Get all items (individual payouts) within a batch
    */
   async getBatchItems(id, params) {
-    const response = await apiClient.get(`/api/monthly-payout-batches/${id}/items`, { params });
+    const response = await apiClient.get(`/api/payout-groups/${id}/items`, { params });
     return response.data;
   },
 
@@ -47,7 +47,7 @@ const payoutService = {
    * @param {Object} data { note? }
    */
   async markPaid(id, data = {}) {
-    const response = await apiClient.patch(`/api/monthly-payouts/${id}/mark-paid`, data);
+    const response = await apiClient.patch(`/api/payouts/${id}/mark-paid`, data);
     return response.data;
   },
 
@@ -57,7 +57,7 @@ const payoutService = {
    * @param {Object} data { reason, note? }
    */
   async rejectPayout(id, data) {
-    const response = await apiClient.patch(`/api/monthly-payouts/${id}/reject`, data);
+    const response = await apiClient.patch(`/api/payouts/${id}/reject`, data);
     return response.data;
   },
 
@@ -66,7 +66,7 @@ const payoutService = {
    * e.g. params: { filters: 'Status==Rejected' }
    */
   async getAllPayouts(params) {
-    const response = await apiClient.get('/api/monthly-payouts', { params });
+    const response = await apiClient.get('/api/payouts', { params });
     return response.data;
   },
 
@@ -75,7 +75,7 @@ const payoutService = {
    */
   async getMyPayouts(params) {
     try {
-      const response = await apiClient.get('/api/monthly-payouts/me', { params });
+      const response = await apiClient.get('/api/payouts/me', { params });
       return response.data;
     } catch (error) {
       if (error.response?.status === 404 || error.statusCode === 404) return [];
@@ -85,11 +85,11 @@ const payoutService = {
 
   /**
    * Advisor: Request a retry for a rejected payout (Rejected → PendingRecheck)
-   * @param {number} id - The monthlyPayoutId
+   * @param {number} id - The payoutId
    * @param {Object} data { resolutionNote: string } — required, non-empty
    */
   async requestRetry(id, data) {
-    const response = await apiClient.patch(`/api/monthly-payouts/${id}/request-retry`, data);
+    const response = await apiClient.patch(`/api/payouts/${id}/request-retry`, data);
     return response.data;
   },
 };

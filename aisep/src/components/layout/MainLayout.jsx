@@ -130,6 +130,9 @@ function MainLayout({
       // RETURNING TO HOME FROM DETAIL: Restore position instantly
       setIsReturning(true);
       setScroll(homeScrollPos.current);
+      
+      // AUTO-REFRESH investor/feed state when returning to home per user request
+      refreshAllFeedData();
     } else if (isDetailView && wasDetailView) {
       // SWITCHING BETWEEN DIFFERENT DETAILS
       setIsReturning(false);
@@ -139,6 +142,11 @@ function MainLayout({
       setScroll(0);
       setIsReturning(false);
       homeScrollPos.current = 0;
+
+      // REFRESH data when switching back to main discovery feed (e.g. from Dashboard)
+      if (activeView === 'main' || activeView === '') {
+        refreshAllFeedData();
+      }
     }
 
     if (typeof document !== 'undefined') {
@@ -226,6 +234,119 @@ function MainLayout({
     }
   }, [user]);
 
+  // RELOADABLE DATA FETCHERS
+  const fetchFollowedIds = useCallback(async () => {
+    const isInvestor = user && (
+      user.role === 'investor' ||
+      user.role === 'Investor' ||
+      user.role === 1 ||
+      String(user.role) === '1'
+    );
+    if (!isInvestor) {
+      setFollowedProjectIds(new Set());
+      return;
+    }
+    try {
+      const response = await followerService.getMyFollowing();
+      let followedProjects = [];
+      if (response && response.data) {
+        if (response.data.items && Array.isArray(response.data.items)) {
+          followedProjects = response.data.items;
+        } else if (Array.isArray(response.data)) {
+          followedProjects = response.data;
+        }
+      }
+      const ids = new Set(followedProjects.map(p => p.projectId || p.id));
+      setFollowedProjectIds(ids);
+    } catch (error) {
+      console.error('[MainLayout] Failed to fetch followed projects:', error);
+    }
+  }, [user]);
+
+  const fetchSentConnections = useCallback(async () => {
+    const isInvestor = user && (
+      user.role === 'investor' ||
+      user.role === 'Investor' ||
+      user.role === 1 ||
+      String(user.role) === '1'
+    );
+    if (!isInvestor) {
+      setSentConnectionIds(new Set());
+      return;
+    }
+    try {
+      const response = await connectionService.getMyConnectionRequests();
+      let requests = [];
+      if (response && response.data) {
+        if (response.data.items && Array.isArray(response.data.items)) {
+          requests = response.data.items;
+        } else if (Array.isArray(response.data)) {
+          requests = response.data;
+        }
+      }
+      const ids = new Set(requests.map(r => r.projectId));
+      setSentConnectionIds(ids);
+    } catch (error) {
+      console.error('[MainLayout] Failed to fetch sent connections:', error);
+    }
+  }, [user]);
+
+  const fetchInvestorDealsForGrid = useCallback(async () => {
+    try {
+      const [dealsRes, profilesRes] = await Promise.all([
+        dealsService.getInvestorDeals(),
+        investorService.getAllInvestors({ pageSize: 100 })
+      ]);
+      const profileLookup = new Map();
+      const profiles = profilesRes?.items || profilesRes?.data?.items || (Array.isArray(profilesRes) ? profilesRes : []);
+      profiles.forEach(p => {
+        const id = p.investorId || p.userId || p.id;
+        if (id) {
+          profileLookup.set(id.toString(), {
+            name: p.organizationName || p.userName || p.name || 'Nhà đầu tư',
+            avatar: p.profilePicture || p.avatar || null
+          });
+        }
+      });
+      let deals = [];
+      if (dealsRes && dealsRes.data) {
+        if (dealsRes.data.items && Array.isArray(dealsRes.data.items)) deals = dealsRes.data.items;
+        else if (Array.isArray(dealsRes.data)) deals = dealsRes.data;
+      } else if (Array.isArray(dealsRes)) deals = dealsRes;
+
+      const contractSignedDeals = deals.filter(d => d.status === 'Contract_Signed' || d.status === 3 || String(d.status) === '3');
+      const investorMapByProject = new Map();
+      const seenPairs = new Set();
+      contractSignedDeals.forEach(deal => {
+        const pId = deal.projectId;
+        const invId = deal.investorId || deal.investor?.id || deal.investor?.investorId;
+        if (!pId || !invId) return;
+        const realProfile = profileLookup.get(invId.toString());
+        const pairKey = `${invId}-${pId}`;
+        if (!seenPairs.has(pairKey)) {
+          if (!investorMapByProject.has(pId)) investorMapByProject.set(pId, []);
+          investorMapByProject.get(pId).push({
+            id: invId,
+            name: realProfile?.name || deal.investor?.name || 'Nhà đầu tư',
+            avatar: realProfile?.avatar || deal.investor?.profilePicture || null
+          });
+          seenPairs.add(pairKey);
+        }
+      });
+      setInvestorsByProject(investorMapByProject);
+    } catch (error) {
+      console.error('[MainLayout] Failed to fetch investor data:', error);
+    }
+  }, []);
+
+  const refreshAllFeedData = useCallback(async () => {
+    // Refresh core states for the discovery feed
+    fetchFollowedIds();
+    fetchSentConnections();
+    refetchInvestedProjects();
+    fetchInvestorDealsForGrid();
+  }, [fetchFollowedIds, fetchSentConnections, refetchInvestedProjects, fetchInvestorDealsForGrid]);
+
   // Helper for RightPanel labels
   const SECTOR_LABELS = [
     'Xu hướng tuần này',
@@ -271,229 +392,22 @@ function MainLayout({
     checkProfile();
   }, [user]);
 
-  // Fetch followed projects for investors - runs once and caches the IDs
+  // Initial data fetches using refactored callbacks
   useEffect(() => {
-    const isInvestor = user && (
-      user.role === 'investor' ||
-      user.role === 'Investor' ||
-      user.role === 1 ||
-      String(user.role) === '1'
-    );
-
-    if (!isInvestor) {
-      setFollowedProjectIds(new Set());
-      return;
-    }
-
-    const fetchFollowedIds = async () => {
-      try {
-        const response = await followerService.getMyFollowing();
-        console.log('[MainLayout] Followed projects response:', response);
-
-        let followedProjects = [];
-        if (response && response.data) {
-          if (response.data.items && Array.isArray(response.data.items)) {
-            followedProjects = response.data.items;
-          } else if (Array.isArray(response.data)) {
-            followedProjects = response.data;
-          }
-        }
-
-        // Extract projectIds into a Set for O(1) lookup
-        const ids = new Set(followedProjects.map(p => p.projectId || p.id));
-        console.log('[MainLayout] Followed project IDs:', ids);
-        setFollowedProjectIds(ids);
-      } catch (error) {
-        console.error('[MainLayout] Failed to fetch followed projects:', error);
-        setFollowedProjectIds(new Set());
-      }
-    };
-
     fetchFollowedIds();
-  }, [user]);
+  }, [fetchFollowedIds]);
 
-  // Fetch sent connection requests for investors - runs once and caches the projectIds
   useEffect(() => {
-    const isInvestor = user && (
-      user.role === 'investor' ||
-      user.role === 'Investor' ||
-      user.role === 1 ||
-      String(user.role) === '1'
-    );
-
-    if (!isInvestor) {
-      setSentConnectionIds(new Set());
-      return;
-    }
-
-    const fetchSentConnections = async () => {
-      try {
-        const response = await connectionService.getMyConnectionRequests();
-        console.log('[MainLayout] Sent connections response:', response);
-
-        let requests = [];
-        if (response && response.data) {
-          if (response.data.items && Array.isArray(response.data.items)) {
-            requests = response.data.items;
-          } else if (Array.isArray(response.data)) {
-            requests = response.data;
-          }
-        }
-
-        // Extract projectIds into a Set for O(1) lookup
-        const ids = new Set(requests.map(r => r.projectId));
-        console.log('[MainLayout] Sent connection project IDs:', ids);
-        setSentConnectionIds(ids);
-      } catch (error) {
-        console.error('[MainLayout] Failed to fetch sent connections:', error);
-        setSentConnectionIds(new Set());
-      }
-    };
-
     fetchSentConnections();
-  }, [user]);
+  }, [fetchSentConnections]);
 
-  // Fetch subscription status
   useEffect(() => {
-    if (!user) {
-      setUserSubscription(null);
-      return;
-    }
-    const fetchSubscription = async () => {
-      try {
-        const subData = await subscriptionService.getMySubscription();
-        console.log('[MainLayout] User subscription:', subData);
-        setUserSubscription(subData);
-      } catch (error) {
-        console.error('[MainLayout] Failed to fetch subscription:', error);
-      }
-    };
-    fetchSubscription();
-  }, [user]);
+    refetchInvestedProjects();
+  }, [refetchInvestedProjects]);
 
-  // Fetch invested projects for investors - runs once and caches the projectIds
   useEffect(() => {
-    const isInvestor = user && (
-      user.role === 'investor' ||
-      user.role === 'Investor' ||
-      user.role === 1 ||
-      String(user.role) === '1'
-    );
-
-    if (!isInvestor) {
-      setInvestedProjectIds(new Set());
-      return;
-    }
-
-    const fetchInvestedProjects = async () => {
-      try {
-        const response = await dealsService.getInvestorDeals();
-        console.log('[MainLayout] Investor deals response:', response);
-
-        let deals = [];
-        if (response && response.data) {
-          if (response.data.items && Array.isArray(response.data.items)) {
-            deals = response.data.items;
-          } else if (Array.isArray(response.data)) {
-            deals = response.data;
-          }
-        }
-
-        // Extract projectIds into a Set for O(1) lookup
-        const ids = new Set(deals.map(d => d.projectId));
-        console.log('[MainLayout] Invested project IDs:', ids);
-        setInvestedProjectIds(ids);
-      } catch (error) {
-        console.error('[MainLayout] Failed to fetch invested projects:', error);
-        setInvestedProjectIds(new Set());
-      }
-    };
-
-    fetchInvestedProjects();
-  }, [user]);
-
-  // Fetch all deals and count investors per project (Contract_Signed only)
-  useEffect(() => {
-    const fetchInvestorData = async () => {
-      try {
-        console.log('[MainLayout] Fetching investor data and deals...');
-        const [dealsRes, profilesRes] = await Promise.all([
-          dealsService.getInvestorDeals(),
-          investorService.getAllInvestors({ pageSize: 100 })
-        ]);
-
-        // 1. Process investor profiles into a lookup map
-        const profileLookup = new Map();
-        const profiles = profilesRes?.items || profilesRes?.data?.items || (Array.isArray(profilesRes) ? profilesRes : []);
-
-        profiles.forEach(p => {
-          const id = p.investorId || p.userId || p.id;
-          if (id) {
-            profileLookup.set(id.toString(), {
-              name: p.organizationName || p.userName || p.name || 'Nhà đầu tư',
-              avatar: p.profilePicture || p.avatar || null
-            });
-          }
-        });
-
-        // 2. Process deals
-        let deals = [];
-        if (dealsRes && dealsRes.data) {
-          if (dealsRes.data.items && Array.isArray(dealsRes.data.items)) {
-            deals = dealsRes.data.items;
-          } else if (Array.isArray(dealsRes.data)) {
-            deals = dealsRes.data;
-          }
-        } else if (Array.isArray(dealsRes)) {
-          deals = dealsRes;
-        }
-
-        // Filter for Contract_Signed status only (Status 3 = Contract_Signed)
-        const contractSignedDeals = deals.filter(d =>
-          d.status === 'Contract_Signed' ||
-          d.status === 3 ||
-          String(d.status) === '3'
-        );
-
-        // 3. Group investors by project using real profile data
-        const investorMapByProject = new Map();
-        const seenPairs = new Set(); // Track unique investor-project pairs
-
-        contractSignedDeals.forEach(deal => {
-          const pId = deal.projectId;
-          const invId = deal.investorId || deal.investor?.id || deal.investor?.investorId;
-
-          if (!pId || !invId) return;
-
-          // Try to get real info from lookup map
-          const realProfile = profileLookup.get(invId.toString());
-
-          let investorInfo = {
-            id: invId,
-            name: realProfile?.name || deal.investor?.name || deal.investor?.email || 'Nhà đầu tư',
-            avatar: realProfile?.avatar || deal.investor?.profilePicture || deal.investor?.avatar || null
-          };
-
-          const pairKey = `${invId}-${pId}`;
-          if (!seenPairs.has(pairKey)) {
-            if (!investorMapByProject.has(pId)) {
-              investorMapByProject.set(pId, []);
-            }
-            investorMapByProject.get(pId).push(investorInfo);
-            seenPairs.add(pairKey);
-          }
-        });
-
-        setInvestorsByProject(investorMapByProject);
-        console.log('[MainLayout] Updated investorsByProject with real profiles:', investorMapByProject);
-      } catch (error) {
-        console.error('[MainLayout] Failed to fetch investor data:', error);
-        setInvestorsByProject(new Map());
-      }
-    };
-
-    fetchInvestorData();
-  }, []);
+    fetchInvestorDealsForGrid();
+  }, [fetchInvestorDealsForGrid]);
 
   useEffect(() => {
     // Only fetch if we are showing the main feed
@@ -517,14 +431,17 @@ function MainLayout({
         if (startups.length > 0) {
           startups.forEach(s => {
             const name = s.organizationName || s.companyName;
+            const logo = s.logoUrl || s.logo;
             if (!name) return;
+            
+            const info = { name, logo };
 
             // Map by all possible ID fields to be safe
-            if (s.startupId) startupMap[s.startupId] = name;
-            if (s.StartupId) startupMap[s.StartupId] = name;
-            if (s.userId) startupMap[s.userId] = name;
-            if (s.UserId) startupMap[s.UserId] = name;
-            if (s.id) startupMap[s.id] = name;
+            if (s.startupId) startupMap[s.startupId] = info;
+            if (s.StartupId) startupMap[s.StartupId] = info;
+            if (s.userId) startupMap[s.userId] = info;
+            if (s.UserId) startupMap[s.UserId] = info;
+            if (s.id) startupMap[s.id] = info;
           });
         }
 
@@ -535,7 +452,9 @@ function MainLayout({
             .map(p => {
               // Try every possible ID field that backend might use to link project to startup/owner
               const sid = p.startupId || p.StartupId || p.userId || p.UserId || p.ownerId || p.authorId;
-              const mappedName = startupMap[sid] || p.startupName || p.organizationName || null;
+              const mappedInfo = startupMap[sid];
+              const mappedName = mappedInfo?.name || p.startupName || p.organizationName || null;
+              const mappedLogo = mappedInfo?.logo || p.logoUrl || p.logo || null;
 
               return {
                 ...p,
@@ -552,7 +471,8 @@ function MainLayout({
                 score: p.startupPotentialScore,
                 timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
                 createdAt: p.createdAt,
-                logo: null,
+                logo: mappedLogo,
+                logoUrl: mappedLogo,
                 // Full project details
                 problemStatement: p.problemStatement,
                 solutionDescription: p.solutionDescription,
@@ -751,6 +671,17 @@ function MainLayout({
       setShowProjectForm(true);
     }
   }, [user?.role, hasStartupProfile]);
+
+  // Memoized global recent projects (Top 3 newest from any startup)
+  const recentProjects = useMemo(() => {
+    return [...allStartups]
+      .sort((a, b) => {
+        const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bt - at;
+      })
+      .slice(0, 3);
+  }, [allStartups]);
 
   return (
     <div className={`${styles.mainContainer} ${showAI ? styles.aiMode : ''}`}>
@@ -966,10 +897,22 @@ function MainLayout({
           onFilterChange={handleFilterChange}
           onShowHome={onShowHome}
           onShowLogin={onShowLogin}
-          topRatedStartups={topRatedStartups}
+          recentProjects={recentProjects}
           trendingSectors={trendingSectors}
           isLoading={isLoading}
           user={user}
+          onViewProject={(pid) => {
+            // Save scroll position for returning later
+            const isMobile = window.innerWidth < 1024;
+            const scrollPos = isMobile ? window.scrollY : (mainContentRef.current ? mainContentRef.current.scrollTop : 0);
+            homeScrollPos.current = scrollPos;
+
+            setSelectedProjectId(pid);
+            setSelectedStartupProfileId(null);
+            setSelectedInvestorProfileId(null);
+            setSelectedAdvisor(null);
+            window.history.pushState({}, '', `/projects/${pid}`);
+          }}
         />
       </div>
 
@@ -978,15 +921,11 @@ function MainLayout({
         <ProjectSubmissionForm
           onClose={() => setShowProjectForm(false)}
           onSuccess={async (data) => {
-            // User clicked "Đến Startup Dashboard" button
-            // Navigate to dashboard
             onShowDashboard?.();
           }}
           user={user}
         />
       )}
-
-
 
     </div>
   );

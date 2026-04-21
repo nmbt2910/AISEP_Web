@@ -310,9 +310,9 @@ export default function BookingWizard({ onClose, user, initialAdvisorId = null, 
       ? selectedSlotIds.filter(id => id !== slotId) 
       : [...selectedSlotIds, slotId];
 
-    // Trigger toast if user has quota but exceeds 3-hour limit
-    if (!isRemoving && nextIds.length === 4 && subscription?.remainingFreeBookings > 0) {
-      showToast("Gói Premium chỉ hỗ trợ đặt lịch miễn phí tối đa 3 giờ / lần.");
+    // Reset free booking toggle if hours exceed limit (Max 3 hours for Premium)
+    if (nextIds.length > 3) {
+      setUseFreeBooking(false);
     }
 
     setSelectedSlotIds(nextIds);
@@ -332,7 +332,7 @@ export default function BookingWizard({ onClose, user, initialAdvisorId = null, 
         AdvisorAvailabilitySlotIds: selectedSlotIds,
         Note: note.trim() || null,
         ...(sourceBookingId ? { SourceBookingId: sourceBookingId } : {}),
-        IsFreeBooking: useFreeBooking || isComplaintRebook
+        IsFreeBooking: (useFreeBooking && selectedSlotIds.length <= 3) || isComplaintRebook
       };
       const result = await bookingService.createBooking(payload);
       setCreatedBooking(result?.data || result);
@@ -776,14 +776,23 @@ export default function BookingWizard({ onClose, user, initialAdvisorId = null, 
                       </div>
                     )}
 
-                    {/* Toggle and Description for Subscription-based Free Booking */}
+                    {/* Toggle and Description for Free Booking Quota (Subscription & Bonus) */}
                     {!isComplaintRebook && !isFreeBooking && subscription && (
                       <div className={styles.freeBenefitWrapper} style={{ marginTop: 12 }}>
-                        {subscription.remainingFreeBookings > 0 && selectedSlotIds.length <= 3 ? (
+                        {((subscription.remainingFreeBookings ?? 0) + (subscription.bonusFreeBookings ?? 0)) > 0 && selectedSlotIds.length <= 3 ? (
                           <div className={styles.freeBenefitCard}>
-                            <Crown size={18} weight="fill" color="#eab308" />
+                            {subscription.bonusFreeBookings > 0 && subscription.remainingFreeBookings <= 0 ? (
+                                <Sparkle size={18} weight="fill" color="#eab308" />
+                            ) : (
+                                <Crown size={18} weight="fill" color="#eab308" />
+                            )}
                             <div className={styles.freeBenefitText} style={{ flex: 1 }}>
-                              <strong>Gói Premium:</strong> Bạn đang có {subscription.remainingFreeBookings} lượt đặt lịch miễn phí.
+                              <strong>{subscription.bonusFreeBookings > 0 ? "Lượt miễn phí:" : "Gói Premium:"}</strong> Bạn đang có {(subscription.remainingFreeBookings ?? 0) + (subscription.bonusFreeBookings ?? 0)} lượt đặt lịch miễn phí.
+                              {subscription.bonusFreeBookings > 0 && subscription.remainingFreeBookings > 0 && (
+                                <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                                  ({subscription.remainingFreeBookings} từ gói đăng ký + {subscription.bonusFreeBookings} lượt hoàn trả)
+                                </div>
+                              )}
                             </div>
                             <label className={styles.toggleSwitch}>
                                 <input 
@@ -798,8 +807,8 @@ export default function BookingWizard({ onClose, user, initialAdvisorId = null, 
                           <div className={styles.freeBenefitInfo}>
                             <Info size={16} />
                             <span>
-                              {subscription.remainingFreeBookings <= 0 
-                                ? "Bạn đã hết lượt đặt lịch miễn phí trong tháng này." 
+                              {((subscription.remainingFreeBookings ?? 0) + (subscription.bonusFreeBookings ?? 0)) <= 0 
+                                ? "Bạn đã hết lượt đặt lịch miễn phí." 
                                 : "Lượt đặt lịch miễn phí chỉ áp dụng cho các buổi tư vấn từ 3 giờ trở xuống."}
                             </span>
                           </div>

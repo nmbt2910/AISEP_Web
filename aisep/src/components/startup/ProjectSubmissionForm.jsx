@@ -28,6 +28,30 @@ const INDUSTRIES = [
 ];
 
 /**
+ * Get internal numeric value for industry from various formats
+ * @param {any} industry - Industry label or value
+ * @returns {string} - Numeric string value ("0" - "14")
+ */
+const getIndustryNumericValue = (industry) => {
+  if (industry === null || industry === undefined || industry === '') return '';
+  
+  // If already numeric (as string or number)
+  const numeric = parseInt(industry);
+  if (!isNaN(numeric) && numeric >= 0 && numeric <= 14) {
+      return String(numeric);
+  }
+
+  // If label (e.g., "Fintech")
+  const found = INDUSTRIES.find(i => 
+    i.label.toLowerCase() === String(industry).toLowerCase() ||
+    i.label.replace('_', ' ').toLowerCase() === String(industry).toLowerCase() ||
+    i.label.replace(' ', '_').toLowerCase() === String(industry).toLowerCase()
+  );
+  
+  return found ? String(found.value) : '';
+};
+
+/**
  * ProjectSubmissionForm - Form for submitting new startup projects
  * Improved with professional styling and theme support.
  */
@@ -42,7 +66,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
     projectName: initialData.projectName || initialData.name || '',
     shortDescription: initialData.shortDescription || '',
     developmentStage: getStageNumericValue(initialData.developmentStage),
-    industry: initialData.industry || '',
+    industry: getIndustryNumericValue(initialData.industry),
     problemStatement: initialData.problemStatement || '',
     solutionDescription: initialData.solutionDescription || '',
     targetCustomers: initialData.targetCustomers || '',
@@ -324,7 +348,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
 
       {/* Form Modal - Show when not submitted successfully yet */}
       {!isSuccessModalOpen && (
-        <div className={styles.modalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+        <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
             {/* Header */}
             <div className={styles.modalHeader}>

@@ -158,7 +158,7 @@
 /* â”€â”€ KANBAN BOARD STYLES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .boardGrid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
     flex: 1;
     overflow-x: auto;
@@ -436,13 +436,15 @@
 }
 
 .bfVal {
-    font-size: 13.5px;
+    font-size: 13px;
     color: var(--text-primary);
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    flex: 1;
+    text-align: right;
 }
 
 .bcardActions {
@@ -827,5 +829,64 @@
 
     .approvalActions button {
         flex: 1;
+    }
+}
+
+/* Error Alerts */
+.formError {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(244, 33, 46, 0.08);
+    border: 1px solid rgba(244, 33, 46, 0.12);
+    border-left: 4px solid #f4212e;
+    border-radius: 12px;
+    animation: slideInError 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-bottom: 20px;
+}
+
+.errorIconWrapper {
+    color: #f4212e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.errorMsgContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.errorMsgContent strong {
+    display: block;
+    font-size: 14px;
+    color: #f4212e;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.errorMsgContent p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.5;
+    opacity: 0.9;
+    word-break: break-word;
+}
+
+@keyframes slideInError {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

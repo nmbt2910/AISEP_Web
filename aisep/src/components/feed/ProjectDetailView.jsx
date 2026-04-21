@@ -583,9 +583,16 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
 
   const PremiumBadge = ({ inline }) => {
     const roleStr = user?.role?.toString().toLowerCase() || '';
-    const isBypassRole = ['staff', 'operationstaff', 'advisor'].includes(roleStr) || [3, 4, 5].includes(Number(user?.role));
-    if (isBypassRole) return null;
-    const canUnlock = effectiveIsPaidUser && (user?.role?.toString().toLowerCase() === 'investor' || Number(user?.role) === 1);
+    const roleNum = Number(user?.role);
+    const isBypassRole = ['staff', 'operationstaff', 'operation_staff', 'advisor'].includes(roleStr) || [3, 4, 5].includes(roleNum);
+    
+    // Also bypass if current user is the owner of this project
+    const isOwner = project?.startupId && myStartupProfile && project.startupId === myStartupProfile.id;
+
+    if (isBypassRole || isOwner) return null;
+    
+    const isBuyerRole = ['investor', 'startup'].includes(roleStr) || [0, 1, 2].includes(roleNum);
+    const canUnlock = effectiveIsPaidUser && isBuyerRole;
     return (
       <div
         onClick={canUnlock ? handleUnlockClick : undefined}

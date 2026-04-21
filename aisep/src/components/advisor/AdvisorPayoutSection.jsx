@@ -273,7 +273,7 @@ export default function AdvisorPayoutSection({ user }) {
                           const canRetry = p.status === 'Rejected';
 
                           return (
-                            <tr key={p.monthlyPayoutId}>
+                            <tr key={p.payoutId}>
                               <td className={styles.periodCell}>
                                 <strong>Tháng {p.month}/{p.year}</strong>
                               </td>
@@ -331,7 +331,7 @@ export default function AdvisorPayoutSection({ user }) {
                       const canRetry = p.status === 'Rejected';
 
                       return (
-                        <div key={p.monthlyPayoutId} className={styles.payoutCard}>
+                        <div key={p.payoutId} className={styles.payoutCard}>
                           <div className={styles.payoutCardHeader}>
                             <div className={styles.payoutCardPeriod}>
                               <strong>Tháng {p.month}/{p.year}</strong>
@@ -397,7 +397,7 @@ export default function AdvisorPayoutSection({ user }) {
           error={retryNoteError}
           setError={setRetryNoteError}
           onClose={closeRetryModal}
-          onSubmit={() => handleRequestRetry(retryTarget.monthlyPayoutId)}
+          onSubmit={() => handleRequestRetry(retryTarget.payoutId)}
           loading={retryLoading}
         />
       )}
