@@ -49,6 +49,7 @@ function Sidebar({
         { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminStaff', displayLabel: 'Quản lý Staff', href: '#', showWhenLoggedIn: true },
         { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
+        { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
       return adminItems;
     }
@@ -208,6 +209,10 @@ function Sidebar({
       onShowDashboard('pr_news');
     }
 
+    if (label === 'AccountProfile' && onShowDashboard) {
+      onShowDashboard('account_profile');
+    }
+
     if (label === 'AdminUsers' && onShowDashboard) {
       onShowDashboard('users');
     }
@@ -354,6 +359,7 @@ function Sidebar({
                       if (activeView === 'dashboard_users') return 'AdminUsers';
                       if (activeView === 'dashboard_staff') return 'AdminStaff';
                       if (activeView === 'dashboard_transactions') return 'AdminTransactions';
+                      if (activeView === 'dashboard_account_profile') return 'AccountProfile';
                       if (activeView === 'profile') return 'Profile';
                       if (activeView === 'advisors') return 'Advisors';
                       if (activeView === 'investors') return 'Investors';

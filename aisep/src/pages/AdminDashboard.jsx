@@ -3,11 +3,13 @@ import { Users, Database, ChevronRight, Loader2 } from 'lucide-react';
 import styles from '../styles/SharedDashboard.module.css';
 import DashboardSection from '../components/common/DashboardSection';
 import adminService from '../services/adminService';
+import AccountProfileTab from '../components/common/AccountProfileTab';
 
 const ADMIN_SECTIONS = [
     { id: 'users', label: 'Quản lý người dùng', icon: Users, description: 'Danh sách, quyền và trạng thái tài khoản.' },
     { id: 'staff', label: 'Quản lý Staff', icon: Users, description: 'Tạo và quản lý tài khoản staff vận hành.' },
     { id: 'transactions', label: 'Giao dịch', icon: Database, description: 'Theo dõi giao dịch thanh toán toàn hệ thống.' },
+    { id: 'account_profile', label: 'Hồ sơ người dùng', icon: Users, description: 'Quản lý thông tin cá nhân và mật khẩu.' },
 ];
 
 export default function AdminDashboard({ user, initialSection = 'users' }) {
@@ -448,7 +450,7 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                             Ngày sinh
                         </label>
                         <input
-                            type="datetime-local"
+                            type="date"
                             value={staffFormData.dateOfBirth}
                             onChange={(e) => setStaffFormData({ ...staffFormData, dateOfBirth: e.target.value })}
                             style={{
@@ -657,6 +659,10 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         </div>
     );
 
+    const renderAccountProfileSection = () => (
+        <AccountProfileTab user={user} />
+    );
+
     return (
         <div className={styles.container}>
             <div className={styles.content}>
@@ -668,7 +674,7 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                         </span>
                     )}
                 >
-                    {activeSection === 'transactions' ? renderTransactionsSection() : activeSection === 'users' ? renderUsersSection() : activeSection === 'staff' ? renderStaffSection() : (
+                    {activeSection === 'transactions' ? renderTransactionsSection() : activeSection === 'users' ? renderUsersSection() : activeSection === 'staff' ? renderStaffSection() : activeSection === 'account_profile' ? renderAccountProfileSection() : (
                         <>
                             <div className={styles.sectionGrid}>
                                 <div className={styles.card}>
