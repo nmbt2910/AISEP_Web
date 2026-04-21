@@ -37,12 +37,22 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
 
   useEffect(() => {
     const checkExistingReport = async () => {
-      if (!booking || !booking.id || !['Startup', 'Investor'].includes(userRole)) return;
+      // Allow Startup, Investor (Reporters) and Staff, Advisor (Involved/Reviewers) to see the report
+      if (!booking || !booking.id) return;
       
       setLoadingReport(true);
       try {
-          const reports = await userReportService.getMyReportsAsReporter();
-          // Filter to find the report for this specific booking
+          let reports;
+          if (userRole === 'Staff') {
+            reports = await userReportService.getAllReports();
+          } else if (userRole === 'Advisor') {
+            reports = await userReportService.getMyReportsAsReported();
+          } else if (['Startup', 'Investor'].includes(userRole)) {
+            reports = await userReportService.getMyReportsAsReporter();
+          } else {
+            return;
+          }
+
           const reportsList = Array.isArray(reports) ? reports : (reports?.items || []);
           const report = reportsList.find(r => 
             String(r.bookingId) === String(booking.id || booking.bookingId)
@@ -248,22 +258,23 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
             </button>
           )}
 
-          {['Startup', 'Investor'].includes(userRole) && [2, 'Confirmed'].includes(booking.status) && (
-            existingReport ? (
+          {/* Complaint Action: Shown for all roles if a report exists, or for Startup/Investor to CREATE a report */}
+          {existingReport ? (
+            <button
+              className={`${styles.secondaryBtn}`}
+              onClick={() => { onAction('viewComplaint', existingReport); onClose(); }}
+              style={{ backgroundColor: 'rgba(29, 155, 240, 0.05)', color: 'var(--primary-blue)', border: '1px solid rgba(29, 155, 240, 0.2)' }}
+            >
+              <MagnifyingGlass size={16} /> Xem khiếu nại
+            </button>
+          ) : (
+            ['Startup', 'Investor'].includes(userRole) && [2, 'Confirmed'].includes(booking.status) && (
               <button
-                className={`${styles.secondaryBtn}`}
-                onClick={() => { onAction('viewComplaint', existingReport); onClose(); }}
-                style={{ backgroundColor: 'rgba(29, 155, 240, 0.05)', color: 'var(--primary-blue)', border: '1px solid rgba(29, 155, 240, 0.2)' }}
+                className={`${styles.secondaryBtn} ${styles.dangerBtn}`}
+                onClick={() => { onAction('complain', booking); onClose(); }}
               >
-                <MagnifyingGlass size={16} /> Xem khiếu nại
+                <WarningCircle size={16} /> Khiếu nại
               </button>
-            ) : (
-                <button
-                  className={`${styles.secondaryBtn} ${styles.dangerBtn}`}
-                  onClick={() => { onAction('complain', booking); onClose(); }}
-                >
-                  <WarningCircle size={16} /> Khiếu nại
-                </button>
             )
           )}
 

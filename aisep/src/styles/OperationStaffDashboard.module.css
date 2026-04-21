@@ -1518,6 +1518,11 @@ btnReject {
     box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
 }
 
+.bctDot.complaint {
+    background: #7c3aed;
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+}
+
 .bcolN {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
@@ -1559,6 +1564,11 @@ btnReject {
 .bcolN.pay {
     color: #f59e0b;
     background: rgba(245, 158, 11, 0.1);
+}
+
+.bcolN.complaint {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.1);
 }
 
 /* Cards Container */
@@ -1638,6 +1648,10 @@ btnReject {
 
 .bcardStrip.pay {
     background: #f59e0b;
+}
+
+.bcardStrip.complaint {
+    background: #7c3aed;
 }
 
 .bcardBody {

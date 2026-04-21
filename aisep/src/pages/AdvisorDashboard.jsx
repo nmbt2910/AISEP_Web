@@ -4,8 +4,9 @@ import {
     Users, Calendar, FileText, Star, Clock, CheckCircle, MessageSquare,
     PlusCircle, TrendingUp, Trash2, Edit2, X, AlertCircle, Loader, Loader2,
     ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CreditCard,
-    Eye, Check, ShieldCheck
+    Eye, Check, ShieldCheck, ShieldAlert
 } from 'lucide-react';
+import userReportService from '../services/userReportService';
 import styles from '../styles/SharedDashboard.module.css';
 import avStyles from './AdvisorDashboard.module.css';
 import FeedHeader from '../components/feed/FeedHeader';
@@ -24,6 +25,7 @@ import AdvisorPayoutSection from '../components/advisor/AdvisorPayoutSection';
 import AdvisorWalletSection from '../components/advisor/AdvisorWalletSection';
 import AccountProfileTab from '../components/common/AccountProfileTab';
 import BookingRejectionModal from '../components/booking/BookingRejectionModal';
+import UserReportStatusModal from '../components/booking/UserReportStatusModal';
 
 
 /**
@@ -99,6 +101,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
     // ── Stats từ real data ─────────────────────────────────────────────────
     const [availabilities, setAvailabilities] = useState([]);
     const [incomingBookings, setIncomingBookings] = useState([]);
+    const [userReportsReported, setUserReportsReported] = useState([]);
     const [availabilitiesLoading, setAvailabilitiesLoading] = useState(false);
     const [bookingsLoading, setBookingsLoading] = useState(false);
 
@@ -121,11 +124,16 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
         if (!advisorId) return;
         setBookingsLoading(true);
         try {
-            const [data] = await Promise.all([
+            const [data, reportRes] = await Promise.all([
                 bookingService.getMyAdvisorBookings('', '-Id', 1, 100),
+                userReportService.getMyReportsAsReported(),
                 new Promise(resolve => setTimeout(resolve, 1000))
             ]);
             const items = data?.items ?? (Array.isArray(data) ? data : []);
+            const reports = reportRes?.items ?? (Array.isArray(reportRes) ? reportRes : []);
+            
+            setUserReportsReported(reports);
+
             // Sort newest to oldest (descending ID)
             const sortedItems = [...items].sort((a, b) => (b.id || 0) - (a.id || 0));
             setIncomingBookings(sortedItems);
@@ -498,12 +506,27 @@ const AdvisorBookingKanbanCard = ({ booking, onDetail, onApprove, onReject, onCh
         localStatus = 'comp';
         statusColor = '#10b981';
         statusBg = 'rgba(16, 185, 129, 0.1)';
-    } else if (status === 4 || status === 'Cancel' || status === 5 || status === 'NoResponse') {
-        statusLabel = status === 5 || status === 'NoResponse' ? 'Không phản hồi' : 'Đã hủy';
+    } else if (status === 4 || status === 'ComplaintAccepted') {
+        statusLabel = 'Khiếu nại chấp nhận';
+        localStatus = 'complaint';
+        statusColor = '#7c3aed';
+        statusBg = 'rgba(124, 58, 237, 0.1)';
+    } else if (status === 5 || status === 'ComplaintRejected') {
+        statusLabel = 'Khiếu nại từ chối';
+        localStatus = 'complaint';
+        statusColor = '#7c3aed';
+        statusBg = 'rgba(124, 58, 237, 0.1)';
+    } else if (status === 6 || status === 'Cancel' || status === 'Cancelled') {
+        statusLabel = 'Đã hủy';
         localStatus = 'rej';
         statusColor = '#f4212e';
         statusBg = 'rgba(244, 33, 46, 0.1)';
-    } else if (status === 1 || status === 'ApprovedAwaitingPayment') {
+    } else if (status === 7 || status === 'NoResponse') {
+        statusLabel = 'Không phản hồi';
+        localStatus = 'rej';
+        statusColor = '#f4212e';
+        statusBg = 'rgba(244, 33, 46, 0.1)';
+    } else if (status === 1 || status === 'ApprovedAwaitingPayment' || status === 'AwaitingPayment') {
         statusLabel = 'Chờ thanh toán';
         localStatus = 'pend';
         statusColor = '#ff7a00';
@@ -840,7 +863,10 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
                             handleRejectClick(b);
                             setSelectedBooking(null);
                         }
-                        if (act === 'viewProject') onNavigate('project_' + b.projectId);
+                        if (act === 'viewComplaint') {
+                            setSelectedReportForView(b);
+                            setSelectedBooking(null);
+                        }
                         if (act !== 'reject') setSelectedBooking(null);
                     }}
                 />,
@@ -861,14 +887,15 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
     );
 }
 
-function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user, activeSection, onNavigate }) {
+function IncomingBookingsSection({ bookings, userReports = [], targetId, loading, onRefresh, user, activeSection, onNavigate }) {
     const [actionLoading, setActionLoading] = useState({});
     const [actionError, setActionError] = useState({});
     const [reportModal, setReportModal] = useState(null);
     const [chatSession, setChatSession] = useState(null);
     const [chatLoading, setChatLoading] = useState({});
     const [selectedBooking, setSelectedBooking] = useState(null);
-    const [activeMobileTab, setActiveMobileTab] = useState('pend'); // pend, conf, comp, canc
+    const [selectedReportForView, setSelectedReportForView] = useState(null);
+    const [activeMobileTab, setActiveMobileTab] = useState('pend'); // pend, conf, comp, complaint, canc
     const tabSwitcherRef = React.useRef(null);
     const [showLeftTabIndicator, setShowLeftTabIndicator] = useState(false);
     const [showRightTabIndicator, setShowRightTabIndicator] = useState(false);
@@ -918,10 +945,20 @@ function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user,
 
     const isMobile = windowWidth <= 1024;
 
-    const groupPending = bookings.filter(b => b.status === 1 || b.status === 'ApprovedAwaitingPayment');
+    const groupPending = bookings.filter(b => b.status === 1 || b.status === 'ApprovedAwaitingPayment' || b.status === 'AwaitingPayment');
     const groupConfirmed = bookings.filter(b => b.status === 2 || b.status === 'Confirmed');
     const groupCompleted = bookings.filter(b => b.status === 3 || b.status === 'Completed');
-    const groupCancelled = bookings.filter(b => b.status === 4 || b.status === 'Cancel' || b.status === 5 || b.status === 'NoResponse');
+    const groupComplaint = bookings.filter(b => {
+        const hasReport = userReports.some(r => String(r.bookingId) === String(b.id || b.bookingId));
+        return hasReport || b.status === 4 || b.status === 5 || b.status === 'ComplaintAccepted' || b.status === 'ComplaintRejected';
+    });
+    const groupDone = [...groupCompleted, ...groupComplaint].sort((a, b) => (b.id || 0) - (a.id || 0));
+
+    const groupCancelled = bookings.filter(b => {
+        const isComp = groupComplaint.some(x => x.id === (b.id || b.bookingId));
+        if (isComp) return false;
+        return b.status === 6 || b.status === 7 || b.status === 'Cancel' || b.status === 'Cancelled' || b.status === 'NoResponse' || b.status === 4 || b.status === 5;
+    });
 
     const handleApprove = async (bookingId) => {
         setActionLoading(prev => ({ ...prev, [bookingId]: 'approve' }));
@@ -995,7 +1032,14 @@ function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user,
                 {!isMobile && (
                     <div className={`${avStyles.bcolHead} ${avStyles[statusId]}`}>
                         <div className={avStyles.bcolTitle}>
-                            <div className={`${avStyles.bctDot} ${avStyles[statusId]}`}></div>
+                            {statusId === 'mixed' ? (
+                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                    <div className={`${avStyles.bctDot} ${avStyles.comp}`}></div>
+                                    <div className={`${avStyles.bctDot} ${avStyles.complaint}`}></div>
+                                </div>
+                            ) : (
+                                <div className={`${avStyles.bctDot} ${avStyles[statusId]}`}></div>
+                            )}
                             {title}
                         </div>
                         <div className={`${avStyles.bcolN} ${avStyles[statusId]}`}>{items.length}</div>
@@ -1049,10 +1093,13 @@ function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user,
                                 <span>Đã xác nhận</span>
                                 <span className={avStyles.mobileTabCount}>{groupConfirmed.length}</span>
                             </button>
-                            <button className={`${avStyles.mobileTab} ${activeMobileTab === 'comp' ? avStyles.activeMobileTab : ''}`} onClick={() => setActiveMobileTab('comp')} data-status="comp">
-                                <div className={`${avStyles.bctDot} ${avStyles.comp}`}></div>
-                                <span>Hoàn thành</span>
-                                <span className={avStyles.mobileTabCount}>{groupCompleted.length}</span>
+                            <button className={`${avStyles.mobileTab} ${activeMobileTab === 'mixed' ? avStyles.activeMobileTab : ''}`} onClick={() => setActiveMobileTab('mixed')} data-status="mixed">
+                                <div style={{ display: 'flex', gap: '3px' }}>
+                                    <div className={`${avStyles.bctDot} ${avStyles.comp}`}></div>
+                                    <div className={`${avStyles.bctDot} ${avStyles.complaint}`}></div>
+                                </div>
+                                <span style={{ marginLeft: '4px' }}>Hoàn thành & Khiếu nại</span>
+                                <span className={avStyles.mobileTabCount}>{groupDone.length}</span>
                             </button>
                             <button className={`${avStyles.mobileTab} ${activeMobileTab === 'canc' ? avStyles.activeMobileTab : ''}`} onClick={() => setActiveMobileTab('canc')} data-status="rej">
                                 <div className={`${avStyles.bctDot} ${avStyles.rej}`}></div>
@@ -1067,7 +1114,7 @@ function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user,
                 <div className={avStyles.boardGrid}>
                     {renderColumn('Chờ thanh toán', groupPending, 'pend')}
                     {renderColumn('Đã xác nhận', groupConfirmed, 'conf')}
-                    {renderColumn('Hoàn thành', groupCompleted, 'comp')}
+                    {renderColumn('Hoàn thành & Khiếu nại', groupDone, 'mixed')}
                     {renderColumn('Đã hủy', groupCancelled, 'rej')}
                 </div>
             </div>
@@ -1085,7 +1132,10 @@ function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user,
                         }
                         if (act === 'chat') handleOpenChat(b);
                         if (act === 'report') setReportModal({ bookingId: b.id, advisorName: b.customerName, userRole: 'Advisor' });
-                        if (act === 'viewProject') onNavigate('project_' + b.projectId);
+                        if (act === 'viewComplaint') {
+                            setSelectedReportForView(b);
+                            setSelectedBooking(null);
+                        }
                         if (act !== 'reject') setSelectedBooking(null);
                     }}
                 />
@@ -1109,6 +1159,13 @@ function IncomingBookingsSection({ bookings, targetId, loading, onRefresh, user,
                     advisorName={reportModal.advisorName}
                     onClose={() => setReportModal(null)}
                     onDone={() => { setReportModal(null); onRefresh(); }}
+                />
+            )}
+
+            {selectedReportForView && (
+                <UserReportStatusModal
+                    report={selectedReportForView}
+                    onClose={() => setSelectedReportForView(null)}
                 />
             )}
 

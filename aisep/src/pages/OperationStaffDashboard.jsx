@@ -167,18 +167,30 @@ const BookingKanbanCard = ({ booking, status, onDetail }) => {
     let statusLabel = 'Chờ xác nhận';
     let localStatus = status; // To map API status names to CSS classes
 
-    if (status === 'conf' || status === 'Confirmed') {
+    if (status === 'conf' || status === 'Confirmed' || status === 2) {
         statusLabel = 'Đã xác nhận';
         localStatus = 'conf';
-    } else if (status === 'comp' || status === 'Completed') {
+    } else if (status === 'comp' || status === 'Completed' || status === 3) {
         statusLabel = 'Hoàn thành';
         localStatus = 'comp';
-    } else if (status === 'canc' || status === 'Cancel' || status === 'Cancelled') {
+    } else if (status === 'ComplaintAccepted' || status === 4) {
+        statusLabel = 'Khiếu nại chấp nhận';
+        localStatus = 'complaint';
+    } else if (status === 'ComplaintRejected' || status === 5) {
+        statusLabel = 'Khiếu nại từ chối';
+        localStatus = 'complaint';
+    } else if (status === 'canc' || status === 'Cancel' || status === 'Cancelled' || status === 6) {
         statusLabel = 'Đã hủy';
         localStatus = 'rej';
-    } else if (status === 'pay' || status === 'ApprovedAwaitingPayment' || status === 'AwaitingPayment') {
+    } else if (status === 'NoResponse' || status === 7) {
+        statusLabel = 'Không phản hồi';
+        localStatus = 'rej';
+    } else if (status === 'pay' || status === 'ApprovedAwaitingPayment' || status === 'AwaitingPayment' || status === 1) {
         statusLabel = 'Chờ thanh toán';
         localStatus = 'pay';
+    } else if (status === 'pend' || status === 'Pending' || status === 0) {
+        statusLabel = 'Chờ xác nhận';
+        localStatus = 'pend';
     } else {
         localStatus = 'pend';
     }
@@ -200,8 +212,8 @@ const BookingKanbanCard = ({ booking, status, onDetail }) => {
                             #{booking?.id || '-'}
                         </div>
                         <span className={`${local.btag}`} style={{
-                            background: localStatus === 'pend' ? 'rgba(255, 122, 0, 0.1)' : localStatus === 'conf' ? 'rgba(29, 155, 240, 0.1)' : localStatus === 'comp' ? 'rgba(16, 185, 129, 0.1)' : localStatus === 'pay' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(244, 33, 46, 0.1)',
-                            color: localStatus === 'pend' ? '#ff7a00' : localStatus === 'conf' ? '#1d9bf0' : localStatus === 'comp' ? '#10b981' : localStatus === 'pay' ? '#f59e0b' : '#f4212e'
+                            background: localStatus === 'pend' ? 'rgba(255, 122, 0, 0.1)' : localStatus === 'conf' ? 'rgba(29, 155, 240, 0.1)' : localStatus === 'comp' ? 'rgba(16, 185, 129, 0.1)' : localStatus === 'pay' ? 'rgba(245, 158, 11, 0.1)' : localStatus === 'complaint' ? 'rgba(124, 58, 237, 0.1)' : 'rgba(244, 33, 46, 0.1)',
+                            color: localStatus === 'pend' ? '#ff7a00' : localStatus === 'conf' ? '#1d9bf0' : localStatus === 'comp' ? '#10b981' : localStatus === 'pay' ? '#f59e0b' : localStatus === 'complaint' ? '#7c3aed' : '#f4212e'
                         }}>
                             {statusLabel}
                         </span>
@@ -213,7 +225,7 @@ const BookingKanbanCard = ({ booking, status, onDetail }) => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '600', width: '50px', flexShrink: 0, textTransform: 'uppercase' }}>Cố vấn</span>
                             <span style={{
-                                color: localStatus === 'pend' ? '#ff7a00' : localStatus === 'conf' ? '#1d9bf0' : localStatus === 'comp' ? '#10b981' : localStatus === 'pay' ? '#f59e0b' : '#f4212e',
+                                color: localStatus === 'pend' ? '#ff7a00' : localStatus === 'conf' ? '#1d9bf0' : localStatus === 'comp' ? '#10b981' : localStatus === 'pay' ? '#f59e0b' : localStatus === 'complaint' ? '#7c3aed' : '#f4212e',
                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                             }}>
                                 {booking?.advisorName || 'N/A'}
@@ -222,7 +234,7 @@ const BookingKanbanCard = ({ booking, status, onDetail }) => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: '600', width: '50px', flexShrink: 0, textTransform: 'uppercase' }}>Khách</span>
                             <span style={{
-                                color: localStatus === 'pend' ? '#ff7a00' : localStatus === 'conf' ? '#1d9bf0' : localStatus === 'comp' ? '#10b981' : localStatus === 'pay' ? '#f59e0b' : '#f4212e',
+                                color: localStatus === 'pend' ? '#ff7a00' : localStatus === 'conf' ? '#1d9bf0' : localStatus === 'comp' ? '#10b981' : localStatus === 'pay' ? '#f59e0b' : localStatus === 'complaint' ? '#7c3aed' : '#f4212e',
                                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                             }}>
                                 {booking?.customerName || 'N/A'}
@@ -649,7 +661,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const [bookingFilters, setBookingFilters] = useState('');
     const [bookingPage, setBookingPage] = useState(1);
     const [bookingSearchTerm, setBookingSearchTerm] = useState('');
-    const [activeMobileBookingTab, setActiveMobileBookingTab] = useState('all'); // 'all', 'pend', 'conf', 'comp', 'canc'
+    const [activeMobileBookingTab, setActiveMobileBookingTab] = useState('all'); // 'all', 'pend', 'conf', 'comp', 'complaint', 'canc'
     const [bookingsError, setBookingsError] = useState(null);
     const [projectsError, setProjectsError] = useState(null);
 
@@ -681,6 +693,8 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
             list = list.filter(r =>
                 (r.category || '').toLowerCase().includes(lowerSearch) ||
                 (r.description || '').toLowerCase().includes(lowerSearch) ||
+                (r.userReportId || '').toString().toLowerCase().includes(lowerSearch) ||
+                (r.bookingId || '').toString().toLowerCase().includes(lowerSearch) ||
                 (r.reporterId || '').toString().toLowerCase().includes(lowerSearch) ||
                 (r.reportedUserId || '').toString().toLowerCase().includes(lowerSearch)
             );
@@ -800,11 +814,19 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     };
 
     // Derived booking lists
-    const pendingBookingsList = filterBookings(allBookings.filter(b => b.status === 'Pending'));
-    const awaitingPaymentBookingsList = filterBookings(allBookings.filter(b => b.status === 'ApprovedAwaitingPayment'));
-    const confirmedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Confirmed'));
-    const completedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Completed'));
-    const cancelledBookingsList = filterBookings(allBookings.filter(b => b.status === 'Cancel' || b.status === 'Cancelled'));
+    const pendingBookingsList = filterBookings(allBookings.filter(b => b.status === 'Pending' || b.status === 0));
+    const awaitingPaymentBookingsList = filterBookings(allBookings.filter(b => b.status === 'ApprovedAwaitingPayment' || b.status === 'AwaitingPayment' || b.status === 1));
+    const confirmedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Confirmed' || b.status === 2));
+    const completedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Completed' || b.status === 3));
+    const complaintBookingsList = filterBookings(allBookings.filter(b => {
+        const hasReport = userReports.some(r => String(r.bookingId) === String(b.id));
+        return hasReport || b.status === 'ComplaintAccepted' || b.status === 'ComplaintRejected' || b.status === 4 || b.status === 5;
+    }));
+    const cancelledBookingsList = filterBookings(allBookings.filter(b => {
+        const isComp = complaintBookingsList.some(x => x.id === b.id);
+        if (isComp) return false;
+        return b.status === 'Cancel' || b.status === 'Cancelled' || b.status === 'NoResponse' || b.status === 6 || b.status === 7 || b.status === 4 || b.status === 5;
+    }));
 
     const dashboardData = {
         pendingApprovals: pendingStartups.length,
@@ -1002,6 +1024,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
             fetchRejectedProjects();
         } else if (activeSection === 'bookings') {
             fetchBookings();
+            fetchUserReports();
         } else if (activeSection === 'approvals') {
             fetchStartupsData();
         } else if (activeSection === 'user_reports') {
@@ -2578,6 +2601,11 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                     Hoàn thành
                                     <span className={local.mobileTabCount} style={{ marginLeft: '8px' }}>{completedBookingsList.length}</span>
                                 </button>
+                                <button className={`${styles.tab} ${activeMobileBookingTab === 'complaint' ? styles.active : ''}`} onClick={() => setActiveMobileBookingTab('complaint')}>
+                                    <div className={`${local.bctDot} ${local.complaint}`} style={{ display: 'inline-block', marginRight: '6px' }}></div>
+                                    Khiếu nại
+                                    <span className={local.mobileTabCount} style={{ marginLeft: '8px' }}>{complaintBookingsList.length}</span>
+                                </button>
                                 <button className={`${styles.tab} ${activeMobileBookingTab === 'canc' ? styles.active : ''}`} onClick={() => setActiveMobileBookingTab('canc')}>
                                     <div className={`${local.bctDot} ${local.rej}`} style={{ display: 'inline-block', marginRight: '6px' }}></div>
                                     Đã hủy
@@ -2618,8 +2646,9 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                 activeMobileBookingTab === 'pay' ? awaitingPaymentBookingsList :
                                                     activeMobileBookingTab === 'conf' ? confirmedBookingsList :
                                                         activeMobileBookingTab === 'comp' ? completedBookingsList :
-                                                            activeMobileBookingTab === 'canc' ? cancelledBookingsList :
-                                                                filterBookings(allBookings);
+                                                            activeMobileBookingTab === 'complaint' ? complaintBookingsList :
+                                                                activeMobileBookingTab === 'canc' ? cancelledBookingsList :
+                                                                    filterBookings(allBookings);
 
                                             const activeList = [...baseList].sort((a, b) => {
                                                 const dateB = new Date(b.updatedAt || b.createdAt || b.startTime || 0);
@@ -2645,7 +2674,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         <BookingKanbanCard
                                                             key={booking.id}
                                                             booking={booking}
-                                                            status={booking.status === 'Pending' ? 'pend' : booking.status === 'ApprovedAwaitingPayment' ? 'pay' : booking.status === 'Confirmed' ? 'conf' : booking.status === 'Completed' ? 'comp' : 'canc'}
+                                                            status={booking.status}
                                                             onDetail={() => handleViewBookingDetails(booking.id)}
                                                         />
                                                     ))}
@@ -3557,6 +3586,10 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                     openDetailModal(localMatch || { projectId: pId });
                                 }
                             }
+                        } else if (type === 'viewComplaint') {
+                            setActiveSection('user_reports');
+                            setSearchTerm((b.userReportId || b.id).toString());
+                            setShowBookingModal(false);
                         }
                     }}
                 />

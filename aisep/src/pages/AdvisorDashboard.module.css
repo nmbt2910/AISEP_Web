@@ -222,6 +222,21 @@
     border-bottom-color: #f4212e;
 }
 
+.bcolHead.mixed {
+    border-bottom: 2px solid transparent;
+    position: relative;
+}
+
+.bcolHead.mixed::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to right, #10b981 30%, #7c3aed 100%);
+}
+
 .bcolTitle {
     display: flex;
     align-items: center;
@@ -257,6 +272,11 @@
     box-shadow: 0 0 8px rgba(244, 33, 46, 0.4);
 }
 
+.bctDot.complaint {
+    background: #7c3aed;
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+}
+
 .bcolN {
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
@@ -283,6 +303,26 @@
 .bcolN.rej {
     color: #f4212e;
     background: rgba(244, 33, 46, 0.1);
+}
+
+.bcolN.mixed {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    position: relative;
+}
+
+.bcolN.mixed::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.1), rgba(124, 58, 237, 0.1));
+    z-index: -1;
+}
+
+.bcolN.complaint {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.1);
 }
 
 .bcolCards {
@@ -343,6 +383,10 @@
 
 .bcardStrip.comp {
     background: #10b981;
+}
+
+.bcardStrip.complaint {
+    background: #7c3aed;
 }
 
 .bcardBody {
