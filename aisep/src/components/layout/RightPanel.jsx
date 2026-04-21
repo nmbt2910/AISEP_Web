@@ -48,15 +48,22 @@ function RightPanel({
   onFilterChange,
   onShowHome,
   onShowLogin,
-  topRatedStartups = [],
+  recentProjects = [],
   trendingSectors = [],
   isLoading = false,
-  user
+  user,
+  onViewProject
 }) {
   const handleSectorClick = (sectorName) => {
     if (onFilterChange) {
       onFilterChange({ industry: sectorName });
       if (onShowHome) onShowHome();
+    }
+  };
+
+  const handleProjectClick = (projectId) => {
+    if (onViewProject) {
+      onViewProject(projectId);
     }
   };
 
@@ -79,11 +86,11 @@ function RightPanel({
         </div>
       )}
 
-      {/* Top Startup AI */}
+      {/* Dự án gần đây */}
       <div className={styles.widget}>
         <div className={styles.widgetHeader}>
           <Flame size={17} className={styles.headerIcon} />
-          <h3 className={styles.widgetTitle}>Top Startup AI</h3>
+          <h3 className={styles.widgetTitle}>Dự án gần đây</h3>
         </div>
         <div className={styles.widgetContent}>
           {isLoading ? (
@@ -94,32 +101,26 @@ function RightPanel({
             <div className={styles.guestLock}>
               <Lock size={20} className={styles.lockIcon} />
               <p className={styles.lockText}>
-                Vui lòng <span className={styles.loginLink} onClick={onShowLogin}>đăng nhập</span> để theo dõi bảng xếp hạng AI
+                Vui lòng <span className={styles.loginLink} onClick={onShowLogin}>đăng nhập</span> để theo dõi các dự án mới
               </p>
             </div>
-          ) : topRatedStartups.length > 0 ? (
-            topRatedStartups.map((startup, idx) => (
-              <div key={startup.id} className={styles.startupRow}>
-                <AvatarInitial name={startup.startupName || 'Startup'} index={idx} />
+          ) : recentProjects.length > 0 ? (
+            recentProjects.slice(0, 3).map((project, idx) => (
+              <div 
+                key={project.id} 
+                className={styles.startupRow}
+                onClick={() => handleProjectClick(project.id)}
+                style={{ cursor: 'pointer' }}
+              >
+                <AvatarInitial name={project.startupName || 'Startup'} index={idx} />
                 <div className={styles.startupInfo}>
-                  <span className={styles.startupName}>{startup.startupName || 'Startup'}</span>
-                  <span className={styles.projectName}>{startup.name}</span>
+                  <span className={styles.startupName}>{project.startupName || 'Startup'}</span>
+                  <span className={styles.projectName}>{project.name}</span>
                 </div>
-                <Badge
-                  label={startup.score === undefined ? '' : (startup.score === null ? '__' : String(startup.score))}
-                  isLoading={startup.score === undefined}
-                  variant={
-                    startup.score === undefined || startup.score === null ? 'updating'
-                      : startup.score >= 80 ? 'score-good'
-                        : startup.score >= 50 ? 'score-medium'
-                          : 'score-poor'
-                  }
-                  size="sm"
-                />
               </div>
             ))
           ) : (
-            <p className={styles.emptyText}>Chưa có dự án được duyệt</p>
+            <p className={styles.emptyText}>Chưa có dự án nào</p>
           )}
         </div>
       </div>

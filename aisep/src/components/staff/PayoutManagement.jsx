@@ -54,7 +54,7 @@ export default function PayoutManagement({ searchTerm = '' }) {
     setSelectedBatch(batch);
     setLoadingItems(true);
     try {
-      const response = await payoutService.getBatchItems(batch.monthlyPayoutBatchId, { pageSize: 100 });
+      const response = await payoutService.getBatchItems(batch.payoutGroupId, { pageSize: 100 });
       setBatchItems(response?.data?.items || response?.items || response || []);
     } catch (error) {
       console.error('Error fetching batch items:', error);
@@ -78,7 +78,7 @@ export default function PayoutManagement({ searchTerm = '' }) {
 
   const handleMarkPaidConfirm = async (item, note) => {
     try {
-      await payoutService.markPaid(item.monthlyPayoutId, { note: note || undefined });
+      await payoutService.markPaid(item.payoutId, { note: note || undefined });
       setModalMessage('Đã cập nhật trạng thái chi trả thành công.');
       setShowSuccess(true);
       closeActionModal();
@@ -91,7 +91,7 @@ export default function PayoutManagement({ searchTerm = '' }) {
 
   const handleRejectConfirm = async (item, reason) => {
     try {
-      await payoutService.rejectPayout(item.monthlyPayoutId, { reason });
+      await payoutService.rejectPayout(item.payoutId, { reason });
       setModalMessage('Đã từ chối khoản chi trả này.');
       setShowSuccess(true);
       closeActionModal();
@@ -194,7 +194,7 @@ export default function PayoutManagement({ searchTerm = '' }) {
             const batchStatusText = batch.status === 'Completed' ? 'Hoàn tất' : 'Đang xử lý';
             return (
               <div 
-                key={batch.monthlyPayoutBatchId} 
+                key={batch.payoutGroupId} 
                 className={styles.pendingItem} 
                 onClick={() => handleViewBatch(batch)} 
                 style={{ 
@@ -210,7 +210,7 @@ export default function PayoutManagement({ searchTerm = '' }) {
                       Kỳ {batch.month}/{batch.year}
                     </h4>
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px' }}>
-                      #{batch.monthlyPayoutBatchId}
+                      #{batch.payoutGroupId}
                     </span>
                     <span style={{ fontSize: '11px', fontWeight: 700, color: batchStatusColor, background: `${batchStatusColor}18`, padding: '2px 8px', borderRadius: 6 }}>
                       {batchStatusText}
@@ -398,7 +398,7 @@ function BatchDetailView({ batch, items, loading, onBack, onExport, onMarkPaid, 
             const isPendingAction = item.status === 'Pending' || item.status === 'PendingRecheck';
             return (
               <div 
-                key={item.monthlyPayoutId} 
+                key={item.payoutId} 
                 className={styles.pendingItem} 
                 style={{ 
                   flexDirection: 'column', 

@@ -7,6 +7,7 @@ import BookingWizard from '../components/booking/BookingWizard';
 import NotificationCenter from '../components/common/NotificationCenter';
 import FloatingChatWidget from '../components/common/FloatingChatWidget';
 import InvestorStatusBanner from '../components/common/InvestorStatusBanner';
+import Avatar from '../components/common/Avatar';
 import styles from './AdvisorsPage.module.css';
 
 export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate }) {
@@ -196,9 +197,12 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                             <div key={advisor.advisorId} className={styles.advisorCard} onClick={() => onSelectAdvisor?.(advisor)}>
                                 {/* Avatar */}
                                 <div className={styles.avatarContainer}>
-                                    <div className={styles.avatar}>
-                                        {advisor.userName?.charAt(0)?.toUpperCase() || 'A'}
-                                    </div>
+                                    <Avatar 
+                                        src={(advisor.profileImage && !advisor.profileImage.includes('ui-avatars.com')) ? advisor.profileImage : null}
+                                        name={advisor.userName || 'Advisor'}
+                                        size="md"
+                                        className={styles.avatar}
+                                    />
                                 </div>
 
                                 {/* Content */}

@@ -22,6 +22,7 @@ import dealsService from '../services/dealsService';
 import prService from '../services/prService';
 import NotificationCenter from '../components/common/NotificationCenter';
 import FloatingChatWidget from '../components/common/FloatingChatWidget';
+import StartupCard from '../components/feed/StartupCard';
 import styles from './DiscoveryHub.module.css';
 
 /**
@@ -60,26 +61,59 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate }) => {
         fetchMyStartup();
     }, [isStartup]);
 
-    useEffect(() => {
-        const fetchProjects = async () => {
-            setIsLoading(true);
-            try {
-                // Fetch projects instead of startups
-                const response = await projectSubmissionService.getAllProjects();
-                const raw = response?.data?.items || response?.items || [];
-                const items = filterProjectsForPublicDiscovery(raw);
-                setStartups(items);
-                
-                if (isInvestor) {
-                    fetchInvestmentStatusNow(items);
-                }
-            } catch (error) {
-                console.error("Failed to fetch projects:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchProjects = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch both projects and startup profiles to join logo data
+            const [projectsRes, startupsRes] = await Promise.all([
+                projectSubmissionService.getAllProjects(),
+                startupProfileService.getAllStartups({ pageSize: 100 })
+            ]);
 
+            const startupMap = {};
+            const profiles = startupsRes?.data?.items || startupsRes?.items || [];
+            profiles.forEach(p => {
+                const info = {
+                    name: p.organizationName || p.companyName,
+                    logo: p.logoUrl || p.logo
+                };
+                if (p.startupId) startupMap[p.startupId] = info;
+                if (p.id) startupMap[p.id] = info;
+                if (p.userId) startupMap[p.userId] = info;
+            });
+
+            const raw = projectsRes?.data?.items || projectsRes?.items || [];
+            const approved = filterProjectsForPublicDiscovery(raw);
+            
+            const items = approved.map(p => {
+                const sid = p.startupId || p.StartupId || p.userId || p.UserId;
+                const info = startupMap[sid];
+                return {
+                    ...p,
+                    id: p.projectId,
+                    startupName: info?.name || p.startupName || p.organizationName,
+                    logoUrl: info?.logo || p.logoUrl || p.logo,
+                    // Map current API fields to StartupCard expected fields if missing
+                    name: p.projectName,
+                    description: p.shortDescription,
+                    score: p.startupPotentialScore,
+                    timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : ''
+                };
+            });
+
+            setStartups(items);
+            
+            if (isInvestor) {
+                fetchInvestmentStatusNow(items);
+            }
+        } catch (error) {
+            console.error("Failed to fetch projects:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchProjects();
     }, [isInvestor]);
 
@@ -105,8 +139,6 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate }) => {
                 
                 if (deal.projectId) combinedMap[deal.projectId] = dealInfo;
                 if (deal.projectId) combinedMap[deal.projectId.toString()] = dealInfo;
-                if (deal.projectName) combinedMap[deal.projectName.toLowerCase()] = dealInfo;
-                if (deal.startupName) combinedMap[deal.startupName.toLowerCase()] = dealInfo;
             });
             
             setInvestmentStatusMap(combinedMap);
@@ -221,82 +253,21 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate }) => {
                             <p>Hãy thử thay đổi tiêu chí lọc hoặc từ khóa tìm kiếm</p>
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-                            {filteredStartups.map(startup => {
-                                let investmentStatus = null;
-                                if (startup.organizationName) {
-                                    investmentStatus = investmentStatusMap[startup.organizationName.toLowerCase()];
-                                }
-
-                                return (
-                                    <div key={startup.projectId} className={styles.startupCard}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.avatar}>
-                                                {startup.projectImageUrl ? (
-                                                    <img src={startup.projectImageUrl} alt={startup.projectName} />
-                                                ) : (
-                                                    <span>{(startup.projectName || 'P').charAt(0).toUpperCase()}</span>
-                                                )}
-                                            </div>
-                                            <div className={styles.startupInfo}>
-                                                <div className={styles.nameRow}>
-                                                    <h3 className={styles.startupName}>{startup.projectName}</h3>
-                                                    {startup.isVerified && <CheckCircle size={16} weight="fill" className={styles.verifiedIcon} />}
-                                                </div>
-                                                <span className={styles.industryTag}>{startup.industry}</span>
-                                            </div>
-                                            <div className={styles.scoreBadge}>
-                                                <Target size={14} weight="bold" />
-                                                <span>{startup.startupPotentialScore || 'N/A'} AI Score</span>
-                                            </div>
-                                        </div>
-
-                                        <p className={styles.description}>
-                                            {startup.shortDescription || 'Chưa có mô tả chi tiết cho dự án này.'}
-                                        </p>
-
-                                        <div className={styles.metadata}>
-                                            <div className={styles.metaItem}>
-                                                <MapPin size={14} weight="bold" />
-                                                <span>{startup.location || 'Chưa cập nhật'}</span>
-                                            </div>
-                                            <div className={styles.metaItem}>
-                                                <TrendUp size={14} weight="bold" />
-                                                <span>{startup.developmentStage || 'Giai đoạn sớm'}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className={styles.actions}>
-                                            <button
-                                                className={styles.viewDetailsBtn}
-                                                onClick={() => onSelectStartup?.(startup.projectId)}
-                                            >
-                                                { (isStartup && myStartupProfile && startup.startupId === myStartupProfile.id) || startup.isUnlockedByCurrentUser ? "Xem chi tiết" : "Mở khóa ngay" }
-                                            </button>
-                                            <button className={styles.followBtn}>Theo dõi</button>
-                                            {isInvestor && investmentStatus ? (
-                                                <div className={styles.investmentStatusBadge}>
-                                                    <span className={`${styles.statusIndicator} ${styles[`status_${investmentStatus.status?.toLowerCase()}`]}`}>
-                                                        {investmentStatus.status === 'Pending' ? '🟡' : '🟢'}
-                                                    </span>
-                                                    <span className={styles.statusText}>{investmentStatus.status}</span>
-                                                </div>
-                                            ) : isInvestor && (
-                                                <button
-                                                    className={styles.investBtn}
-                                                    onClick={() => setInvestmentModal({
-                                                        projectId: startup.id || startup.startupId,
-                                                        projectName: startup.organizationName,
-                                                        startupName: startup.organizationName
-                                                    })}
-                                                >
-                                                    Đầu tư
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+                            {filteredStartups.map((startup, index) => (
+                                <StartupCard
+                                    key={startup.id}
+                                    index={index}
+                                    startup={startup}
+                                    user={user}
+                                    onViewProject={(id) => onSelectStartup?.(id)}
+                                    // Passing empty arrays for simple discovery view if these stats aren't fetched here
+                                    followedProjectIds={new Set()}
+                                    sentConnectionIds={new Set()}
+                                    investedProjectIds={new Set()}
+                                    investors={[]} 
+                                />
+                            ))}
                         </div>
                     )}
                 </div>

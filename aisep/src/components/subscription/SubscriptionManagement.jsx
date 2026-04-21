@@ -169,6 +169,17 @@ const SubscriptionManagement = ({ user }) => {
               isPremium={isPremium}
               isLocked={isLocked}
             />
+            {subscription?.bonusFreeBookings > 0 && (
+              <UsageItem 
+                icon={<Sparkles size={18} style={{ color: '#FFD700' }} />} 
+                label="Lượt cộng thêm (Bonus/Refund)" 
+                used={0} 
+                total={subscription.bonusFreeBookings} 
+                isPremium={true}
+                isLocked={false}
+                hideProgress={true}
+              />
+            )}
           </div>
           {isLocked && (
             <div style={{ marginTop: '20px', fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center', backgroundColor: 'rgba(29, 155, 240, 0.05)', border: '1px dashed rgba(29, 155, 240, 0.2)', padding: '12px', borderRadius: '12px' }}>

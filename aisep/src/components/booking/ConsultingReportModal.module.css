@@ -433,3 +433,37 @@
   color: #f4212e;
   font-weight: 600;
 }
+
+.complaintBtn {
+  flex: 1;
+  background-color: #f4212e;
+  color: white;
+  border: none;
+  border-radius: 9999px;
+  font-weight: 700;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.complaintBtn:hover {
+  background-color: #d31a26;
+}
+
+.limitNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(var(--primary-blue-rgb, 29, 155, 240), 0.08);
+  color: var(--primary-blue);
+  border: 1px solid rgba(var(--primary-blue-rgb, 29, 155, 240), 0.15);
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}

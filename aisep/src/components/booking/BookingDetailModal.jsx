@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, User, Briefcase, CreditCard, CaretRight, ChatCircleText, ArrowsClockwise, WarningCircle, FileText, Sparkle, ShieldCheck, Gavel, Info, MagnifyingGlass } from '@phosphor-icons/react';
 import userReportService from '../../services/userReportService';
+import consultingReportService from '../../services/consultingReportService';
 import styles from './BookingDetailModal.module.css';
 
 const STATUS_CONFIG = {
@@ -11,15 +12,17 @@ const STATUS_CONFIG = {
   'ApprovedAwaitingPayment': { label: 'Chờ thanh toán', badgeClass: styles.badgeConfirmed },
   2: { label: 'Đã xác nhận', badgeClass: styles.badgeConfirmed },
   'Confirmed': { label: 'Đã xác nhận', badgeClass: styles.badgeConfirmed },
-  3: { label: 'Hoàn thành', badgeClass: styles.badgeCompleted },
+  3: { label: 'Quá hạn báo cáo', badgeClass: styles.badgeCancelled }, // Overdue
+  'ConsultingReportOverdue': { label: 'Quá hạn báo cáo', badgeClass: styles.badgeCancelled },
+  4: { label: 'Đang khiếu nại', badgeClass: styles.badgeConfirmed }, // ComplaintPending
+  'ComplaintPending': { label: 'Đang khiếu nại', badgeClass: styles.badgeConfirmed },
+  5: { label: 'Hoàn thành', badgeClass: styles.badgeCompleted },
   'Completed': { label: 'Hoàn thành', badgeClass: styles.badgeCompleted },
-  4: { label: 'Khiếu nại chấp nhận', badgeClass: styles.badgeCompleted },
+  6: { label: 'Khiếu nại chấp nhận', badgeClass: styles.badgeCompleted },
   'ComplaintAccepted': { label: 'Khiếu nại chấp nhận', badgeClass: styles.badgeCompleted },
-  5: { label: 'Khiếu nại từ chối', badgeClass: styles.badgeCancelled },
-  'ComplaintRejected': { label: 'Khiếu nại từ chối', badgeClass: styles.badgeCancelled },
-  6: { label: 'Đã hủy', badgeClass: styles.badgeCancelled },
+  7: { label: 'Đã hủy', badgeClass: styles.badgeCancelled },
   'Cancel': { label: 'Đã hủy', badgeClass: styles.badgeCancelled },
-  7: { label: 'Không phản hồi', badgeClass: styles.badgeCancelled },
+  8: { label: 'Không phản hồi', badgeClass: styles.badgeCancelled },
   'NoResponse': { label: 'Không phản hồi', badgeClass: styles.badgeCancelled },
 };
 
@@ -33,6 +36,7 @@ const formatTimeUTC = (dateStr) => {
 
 export default function BookingDetailModal({ booking, onClose, onAction, userRole = 'Startup' }) {
   const [existingReport, setExistingReport] = useState(null);
+  const [consultationReport, setConsultationReport] = useState(null);
   const [loadingReport, setLoadingReport] = useState(false);
 
   useEffect(() => {
@@ -63,8 +67,19 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
           } else {
               setExistingReport(null);
           }
+
+          // Also check for Consultation Report (Advisor report of the session)
+          try {
+              const cReport = await consultingReportService.getReportByBookingId(booking.id || booking.bookingId);
+              if (cReport && cReport.consultingReportId) {
+                  setConsultationReport(cReport);
+              }
+          } catch (err) {
+              // Report might not exist yet, which is fine
+              setConsultationReport(null);
+          }
       } catch (error) {
-          console.error('Error checking existing report:', error);
+          console.error('Error checking reports:', error);
           setExistingReport(null);
       } finally {
           setLoadingReport(false);
@@ -112,6 +127,67 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
             <X size={24} />
           </button>
         </div>
+        
+        {/* Role-Specific Guidance Banner */}
+        {(() => {
+          const status = booking.status;
+          const isAdvisor = userRole === 'Advisor';
+          const isCustomer = ['Startup', 'Investor'].includes(userRole);
+          const isStaff = userRole === 'Staff';
+
+          // 3: ConsultingReportOverdue
+          if (status === 3 || status === 'ConsultingReportOverdue') {
+            return (
+              <div className={`${styles.guidanceBanner} ${styles.guidanceWarning}`}>
+                <WarningCircle size={20} weight="fill" className={styles.guidanceIcon} />
+                <div className={styles.guidanceContent}>
+                  <strong className={styles.guidanceTitle}>Advisor đã quá hạn nộp báo cáo (24h)</strong>
+                  <p className={styles.guidanceDesc}>
+                    {isCustomer && "Hệ thống ghi nhận Advisor chưa nộp báo cáo kết quả đúng hạn. Vui lòng liên hệ Staff để được hỗ trợ hoàn lượt/đặt lại lịch mới."}
+                    {isAdvisor && "Bạn đã bỏ lỡ thời hạn nộp báo cáo (24h sau khi kết thúc). Thanh toán cho booking này tạm thời bị giữ lại, vui lòng nộp báo cáo ngay."}
+                    {isStaff && "Advisor này đã quá hạn nộp báo cáo. Hệ thống đã đánh dấu overdue. Staff cần kiểm tra nếu có khiếu nại từ khách hàng."}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          // 4: ComplaintPending
+          if (status === 4 || status === 'ComplaintPending') {
+            return (
+              <div className={`${styles.guidanceBanner} ${styles.guidanceInfo}`}>
+                <Info size={20} weight="fill" className={styles.guidanceIcon} />
+                <div className={styles.guidanceContent}>
+                  <strong className={styles.guidanceTitle}>Đang trong quá trình khiếu nại</strong>
+                  <p className={styles.guidanceDesc}>
+                    {isCustomer && "Yêu cầu khiếu nại của bạn đang được Staff xem xét. Phán quyết cuối cùng sẽ được cập nhật tại đây."}
+                    {isAdvisor && "Khách hàng đã gửi khiếu nại cho booking này. Staff đang thực hiện đối soát nội dung tư vấn để đưa ra quyết định."}
+                    {isStaff && "Booking này đang có khiếu nại chưa được giải quyết. Vui lòng truy cập mục 'Quản lý báo cáo' để xử lý."}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          // 6: ComplaintAccepted
+          if (status === 6 || status === 'ComplaintAccepted') {
+            return (
+              <div className={`${styles.guidanceBanner} ${styles.guidanceSuccess}`}>
+                <ShieldCheck size={20} weight="fill" className={styles.guidanceIcon} />
+                <div className={styles.guidanceContent}>
+                  <strong className={styles.guidanceTitle}>Khiếu nại đã được chấp thuận</strong>
+                  <p className={styles.guidanceDesc}>
+                    {isCustomer && "Staff đã xác nhận khiếu nại của bạn là hợp lệ. Bạn đã được hoàn trả 1 lượt booking miễn phí vào tài khoản."}
+                    {isAdvisor && "Khiếu nại từ khách hàng đã được Staff xác nhận. Lượt booking đã được hoàn trả cho khách hàng theo chính sách hệ thống."}
+                    {isStaff && "Khiếu nại đã được giải quyết thành công (Valid). Hệ thống đã tự động cộng quota refund cho khách hàng."}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
 
         {/* Modal Body — Structured & Numbered */}
         <div className={styles.body}>
@@ -242,7 +318,7 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
             Đóng
           </button>
 
-          {userRole === 'Startup' && (booking.status === 1 || booking.status === 'ApprovedAwaitingPayment') && (
+          {['Startup', 'Investor'].includes(userRole) && (booking.status === 1 || booking.status === 'ApprovedAwaitingPayment') && (
             <button className={`${styles.primaryBtn} ${styles.successBtn}`} onClick={() => { onAction('pay', booking); onClose(); }}>
               <CreditCard size={16} /> Thanh toán phí
             </button>
@@ -252,7 +328,7 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
               <ChatCircleText size={16} /> Vào phòng chat
             </button>
           )}
-          {userRole === 'Startup' && [4, 5, 'Cancel', 'NoResponse'].includes(booking.status) && (
+          {['Startup', 'Investor'].includes(userRole) && [4, 5, 'Cancel', 'NoResponse'].includes(booking.status) && (
             <button className={styles.primaryBtn} onClick={() => { onAction('rebook', booking); onClose(); }}>
               <ArrowsClockwise size={16} /> Tìm cố vấn thay thế
             </button>
@@ -296,6 +372,17 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
               style={{ background: '#1d9bf0' }}
             >
               <FileText size={16} /> Viết báo cáo
+            </button>
+          )}
+
+          {/* Staff: View Consultation Report if it exists */}
+          {userRole === 'Staff' && consultationReport && (
+            <button
+              className={styles.primaryBtn}
+              onClick={() => { onAction('viewConsultationReport', booking); onClose(); }}
+              style={{ background: 'var(--primary-blue)' }}
+            >
+              <FileText size={16} /> Xem báo cáo tư vấn
             </button>
           )}
 

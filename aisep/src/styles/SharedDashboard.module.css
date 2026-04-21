@@ -3148,9 +3148,9 @@
 /* --- Advisor Assignment Section Styles --- */
 .advisorSection {
     padding: 24px;
-    background-color: rgba(16, 185, 129, 0.03);
+    background-color: rgba(16, 185, 129, 0.06);
     border-radius: 24px;
-    border: 1px solid rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -3160,6 +3160,7 @@
 .advisorSectionHeader {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 4px;
 }
 
@@ -3260,8 +3261,11 @@
     }
 
     .advisorActionRow {
-        justify-content: center;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
         padding-top: 12px;
+        width: 100%;
     }
 
     .advisorBookingBtn {

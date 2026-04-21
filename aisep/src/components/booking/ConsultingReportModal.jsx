@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  X, FileText, CheckCircle, WarningCircle, Clock, ArrowsClockwise, PaperPlaneTilt, CircleNotch
+  X, FileText, CheckCircle, WarningCircle, Clock, ArrowsClockwise, PaperPlaneTilt, CircleNotch, Info
 } from '@phosphor-icons/react';
 import consultingReportService from '../../services/consultingReportService';
+import UserReportModal from './UserReportModal';
 import styles from './ConsultingReportModal.module.css';
 
 const MAX_REVISIONS = 3;
@@ -20,6 +21,7 @@ const MAX_REVISIONS = 3;
  */
 export default function ConsultingReportModal({ bookingId, userRole, advisorName, onClose, onDone }) {
   const isAdvisor = userRole === 'Advisor';
+  const isStaff = userRole === 'Staff';
 
   const [phase, setPhase] = useState('loading'); // loading | submit-form | view-report | success | error
   const [report, setReport] = useState(null);
@@ -42,6 +44,7 @@ export default function ConsultingReportModal({ bookingId, userRole, advisorName
   const [showRevisionInput, setShowRevisionInput] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
 
   // Load existing report
   useEffect(() => {
@@ -391,6 +394,17 @@ export default function ConsultingReportModal({ bookingId, userRole, advisorName
                       )}
                     </div>
                   )}
+
+                  {/* Limit reached notice for Startup/Investor */}
+                  {!isAdvisor && !isStaff && report.status === 'Submitted' && report.revisionCount >= MAX_REVISIONS && (
+                    <div className={styles.limitNotice}>
+                      <Info size={18} weight="bold" />
+                      <span>
+                        Bạn đã đạt đến giới hạn số lần yêu cầu sửa đổi cho báo cáo tư vấn này. 
+                        Nếu tiếp tục có vấn đề yêu cầu xem xét, hãy sử dụng tính năng <strong>Khiếu nại</strong> để được nhân viên của chúng tôi xem xét.
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -408,7 +422,7 @@ export default function ConsultingReportModal({ bookingId, userRole, advisorName
           </div>
         )}
 
-        {phase === 'view-report' && report && !isAdvisor && report.status === 'Submitted' && (
+        {phase === 'view-report' && report && !isAdvisor && !isStaff && report.status === 'Submitted' && (
           <div className={styles.footerRow} style={{ flexDirection: 'column', gap: '16px' }}>
             {showRevisionInput && (
               <div className={styles.field}>
@@ -432,9 +446,15 @@ export default function ConsultingReportModal({ bookingId, userRole, advisorName
             <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
               {!showRevisionInput ? (
                 <>
-                  <button className={styles.secondaryBtn} onClick={() => setShowRevisionInput(true)} disabled={actionLoading}>
-                    <ArrowsClockwise size={16} /> Yêu cầu sửa lại
-                  </button>
+                  {report.revisionCount < MAX_REVISIONS ? (
+                    <button className={styles.secondaryBtn} onClick={() => setShowRevisionInput(true)} disabled={actionLoading}>
+                      <ArrowsClockwise size={16} /> Yêu cầu sửa lại
+                    </button>
+                  ) : (
+                    <button className={styles.complaintBtn} onClick={() => setShowComplaintModal(true)} disabled={actionLoading}>
+                      <WarningCircle size={16} /> Khiếu nại báo cáo
+                    </button>
+                  )}
                   <button className={styles.approveBtn} onClick={handleApprove} disabled={actionLoading}>
                     {actionLoading ? <CircleNotch size={16} className={styles.spinning} weight="bold" /> : <CheckCircle size={16} />}
                     Chấp nhận báo cáo
@@ -454,7 +474,27 @@ export default function ConsultingReportModal({ bookingId, userRole, advisorName
             </div>
           </div>
         )}
+
+        {/* Staff / Simple View Footer */}
+        {phase === 'view-report' && isStaff && (
+           <div className={styles.footerRow}>
+              <button className={styles.primaryBtn} onClick={onClose}>Đóng</button>
+           </div>
+        )}
       </div>
+
+      {showComplaintModal && (
+        <UserReportModal 
+          bookingId={bookingId}
+          targetUserId={report?.advisorId}
+          targetUserName={report?.advisorName}
+          onClose={() => setShowComplaintModal(false)}
+          onDone={() => {
+            setShowComplaintModal(false);
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 

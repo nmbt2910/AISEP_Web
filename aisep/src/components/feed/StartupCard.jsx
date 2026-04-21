@@ -290,10 +290,23 @@ function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, se
       <div className={styles.cardHeader}>
         <div 
           className={`${styles.avatarCircle} ${onViewProfile ? styles.clickable : ''}`}
-          style={{ background: getAvatarGradient(mainTag) }}
+          style={{ background: !(startup.logoUrl || startup.logo) ? getAvatarGradient(mainTag) : '#fff' }}
           onClick={(e) => { e.stopPropagation(); onViewProfile && onViewProfile(sid); }}
         >
-          {startupNameDisp.charAt(0).toUpperCase()}
+          {startup.logoUrl || startup.logo ? (
+            <img 
+              src={startup.logoUrl || startup.logo} 
+              alt={startupNameDisp} 
+              className={styles.avatarImg}
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.style.background = getAvatarGradient(mainTag);
+                e.target.parentElement.innerText = startupNameDisp.charAt(0).toUpperCase();
+              }}
+            />
+          ) : (
+            startupNameDisp.charAt(0).toUpperCase()
+          )}
         </div>
         
         <div className={styles.headerInfo}>

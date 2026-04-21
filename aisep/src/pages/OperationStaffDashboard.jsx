@@ -29,6 +29,7 @@ import StartupApprovalCard from '../components/staff/StartupApprovalCard';
 import StartupDetailModal from '../components/staff/StartupDetailModal';
 import NewsPRSection from '../components/common/NewsPRSection';
 import BookingDetailModal from '../components/booking/BookingDetailModal';
+import ConsultingReportModal from '../components/booking/ConsultingReportModal';
 
 
 const T = {
@@ -162,37 +163,45 @@ const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, pro
  * BookingKanbanCard - Single card for the Booking Kanban board
  */
 const BookingKanbanCard = ({ booking, status, onDetail }) => {
-    // Generate an alias dynamically based on status mapping
     // map status from 'pend', 'conf', 'comp'
     let statusLabel = 'Chờ xác nhận';
-    let localStatus = status; // To map API status names to CSS classes
+    let localStatus = 'pend'; 
 
-    if (status === 'conf' || status === 'Confirmed' || status === 2) {
-        statusLabel = 'Đã xác nhận';
-        localStatus = 'conf';
-    } else if (status === 'comp' || status === 'Completed' || status === 3) {
-        statusLabel = 'Hoàn thành';
-        localStatus = 'comp';
-    } else if (status === 'ComplaintAccepted' || status === 4) {
-        statusLabel = 'Khiếu nại chấp nhận';
-        localStatus = 'complaint';
-    } else if (status === 'ComplaintRejected' || status === 5) {
-        statusLabel = 'Khiếu nại từ chối';
-        localStatus = 'complaint';
-    } else if (status === 'canc' || status === 'Cancel' || status === 'Cancelled' || status === 6) {
-        statusLabel = 'Đã hủy';
-        localStatus = 'rej';
-    } else if (status === 'NoResponse' || status === 7) {
-        statusLabel = 'Không phản hồi';
-        localStatus = 'rej';
-    } else if (status === 'pay' || status === 'ApprovedAwaitingPayment' || status === 'AwaitingPayment' || status === 1) {
-        statusLabel = 'Chờ thanh toán';
-        localStatus = 'pay';
-    } else if (status === 'pend' || status === 'Pending' || status === 0) {
+    if (status === 'Pending' || status === 0 || status === 'pend') {
         statusLabel = 'Chờ xác nhận';
         localStatus = 'pend';
+    } else if (status === 'ApprovedAwaitingPayment' || status === 'AwaitingPayment' || status === 1 || status === 'pay') {
+        statusLabel = 'Chờ thanh toán';
+        localStatus = 'pay';
+    } else if (status === 'Confirmed' || status === 2 || status === 'conf') {
+        statusLabel = 'Đã xác nhận';
+        localStatus = 'conf';
+    } else if (status === 'ConsultingReportOverdue' || status === 3) {
+        statusLabel = 'Báo cáo quá hạn';
+        localStatus = 'rej';
+    } else if (status === 'ComplaintPending' || status === 4) {
+        statusLabel = 'Đang khiếu nại';
+        localStatus = 'complaint';
+    } else if (status === 'Completed' || status === 5 || status === 'comp') {
+        statusLabel = 'Hoàn thành';
+        localStatus = 'comp';
+    } else if (status === 'ComplaintAccepted' || status === 6) {
+        statusLabel = 'Khiếu nại: Hợp lệ';
+        localStatus = 'complaint';
+    } else if (status === 'ComplaintRejected' || status === 7) {
+        statusLabel = 'Khiếu nại: Bác bỏ';
+        localStatus = 'complaint';
+    } else if (status === 'Cancel' || status === 'Cancelled' || status === 8 || status === 'canc') {
+        statusLabel = 'Đã hủy';
+        localStatus = 'rej';
+    } else if (status === 'NoResponse' || status === 9) {
+        statusLabel = 'Không phản hồi';
+        localStatus = 'rej';
     } else {
-        localStatus = 'pend';
+        // Fallback for strings
+        if (typeof status === 'string') {
+            statusLabel = status;
+        }
     }
 
     const formatTimeUTC = (dateStr) => {
@@ -738,6 +747,11 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isLoadingBookingDetail, setIsLoadingBookingDetail] = useState(false);
 
+    // Consultation Report viewing for Staff
+    const [showConsultantReportModal, setShowConsultantReportModal] = useState(false);
+    const [reportBookingId, setReportBookingId] = useState(null);
+    const [reportAdvisorName, setReportAdvisorName] = useState('');
+
 
 
 
@@ -796,15 +810,22 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const pendingBookingsList = filterBookings(allBookings.filter(b => b.status === 'Pending' || b.status === 0));
     const awaitingPaymentBookingsList = filterBookings(allBookings.filter(b => b.status === 'ApprovedAwaitingPayment' || b.status === 'AwaitingPayment' || b.status === 1));
     const confirmedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Confirmed' || b.status === 2));
-    const completedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Completed' || b.status === 3));
+    const overdueBookingsList = filterBookings(allBookings.filter(b => b.status === 'ConsultingReportOverdue' || b.status === 3));
     const complaintBookingsList = filterBookings(allBookings.filter(b => {
         const hasReport = userReports.some(r => String(r.bookingId) === String(b.id));
-        return hasReport || b.status === 'ComplaintAccepted' || b.status === 'ComplaintRejected' || b.status === 4 || b.status === 5;
+        return hasReport || 
+               b.status === 'ComplaintPending' || 
+               b.status === 'ComplaintAccepted' || 
+               b.status === 'ComplaintRejected' || 
+               b.status === 4 || 
+               b.status === 6 || 
+               b.status === 7;
     }));
+    const completedBookingsList = filterBookings(allBookings.filter(b => b.status === 'Completed' || b.status === 5));
     const cancelledBookingsList = filterBookings(allBookings.filter(b => {
         const isComp = complaintBookingsList.some(x => x.id === b.id);
         if (isComp) return false;
-        return b.status === 'Cancel' || b.status === 'Cancelled' || b.status === 'NoResponse' || b.status === 6 || b.status === 7 || b.status === 4 || b.status === 5;
+        return b.status === 'Cancel' || b.status === 'NoResponse' || b.status === 7 || b.status === 8;
     }));
 
     const dashboardData = {
@@ -2575,6 +2596,11 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                     Đã xác nhận
                                     <span className={local.mobileTabCount} style={{ marginLeft: '8px' }}>{confirmedBookingsList.length}</span>
                                 </button>
+                                <button className={`${styles.tab} ${activeMobileBookingTab === 'overdue' ? styles.active : ''}`} onClick={() => setActiveMobileBookingTab('overdue')}>
+                                    <div className={`${local.bctDot}`} style={{ display: 'inline-block', marginRight: '6px', backgroundColor: '#ef4444', width: '8px', height: '8px', borderRadius: '50%' }}></div>
+                                    Quá hạn
+                                    <span className={local.mobileTabCount} style={{ marginLeft: '8px' }}>{overdueBookingsList.length}</span>
+                                </button>
                                 <button className={`${styles.tab} ${activeMobileBookingTab === 'comp' ? styles.active : ''}`} onClick={() => setActiveMobileBookingTab('comp')}>
                                     <div className={`${local.bctDot} ${local.comp}`} style={{ display: 'inline-block', marginRight: '6px' }}></div>
                                     Hoàn thành
@@ -2624,10 +2650,11 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                             const baseList = activeMobileBookingTab === 'pend' ? pendingBookingsList :
                                                 activeMobileBookingTab === 'pay' ? awaitingPaymentBookingsList :
                                                     activeMobileBookingTab === 'conf' ? confirmedBookingsList :
-                                                        activeMobileBookingTab === 'comp' ? completedBookingsList :
-                                                            activeMobileBookingTab === 'complaint' ? complaintBookingsList :
-                                                                activeMobileBookingTab === 'canc' ? cancelledBookingsList :
-                                                                    filterBookings(allBookings);
+                                                        activeMobileBookingTab === 'overdue' ? overdueBookingsList :
+                                                            activeMobileBookingTab === 'comp' ? completedBookingsList :
+                                                                activeMobileBookingTab === 'complaint' ? complaintBookingsList :
+                                                                    activeMobileBookingTab === 'canc' ? cancelledBookingsList :
+                                                                        filterBookings(allBookings);
 
                                             const activeList = [...baseList].sort((a, b) => {
                                                 const dateB = new Date(b.updatedAt || b.createdAt || b.startTime || 0);
@@ -3569,8 +3596,22 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                             setActiveSection('user_reports');
                             setSearchTerm((b.userReportId || b.id).toString());
                             setShowBookingModal(false);
+                        } else if (type === 'viewConsultationReport') {
+                            setReportBookingId(b.id || b.bookingId);
+                            setReportAdvisorName(b.advisorName || '');
+                            setShowConsultantReportModal(true);
                         }
                     }}
+                />
+            )}
+
+            {/* Consulting Report Modal for Staff */}
+            {showConsultantReportModal && reportBookingId && (
+                <ConsultingReportModal
+                    bookingId={reportBookingId}
+                    userRole="Staff"
+                    advisorName={reportAdvisorName}
+                    onClose={() => setShowConsultantReportModal(false)}
                 />
             )}
 
