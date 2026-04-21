@@ -393,141 +393,120 @@ const UserReportCard = ({ report, onResolve, onViewBooking, isProcessing, isLoad
     const images = Array.isArray(report.evidenceImageUrls) ? report.evidenceImageUrls : [];
 
     return (
-        <div className={`${local.reportCard} ${config.tint}`} style={{ position: 'relative' }}>
-            <div className={local.projectHeader}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative' }}>
-                    <h3 className={local.projectTitle}>{report.category}</h3>
-                    <div className={`${local.pillBadge} ${config.class}`} style={{ position: 'absolute', top: '0', right: '0', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div className={`${local.reportCard} ${config.tint}`}>
+            {/* Header: Category & Status/Date */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h3 className={local.reportCategory} style={{ margin: 0, fontSize: '16px' }}>{report.category}</h3>
+                    <div className={`${local.glassBadge} ${config.class}`}>
                         <StatusIcon size={12} />
                         {config.label}
                     </div>
                 </div>
-
-                <p className={local.reportReason}>{report.description}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <Clock size={12} />
+                    <span>{report.createdAt ? new Date(report.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                </div>
             </div>
 
-            <div className={local.reportContent}>
-                <div className={local.reportDescription}>
-                    {report.description}
+            {/* Content: Description & Evidence */}
+            <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                    <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                        {report.description}
+                    </p>
+                    
+                    {/* Resolution Note if resolved */}
+                    {report.status !== 'Pending' && report.resolutionNote && (
+                        <div style={{
+                            marginTop: '12px',
+                            padding: '10px 14px',
+                            backgroundColor: 'rgba(var(--bg-primary-rgb), 0.3)',
+                            borderRadius: '8px',
+                            borderLeft: `3px solid ${report.status === 'Resolved' || report.status === 'Valid' ? '#10b981' : '#ef4444'}`,
+                            fontSize: '13px'
+                        }}>
+                            <span style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase' }}>Kết quả: </span>
+                            <span style={{ color: 'var(--text-primary)' }}>{report.resolutionNote}</span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Resolution Note Section */}
-                {report.status !== 'Pending' && report.resolutionNote && (
-                    <div style={{
-                        marginTop: '16px',
-                        padding: '12px 16px',
-                        backgroundColor: 'rgba(29, 155, 240, 0.05)',
-                        borderRadius: '12px',
-                        borderLeft: '4px solid var(--primary-blue)',
-                        fontSize: '14px'
-                    }}>
-                        <div style={{ fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', color: 'var(--primary-blue)', marginBottom: '4px' }}>
-                            Ghi chú xử lý
-                        </div>
-                        <div style={{ color: 'var(--text-primary)', fontStyle: 'italic' }}>
-                            "{report.resolutionNote}"
-                        </div>
-                        {report.resolvedAt && (
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Calendar size={10} /> {new Date(report.resolvedAt).toLocaleString('vi-VN')}
-                                {report.resolvedBy && ` • Bởi ${report.resolvedBy}`}
-                            </div>
-                        )}
+                {/* Evidence Thumbnails on the right side if exists */}
+                {images.length > 0 && (
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', maxWidth: '140px', justifyContent: 'flex-end' }}>
+                        {images.slice(0, 4).map((img, i) => (
+                            <a key={i} href={img} target="_blank" rel="noopener noreferrer">
+                                <img src={img} alt="Evidence" className={local.evidenceThumb} style={{ width: '40px', height: '40px' }} />
+                            </a>
+                        ))}
                     </div>
                 )}
             </div>
 
-            {(images.length > 0 || report.videoEvidenceUrl) && (
-                <div className={local.evidenceSection}>
-                    {images.length > 0 && (
-                        <div className={local.evidenceThumbGrid}>
-                            {images.map((img, i) => (
-                                <a key={i} href={img} target="_blank" rel="noopener noreferrer">
-                                    <img src={img} alt={`Evidence ${i + 1}`} className={local.evidenceThumb} />
-                                </a>
-                            ))}
-                        </div>
-                    )}
-
-                    {report.videoEvidenceUrl && (
-                        <a href={report.videoEvidenceUrl} target="_blank" rel="noopener noreferrer" className={local.videoChip}>
-                            <ExternalLink size={14} />
-                            <span>Xem Video bằng chứng</span>
-                        </a>
-                    )}
-                </div>
-            )}
-
-            <div className={local.reportFooter}>
-                <div className={local.reportMetaGroup}>
-                    <div className={local.reportMetaItem} title={`Người báo cáo ID: ${report.reporterId}`}>
-                        <User size={14} className={`${local.reportMetaIcon} ${local.reporter}`} />
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className={local.reportMetaValue}>#{report.reporterId}</span>
-                            {report.reporterName && <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' }}>{report.reporterName}</span>}
-                        </div>
+            {/* Footer: Meta & Actions */}
+            <div style={{ 
+                marginTop: '12px', 
+                paddingTop: '12px', 
+                borderTop: '1px solid var(--border-color)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        <User size={14} color="var(--primary-blue)" />
+                        <span style={{ fontWeight: 600 }}>#{report.reporterId}</span>
+                        {report.reporterName && <span style={{ opacity: 0.7 }}>({report.reporterName})</span>}
                     </div>
                     {report.reportedUserId && (
-                        <div className={local.reportMetaItem} title={`Đối tượng ID: ${report.reportedUserId}`}>
-                            <Shield size={14} className={`${local.reportMetaIcon} ${local.target}`} />
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span className={local.reportMetaValue}>#{report.reportedUserId}</span>
-                                {(report.targetUserName || report.reportedUserName) && (
-                                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                        {report.targetUserName || report.reportedUserName}
-                                    </span>
-                                )}
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            <Shield size={14} color="#ef4444" />
+                            <span style={{ fontWeight: 600 }}>#{report.reportedUserId}</span>
+                            {(report.targetUserName || report.reportedUserName) && <span style={{ opacity: 0.7 }}>({report.targetUserName || report.reportedUserName})</span>}
                         </div>
                     )}
-                    <div className={local.reportMetaItem}>
-                        <Clock size={14} className={`${local.reportMetaIcon} ${local.time}`} />
-                        <span className={local.reportMetaValue}>
-                            {report.createdAt ? new Date(report.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
-                        </span>
-                    </div>
+                </div>
 
-                    {/* View Booking Button */}
+                <div style={{ display: 'flex', gap: '8px' }}>
                     {report.bookingId && (
                         <button
                             onClick={() => onViewBooking(report.bookingId)}
                             className={local.resolveChip}
                             disabled={isLoadingBooking}
-                            style={{
-                                background: 'rgba(29, 155, 240, 0.1)',
+                            style={{ 
+                                padding: '6px 12px', 
+                                border: '1px solid var(--primary-blue)',
                                 color: 'var(--primary-blue)',
-                                border: '1px solid rgba(29, 155, 240, 0.2)',
-                                marginLeft: 'auto',
-                                opacity: isLoadingBooking ? 0.7 : 1,
-                                cursor: isLoadingBooking ? 'not-allowed' : 'pointer'
+                                gap: '4px'
                             }}
                         >
-                            {isLoadingBooking ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-                            Xem Booking
+                            {isLoadingBooking ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
+                            Booking
                         </button>
                     )}
-                </div>
 
-                {report.status === 'Pending' && (
-                    <div className={local.resolveGroup}>
-                        <button
-                            className={`${local.resolveChip} ${local.v}`}
-                            onClick={() => onResolve(report.userReportId, true)}
-                            disabled={isProcessing}
-                        >
-                            {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-                            Hợp lệ
-                        </button>
-                        <button
-                            className={`${local.resolveChip} ${local.f}`}
-                            onClick={() => onResolve(report.userReportId, false)}
-                            disabled={isProcessing}
-                        >
-                            {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />}
-                            Sai lệch
-                        </button>
-                    </div>
-                )}
+                    {report.status === 'Pending' && (
+                        <>
+                            <button
+                                className={`${local.resolveChip} ${local.v}`}
+                                onClick={() => onResolve(report.userReportId, true)}
+                                disabled={isProcessing}
+                                style={{ padding: '6px 12px' }}
+                            >
+                                Duyệt
+                            </button>
+                            <button
+                                className={`${local.resolveChip} ${local.f}`}
+                                onClick={() => onResolve(report.userReportId, false)}
+                                disabled={isProcessing}
+                                style={{ padding: '6px 12px' }}
+                            >
+                                Từ chối
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
