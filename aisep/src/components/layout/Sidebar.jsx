@@ -46,13 +46,9 @@ function Sidebar({
 
     if (isAdmin) {
       const adminItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', displayLabel: 'Bảng điều khiển', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
+        { icon: Users, label: 'AdminStaff', displayLabel: 'Quản lý Staff', href: '#', showWhenLoggedIn: true },
         { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
-        { icon: FileText, label: 'AdminDeals', displayLabel: 'Quản lý Deals', href: '#', showWhenLoggedIn: true },
-        { icon: ShieldCheck, label: 'AdminContracts', displayLabel: 'Quản lý hợp đồng', href: '#', showWhenLoggedIn: true },
-        { icon: Settings, label: 'AdminSystem', displayLabel: 'Cấu hình hệ thống', href: '#', showWhenLoggedIn: true },
-        { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
       return adminItems;
     }
@@ -160,9 +156,9 @@ function Sidebar({
       } else if (roleStr === 'operationstaff' || roleStr === 'staff' || roleNum === 3) {
         onShowDashboard('statistics');
       } else if (roleStr === 'admin' || roleNum === 4) {
-        onShowDashboard('overview');
+        onShowDashboard('users');
       } else {
-        onShowDashboard('overview');
+        onShowDashboard('users');
       }
     }
     if (label === 'Projects' && onShowDashboard) {
@@ -212,23 +208,14 @@ function Sidebar({
       onShowDashboard('pr_news');
     }
 
-    if (label === 'AccountProfile' && onShowDashboard) {
-      onShowDashboard('account_profile');
-    }
     if (label === 'AdminUsers' && onShowDashboard) {
       onShowDashboard('users');
     }
-    if (label === 'AdminDeals' && onShowDashboard) {
-      onShowDashboard('deals');
+    if (label === 'AdminStaff' && onShowDashboard) {
+      onShowDashboard('staff');
     }
     if (label === 'AdminTransactions' && onShowDashboard) {
       onShowDashboard('transactions');
-    }
-    if (label === 'AdminContracts' && onShowDashboard) {
-      onShowDashboard('contracts');
-    }
-    if (label === 'AdminSystem' && onShowDashboard) {
-      onShowDashboard('system');
     }
 
     // Navigate to home when clicking Home
@@ -365,11 +352,8 @@ function Sidebar({
                       if (activeView === 'dashboard_subscription_history') return 'SubscriptionHistory';
                       if (activeView === 'dashboard_investor_approval') return 'InvestorApproval';
                       if (activeView === 'dashboard_users') return 'AdminUsers';
+                      if (activeView === 'dashboard_staff') return 'AdminStaff';
                       if (activeView === 'dashboard_transactions') return 'AdminTransactions';
-                      if (activeView === 'dashboard_deals') return 'AdminDeals';
-                      if (activeView === 'dashboard_contracts') return 'AdminContracts';
-                      if (activeView === 'dashboard_system') return 'AdminSystem';
-                      if (activeView === 'dashboard_account_profile') return 'AccountProfile';
                       if (activeView === 'profile') return 'Profile';
                       if (activeView === 'advisors') return 'Advisors';
                       if (activeView === 'investors') return 'Investors';
