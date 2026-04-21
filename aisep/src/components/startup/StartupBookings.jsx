@@ -72,6 +72,7 @@ export default function StartupBookings({ user, targetId, onViewProject, initial
     const [detailBooking, setDetailBooking] = useState(null);
     const [rateBooking, setRateBooking] = useState(null);
     const [viewReport, setViewReport] = useState(null);
+    const [complainBooking, setComplainBooking] = useState(null);
     
     // Deep Linking State Tracking
     const [hasAttemptedDeepLink, setHasAttemptedDeepLink] = useState(false);
