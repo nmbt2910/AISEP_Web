@@ -83,6 +83,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
         }
     };
 
+
     // ── Advisor profile ────────────────────────────────────────────────────
     useEffect(() => {
         const loadProfile = async () => {
@@ -96,14 +97,49 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
         loadProfile();
     }, []);
 
-    const advisorId = advisorProfile?.advisorId;
-
-    // ── Stats từ real data ─────────────────────────────────────────────────
+    const [hasAttemptedDeepLink, setHasAttemptedDeepLink] = useState(false);
     const [availabilities, setAvailabilities] = useState([]);
     const [incomingBookings, setIncomingBookings] = useState([]);
     const [userReportsReported, setUserReportsReported] = useState([]);
     const [availabilitiesLoading, setAvailabilitiesLoading] = useState(false);
     const [bookingsLoading, setBookingsLoading] = useState(false);
+
+    // --- Deep Linking Enforcement ---
+    React.useEffect(() => {
+        if (!targetId || hasAttemptedDeepLink) return;
+
+        const scrollAndHighlight = (idPrefix) => {
+            const element = document.getElementById(`${idPrefix}-${targetId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setHasAttemptedDeepLink(true);
+                console.log(`[DeepLink] Scrolled to and highlighted ${idPrefix}: ${targetId}`);
+            }
+        };
+
+        console.log(`[AdvisorDashboard] Processing targetId: ${targetId} for activeSection: ${activeSection}`);
+        
+        // 1. Bookings Deep Link (General list or Kanban)
+        if (activeSection === 'bookings' && incomingBookings.length > 0) {
+            const match = incomingBookings.find(b => String(b.id || b.bookingId) === String(targetId));
+            if (match) {
+                scrollAndHighlight('booking');
+            }
+        }
+        
+        // 2. Booking Approvals Deep Link
+        else if (activeSection === 'approve_bookings' && incomingBookings.length > 0) {
+            const match = incomingBookings.find(b => String(b.id || b.bookingId) === String(targetId));
+            if (match) {
+                scrollAndHighlight('booking');
+            }
+        }
+
+    }, [targetId, activeSection, incomingBookings, hasAttemptedDeepLink]);
+
+    const advisorId = advisorProfile?.advisorId;
+
+    // ── Stats từ real data ─────────────────────────────────────────────────
 
     const loadAvailabilities = useCallback(async () => {
         setAvailabilitiesLoading(true);
@@ -276,6 +312,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                             onNavigate={handleNavigate}
                             loadingBookings={bookingsLoading}
                             loadingAvailabilities={availabilitiesLoading}
+                            targetId={targetId}
                         />
                     )
                 )}
@@ -386,7 +423,7 @@ function BookingSkeleton({ index = 0 }) {
     );
 }
 
-function OverviewSection({ availabilities, incomingBookings, onNavigate, loadingBookings, loadingAvailabilities }) {
+function OverviewSection({ availabilities, incomingBookings, onNavigate, loadingBookings, loadingAvailabilities, targetId }) {
     const nextSlots = [...availabilities]
         .filter(a => a.status === 0 || a.status === 'Available')
         .sort((a, b) => new Date(`${a.slotDate}T${a.startTime}`) - new Date(`${b.slotDate}T${b.startTime}`))
@@ -461,24 +498,28 @@ function OverviewSection({ availabilities, incomingBookings, onNavigate, loading
                                 <MessageSquare size={28} />
                                 <p style={{ margin: 0, fontSize: '13px' }}>Không có booking nào đang chờ.</p>
                             </div>
-                        ) : pending.map((b, idx) => (
-                            <div
-                                key={b.id}
-                                className={`${styles.mobileCardItem} ${styles.staggerEntry}`}
-                                style={{ animationDelay: `${(idx + 2) * 0.1}s` }} // Delay after slots
-                            >
-                                <div className={styles.mobileCardItemContent}>
-                                    <div className={styles.listIcon} style={{ background: 'rgba(255, 173, 31, 0.1)', color: '#d97706' }}>
-                                        <Users size={18} />
+                        ) : pending.map((b, idx) => {
+                            const isHighlighted = String(targetId) === String(b.id || b.bookingId);
+                            return (
+                                <div
+                                    id={`booking-${b.id || b.bookingId}`}
+                                    key={b.id}
+                                    className={`${styles.mobileCardItem} ${styles.staggerEntry} ${isHighlighted ? styles.targetHighlight : ''}`}
+                                    style={{ animationDelay: `${(idx + 2) * 0.1}s` }}
+                                >
+                                    <div className={styles.mobileCardItemContent}>
+                                        <div className={styles.listIcon} style={{ background: 'rgba(255, 173, 31, 0.1)', color: '#d97706' }}>
+                                            <Users size={18} />
+                                        </div>
+                                        <div className={styles.listContent}>
+                                            <div className={styles.mobileCardItemTitle}>{b.projectName || 'Dự án chưa rõ'}</div>
+                                            <div className={styles.mobileCardItemMeta}>Từ: <strong>{b.customerName}</strong></div>
+                                        </div>
+                                        <span className={`${styles.badge} ${styles.badgePending}`}>Chờ</span>
                                     </div>
-                                    <div className={styles.listContent}>
-                                        <div className={styles.mobileCardItemTitle}>{b.projectName || 'Dự án chưa rõ'}</div>
-                                        <div className={styles.mobileCardItemMeta}>Từ: <strong>{b.customerName}</strong></div>
-                                    </div>
-                                    <span className={`${styles.badge} ${styles.badgePending}`}>Chờ</span>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -489,7 +530,8 @@ function OverviewSection({ availabilities, incomingBookings, onNavigate, loading
 /**
  * AdvisorBookingKanbanCard - Single card for the Advisor Kanban board
  */
-const AdvisorBookingKanbanCard = ({ booking, onDetail, onApprove, onReject, onChat, onReport, isActioning, isChatLoading }) => {
+const AdvisorBookingKanbanCard = ({ booking, onDetail, onApprove, onReject, onChat, onReport, isActioning, isChatLoading, targetId }) => {
+    const isHighlighted = String(targetId) === String(booking.id || booking.bookingId);
     const status = booking.status;
     let statusLabel = 'Chờ duyệt';
     let localStatus = 'pend';
@@ -542,7 +584,7 @@ const AdvisorBookingKanbanCard = ({ booking, onDetail, onApprove, onReject, onCh
     };
 
     return (
-        <div className={avStyles.bcard}>
+        <div id={`booking-${booking.id || booking.bookingId}`} className={`${avStyles.bcard} ${isHighlighted ? styles.targetHighlight : ''}`}>
             <div className={`${avStyles.bcardStrip} ${avStyles[localStatus]}`}></div>
             <div className={avStyles.bcardBody}>
                 <div className={avStyles.bcardRow1}>
@@ -658,24 +700,8 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
     const [rejectingBooking, setRejectingBooking] = useState(null);
     const [showRejectionModal, setShowRejectionModal] = useState(false);
     
-    // Deep Linking State Tracking
-    const [hasAttemptedDeepLink, setHasAttemptedDeepLink] = useState(false);
-    
     const pendingBookings = bookings.filter(b => b.status === 0 || b.status === 'Pending');
 
-    // Deep Linking Hook
-    useEffect(() => {
-        if (targetId && pendingBookings.length > 0 && !hasAttemptedDeepLink) {
-            const match = pendingBookings.find(b => String(b.id || b.bookingId) === String(targetId));
-            if (match) {
-                setSelectedBooking(match);
-                setHasAttemptedDeepLink(true);
-                console.log(`[DeepLink] Auto-opened Booking Approval Details for ID: ${targetId}`);
-            }
-        }
-    }, [targetId, pendingBookings, hasAttemptedDeepLink]);
-
-    // Helper for literal UTC time display
     const formatTimeUTC = (dateStr) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
@@ -718,7 +744,6 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
                 ...prev,
                 [rejectingBooking.id]: e.message || 'Không thể từ chối booking. Vui lòng thử lại.'
             }));
-            // Keep modal open so user can retry
         } finally {
             setActionLoading(prev => ({ ...prev, [rejectingBooking?.id]: null }));
         }
@@ -731,8 +756,6 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
 
     return (
         <div className={styles.section} style={{ padding: '0 4px' }}>
-
-
             {loading ? (
                 <div className={styles.card}>
                     <div className={styles.list}>
@@ -749,106 +772,101 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingBottom: '40px' }}>
-                    {pendingBookings.map((b, idx) => (
-                        <div
-                            key={b.id}
-                            className={`${styles.listItem} ${styles.staggerEntry} ${avStyles.approvalItem}`}
-                            style={{ animationDelay: `${idx * 0.05}s` }}
-                        >
-                            {/* Left: Info */}
-                            <div className={avStyles.approvalInfo}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(29, 155, 240, 0.1)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                    <Users size={24} />
+                    {pendingBookings.map((b, idx) => {
+                        const isHighlighted = String(targetId) === String(b.id || b.bookingId);
+                        return (
+                            <div
+                                id={`booking-${b.id || b.bookingId}`}
+                                key={b.id}
+                                className={`${styles.listItem} ${styles.staggerEntry} ${avStyles.approvalItem} ${isHighlighted ? styles.targetHighlight : ''}`}
+                                style={{ animationDelay: `${idx * 0.05}s` }}
+                            >
+                                <div className={avStyles.approvalInfo}>
+                                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(29, 155, 240, 0.1)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <Users size={24} />
+                                    </div>
+                                    <div style={{ minWidth: 0 }}>
+                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {b.projectName || 'Dự án mới'}
+                                        </h4>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                                            Khách: <strong style={{ color: 'var(--text-primary)' }}>{b.customerName}</strong>
+                                        </div>
+                                    </div>
+                                    <span className={`${styles.badge} ${styles.badgePending}`} style={{ padding: '6px 12px', fontSize: '12px', marginLeft: 'auto', whiteSpace: 'nowrap' }}>Chờ duyệt</span>
                                 </div>
-                                <div style={{ minWidth: 0 }}>
-                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {b.projectName || 'Dự án mới'}
-                                    </h4>
-                                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                        Khách: <strong style={{ color: 'var(--text-primary)' }}>{b.customerName}</strong>
+
+                                <div className={avStyles.approvalMetrics}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Thời gian</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                            <Calendar size={14} style={{ color: 'var(--primary-blue)' }} />
+                                            {formatTimeUTC(b.startTime)} - {formatTimeUTC(b.endTime)}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Chi phí</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: '800', color: '#f59e0b' }}>
+                                            {Number(b.price || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '11px', fontWeight: '600' }}>VND</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <span className={`${styles.badge} ${styles.badgePending}`} style={{ padding: '6px 12px', fontSize: '12px', marginLeft: 'auto', whiteSpace: 'nowrap' }}>Chờ duyệt</span>
-                            </div>
 
-                            {/* Middle: Metrics - Inline compact */}
-                            <div className={avStyles.approvalMetrics}>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Thời gian</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                        <Calendar size={14} style={{ color: 'var(--primary-blue)' }} />
-                                        {formatTimeUTC(b.startTime)} - {formatTimeUTC(b.endTime)}
-                                    </div>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '600' }}>Chi phí</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: '800', color: '#f59e0b' }}>
-                                        {Number(b.price || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '11px', fontWeight: '600' }}>VND</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Right: Actions */}
-                            <div className={avStyles.approvalActions}>
-                                <button
-                                    onClick={() => setSelectedBooking(b)}
-                                    style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
-                                    title="Xem chi tiết"
-                                    onMouseOver={(e) => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-                                    onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                                >
-                                    <Eye size={18} />
-                                </button>
-                                <button
-                                    onClick={() => handleRejectClick(b)}
-                                    disabled={!!actionLoading[b.id]}
-                                    style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(244, 33, 46, 0.1)', border: 'none', color: '#f4212e', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
-                                    title="Từ chối"
-                                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(244, 33, 46, 0.2)'}
-                                    onMouseOut={(e) => e.currentTarget.style.background = 'rgba(244, 33, 46, 0.1)'}
-                                >
-                                    {actionLoading[b.id] === 'reject' ? <Loader size={18} className={styles.spinner} /> : <X size={18} />}
-                                </button>
-                                <button
-                                    className={styles.primaryBtn}
-                                    onClick={() => handleApprove(b.id)}
-                                    disabled={!!actionLoading[b.id]}
-                                    style={{ borderRadius: '10px', height: '40px', padding: '0 20px', fontSize: '14px', fontWeight: '700' }}
-                                >
-                                    {actionLoading[b.id] === 'approve' ? <Loader size={16} className={styles.spinner} /> : 'Chấp nhận'}
-                                </button>
-                            </div>
-
-                            {/* Error message for this booking */}
-                            {actionError[b.id] && (
-                                <div style={{
-                                    gridColumn: '1 / -1',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    marginTop: '8px',
-                                    padding: '8px 12px',
-                                    background: 'rgba(244, 33, 46, 0.05)',
-                                    border: '1px solid rgba(244, 33, 46, 0.2)',
-                                    borderRadius: '8px',
-                                    color: '#f4212e',
-                                    fontSize: '13px',
-                                    fontWeight: '500'
-                                }}>
-                                    <AlertCircle size={14} />
-                                    <span>{actionError[b.id]}</span>
+                                <div className={avStyles.approvalActions}>
                                     <button
-                                        onClick={() => setActionError(prev => ({ ...prev, [b.id]: null }))}
-                                        style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#f4212e', cursor: 'pointer', padding: '4px' }}
-                                        title="Đóng"
+                                        onClick={() => setSelectedBooking(b)}
+                                        style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
+                                        title="Xem chi tiết"
                                     >
-                                        <X size={14} />
+                                        <Eye size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleRejectClick(b)}
+                                        disabled={!!actionLoading[b.id]}
+                                        style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(244, 33, 46, 0.1)', border: 'none', color: '#f4212e', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
+                                        title="Từ chối"
+                                    >
+                                        {actionLoading[b.id] === 'reject' ? <Loader size={18} className={styles.spinner} /> : <X size={18} />}
+                                    </button>
+                                    <button
+                                        className={styles.primaryBtn}
+                                        onClick={() => handleApprove(b.id)}
+                                        disabled={!!actionLoading[b.id]}
+                                        style={{ borderRadius: '10px', height: '40px', padding: '0 20px', fontSize: '14px', fontWeight: '700' }}
+                                    >
+                                        {actionLoading[b.id] === 'approve' ? <Loader size={16} className={styles.spinner} /> : 'Chấp nhận'}
                                     </button>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+
+                                {actionError[b.id] && (
+                                    <div style={{
+                                        gridColumn: '1 / -1',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        marginTop: '8px',
+                                        padding: '8px 12px',
+                                        background: 'rgba(244, 33, 46, 0.05)',
+                                        border: '1px solid rgba(244, 33, 46, 0.2)',
+                                        borderRadius: '8px',
+                                        color: '#f4212e',
+                                        fontSize: '13px',
+                                        fontWeight: '500'
+                                    }}>
+                                        <AlertCircle size={14} />
+                                        <span>{actionError[b.id]}</span>
+                                        <button
+                                            onClick={() => setActionError(prev => ({ ...prev, [b.id]: null }))}
+                                            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#f4212e', cursor: 'pointer', padding: '4px' }}
+                                            title="Đóng"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -863,21 +881,15 @@ function BookingApprovalSection({ bookings, targetId, loading, onRefresh, user, 
                             handleRejectClick(b);
                             setSelectedBooking(null);
                         }
-                        if (act === 'viewComplaint') {
-                            setSelectedReportForView(b);
-                            setSelectedBooking(null);
-                        }
                         if (act === 'viewProject') {
                             onNavigate(`project_${b.projectId}`);
-                            setSelectedBooking(null);
                         }
-                        if (act !== 'reject') setSelectedBooking(null);
+                        setSelectedBooking(null);
                     }}
                 />,
                 document.body
             )}
 
-            {/* Booking Rejection Modal */}
             {showRejectionModal && rejectingBooking && createPortal(
                 <BookingRejectionModal
                     booking={rejectingBooking}
@@ -905,21 +917,6 @@ function IncomingBookingsSection({ bookings, userReports = [], targetId, loading
     const [showRightTabIndicator, setShowRightTabIndicator] = useState(false);
     const [rejectingBooking, setRejectingBooking] = useState(null);
     const [showRejectionModal, setShowRejectionModal] = useState(false);
-    
-    // Deep Linking State Tracking
-    const [hasAttemptedDeepLink, setHasAttemptedDeepLink] = useState(false);
-
-    // Deep Linking Hook
-    useEffect(() => {
-        if (targetId && bookings.length > 0 && !hasAttemptedDeepLink) {
-            const match = bookings.find(b => String(b.id || b.bookingId) === String(targetId));
-            if (match) {
-                setSelectedBooking(match);
-                setHasAttemptedDeepLink(true);
-                console.log(`[DeepLink] Auto-opened Incoming Booking Details for ID: ${targetId}`);
-            }
-        }
-    }, [targetId, bookings, hasAttemptedDeepLink]);
 
     const checkTabScroll = () => {
         if (tabSwitcherRef.current) {
@@ -1059,6 +1056,7 @@ function IncomingBookingsSection({ bookings, userReports = [], targetId, loading
                             <AdvisorBookingKanbanCard
                                 key={b.id}
                                 booking={b}
+                                targetId={targetId}
                                 isActioning={actionLoading[b.id]}
                                 onDetail={() => setSelectedBooking(b)}
                                 onApprove={() => handleApprove(b.id)}

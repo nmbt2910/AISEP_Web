@@ -4350,4 +4350,27 @@
     border-color: rgba(23, 191, 99, 0.3);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(23, 191, 99, 0.05);
-}
+}
+
+/* Deep Link Highlighting */
+.targetHighlight {
+    animation: targetPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+    position: relative !important;
+    z-index: 10 !important;
+    box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.7) !important;
+    border-color: var(--primary-blue) !important;
+    background-color: var(--bg-hover) !important;
+}
+
+@keyframes targetPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(29, 155, 240, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(29, 155, 240, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(29, 155, 240, 0);
+    }
+}
+

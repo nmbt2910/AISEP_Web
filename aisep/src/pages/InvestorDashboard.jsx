@@ -146,9 +146,17 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
     React.useEffect(() => {
         if (!targetId || hasAttemptedDeepLink) return;
 
-        console.log(`[InvestorDashboard] Processing targetId: ${targetId} for activeSection: ${activeSection}`);
-        let matchFound = false;
+        const scrollAndHighlight = (idPrefix) => {
+            const element = document.getElementById(`${idPrefix}-${targetId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setHasAttemptedDeepLink(true);
+                console.log(`[DeepLink] Scrolled to and highlighted ${idPrefix}: ${targetId}`);
+            }
+        };
 
+        console.log(`[InvestorDashboard] Processing targetId: ${targetId} for activeSection: ${activeSection}`);
+        
         // 1. Deals Deep Link
         if (activeSection === 'deals' && deals.length > 0) {
             const matchDeal = deals.find(d => String(d.dealId) === String(targetId));
@@ -156,26 +164,26 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                 setDetailType('deal');
                 setSelectedItem(matchDeal);
                 setShowDetailModal(true);
-                matchFound = true;
-                console.log(`[DeepLink] Popped Deal Detail for dealId: ${targetId}`);
+                scrollAndHighlight('deal');
             }
         }
         
         // 2. Connection Requests Deep Link
-        else if (activeSection === 'connections' && sentConnectionRequests.length > 0) {
-            const matchReq = sentConnectionRequests.find(r => String(r.connectionRequestId) === String(targetId));
+        else if (activeSection === 'connection-requests' && sentConnectionRequests.length > 0) {
+            const matchReq = sentConnectionRequests.find(r => String(r.connectionRequestId || r.id) === String(targetId));
             if (matchReq) {
                 setDetailType('connection');
                 setSelectedItem(matchReq);
                 setShowDetailModal(true);
-                matchFound = true;
-                console.log(`[DeepLink] Popped Connection Detail for requestId: ${targetId}`);
+                scrollAndHighlight('connection');
             }
         }
 
-        if (matchFound) {
-            setHasAttemptedDeepLink(true);
+        // 3. Bookings Deep Link
+        else if (activeSection === 'bookings') {
+            scrollAndHighlight('booking');
         }
+
     }, [targetId, activeSection, deals, sentConnectionRequests, hasAttemptedDeepLink]);
 
     // Dashboard Data States
@@ -1196,16 +1204,22 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                             onScroll={checkTabScroll}
                         >
                             <button
-                                className={`${styles.tab} ${activeSection === 'investments' ? styles.active : ''}`}
-                                onClick={() => setActiveSection('investments')}
+                                className={`${styles.tab} ${activeSection === 'deals' || activeSection === 'investments' ? styles.active : ''}`}
+                                onClick={() => setActiveSection('deals')}
                             >
                                 Khoản đầu tư
                             </button>
                             <button
-                                className={`${styles.tab} ${activeSection === 'connectionrequests' ? styles.active : ''}`}
-                                onClick={() => setActiveSection('connectionrequests')}
+                                className={`${styles.tab} ${activeSection === 'connection-requests' || activeSection === 'connectionrequests' ? styles.active : ''}`}
+                                onClick={() => setActiveSection('connection-requests')}
                             >
                                 Yêu cầu kết nối
+                            </button>
+                            <button
+                                className={`${styles.tab} ${activeSection === 'bookings' ? styles.active : ''}`}
+                                onClick={() => setActiveSection('bookings')}
+                            >
+                                Lịch tư vấn
                             </button>
                             <button
                                 className={`${styles.tab} ${activeSection === 'interests' ? styles.active : ''}`}
@@ -1246,7 +1260,7 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                 )}
 
                 {/* Sent Connection Requests Section */}
-                {activeSection === 'connectionrequests' && (
+                {(activeSection === 'connection-requests' || activeSection === 'connectionrequests') && (
                     <div className={styles.section}>
                         {/* Header Stats */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -1314,10 +1328,12 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                     const statusInfo = statusConfig[request.status] || { label: 'Không xác định', color: '#64748b' };
                                     const canChat = request.status === 'Accepted' && request.chatSessionId;
 
+                                    const isHighlighted = String(targetId) === String(request.id || request.connectionRequestId);
                                     return (
                                         <div
+                                            id={`connection-${request.id || request.connectionRequestId}`}
                                             key={request.id || request.connectionRequestId}
-                                            className={`${styles.card} ${styles.itemAppear}`}
+                                            className={`${styles.card} ${styles.itemAppear} ${isHighlighted ? styles.targetHighlight : ''}`}
                                             style={{
                                                 display: 'flex',
                                                 flexDirection: 'column',
@@ -1624,7 +1640,7 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                 )}
 
                 {/* Investments (Deals) Section */}
-                {activeSection === 'investments' && (
+                {(activeSection === 'deals' || activeSection === 'investments') && (
                     <div className={styles.section}>
                         {/* Header Stats */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -1696,10 +1712,12 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                     const isContractSigned = !!deal.contractSignedAt;
                                     const isRejectedDeal = deal.status === 'Rejected' || deal.status === 5;
 
+                                    const isHighlighted = String(targetId) === String(deal.dealId);
                                     return (
                                         <div
+                                            id={`deal-${deal.dealId}`}
                                             key={deal.dealId}
-                                            className={`${styles.card} ${styles.itemAppear}`}
+                                            className={`${styles.card} ${styles.itemAppear} ${isHighlighted ? styles.targetHighlight : ''}`}
                                             style={{
                                                 display: 'flex',
                                                 flexDirection: 'column',
@@ -1877,6 +1895,17 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                 })}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeSection === 'bookings' && (
+                    <div className={styles.section} style={{ padding: 0 }}>
+                        <InvestorBookings 
+                            user={user} 
+                            targetId={targetId} 
+                            onViewProject={onViewProject}
+                            onUpdateProfile={() => setActiveSection('preferences')}
+                        />
                     </div>
                 )}
 

@@ -29,8 +29,13 @@ export const projectSubmissionService = {
   submitStartupInfo: async (projectData) => {
     const formData = new FormData();
     Object.keys(projectData).forEach(key => {
-      if (projectData[key] !== null && projectData[key] !== undefined) {
-        formData.append(key, projectData[key]);
+      const value = projectData[key];
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach(v => formData.append(key, v));
+        } else {
+          formData.append(key, value);
+        }
       }
     });
 
@@ -48,8 +53,13 @@ export const projectSubmissionService = {
   createProject: async (projectData) => {
     const formData = new FormData();
     Object.keys(projectData).forEach(key => {
-      if (projectData[key] !== null && projectData[key] !== undefined) {
-        formData.append(key, projectData[key]);
+      const value = projectData[key];
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach(v => formData.append(key, v));
+        } else {
+          formData.append(key, value);
+        }
       }
     });
 
@@ -68,8 +78,13 @@ export const projectSubmissionService = {
   updateProject: async (id, projectData) => {
     const formData = new FormData();
     Object.keys(projectData).forEach(key => {
-      if (projectData[key] !== null && projectData[key] !== undefined) {
-        formData.append(key, projectData[key]);
+      const value = projectData[key];
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          value.forEach(v => formData.append(key, v));
+        } else {
+          formData.append(key, value);
+        }
       }
     });
 

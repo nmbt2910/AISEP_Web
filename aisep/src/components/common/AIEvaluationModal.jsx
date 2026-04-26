@@ -189,7 +189,7 @@ export default function AIEvaluationModal({
                                 Cấu trúc điểm số thành phần
                             </h4>
                             <div className={styles.breakdownGrid}>
-                                {scoreBreakdown.map((item, idx) => (
+                                {scoreBreakdown.filter(item => item !== null).map((item, idx) => (
                                     <div key={idx} className={styles.breakdownItem}>
                                         <span className={styles.componentName}>{item.component}</span>
                                         <div className={styles.scoreBar}>
