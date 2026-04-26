@@ -20,6 +20,7 @@ import AdvisorProfilePage from './pages/AdvisorProfilePage';
 import AdvisorApprovalPage from './components/advisor/AdvisorApprovalPage';
 import ProjectDetailView from './components/feed/ProjectDetailView';
 import SessionExpiredModal from './components/auth/SessionExpiredModal';
+import NotificationRouter from './services/NotificationRouter';
 
 function App() {
   const [currentView, setCurrentView] = useState('main'); // 'login', 'main', 'roleSelection', 'register', 'resetPassword'
@@ -210,76 +211,19 @@ function App() {
   const handleNotificationNavigate = (referenceType, referenceId) => {
     if (!user) return;
     
-    // Convert referenceId to string to be safe
-    const safeRefId = referenceId ? referenceId.toString() : null;
-
-    const roleStr = user.role?.toString().toLowerCase() || '';
-    const roleNum = Number(user.role);
-    const isStaff = roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'staff' || roleNum === 3;
-    const isAdvisor = roleStr === 'advisor' || roleNum === 2;
-    const isInvestor = roleStr === 'investor' || roleNum === 1;
-    const isAdmin = roleStr === 'admin' || roleNum === 4;
-    const isStartup = roleStr === 'startup' || roleNum === 0;
-
-    console.log(`[App] Navigating for notification: type=${referenceType}, id=${safeRefId}`);
-
-    // Mapping logic
-    const normalizedType = referenceType ? referenceType.toString().toLowerCase() : '';
-
-    switch (normalizedType) {
-      case 'connectionrequest':
-      case 'connection':
-        if (isStartup) handleShowDashboard('connection-requests', safeRefId); // Fixed from investor-requests
-        else if (isInvestor) handleShowDashboard('startup-requests', safeRefId); // Check investor sections too!
-        break;
+    const resolution = NotificationRouter.resolve(referenceType, referenceId, user);
+    
+    if (resolution) {
+      const { section, targetId, view } = resolution;
       
-      case 'chatsession':
-      case 'chatmessage':
-        if (isStartup) handleShowDashboard('connection-requests', safeRefId); // Fixed
-        else if (isInvestor) handleShowDashboard('startup-requests', safeRefId);
-        else if (isAdvisor) handleShowDashboard('overview', safeRefId);
-        break;
-
-      case 'deal':
-      case 'investment':
-        if (isStartup || isInvestor) handleShowDashboard('deals', safeRefId);
-        break;
-
-      case 'booking':
-      case 'appointment':
-        if (isAdvisor) handleShowDashboard('bookings', safeRefId);
-        else if (isInvestor) handleShowDashboard('bookings', safeRefId);
-        else if (isStartup) handleShowDashboard('bookings', safeRefId); // Fixed from advisor-bookings
-        else if (isStaff) handleShowDashboard('bookings', safeRefId); // Fixed from booking-management
-        break;
-
-      case 'startup':
-      case 'project':
-        if (isStaff) handleShowDashboard('approvals', safeRefId);
-        else if (isStartup) handleShowDashboard('my-projects', safeRefId);
-        break;
-
-      case 'advisor':
-      case 'investor':
-        if (isStaff && normalizedType === 'advisor') handleShowDashboard('advisor_approval');
-        else if (isStaff && normalizedType === 'investor') handleShowDashboard('investor_approval');
-        else if (isAdvisor) setCurrentView('profile');
-        break;
-
-      case 'subscription':
-        if (isStartup || isInvestor) handleShowDashboard('subscription');
-        break;
-
-      case 'consultingreport':
-      case 'report':
-        if (isStartup) handleShowDashboard('advisor-bookings');
-        else if (isAdvisor) handleShowDashboard('bookings');
-        break;
-
-      default:
-        if (isAdmin) handleShowDashboard('overview');
-        else handleShowDashboard('');
-        break;
+      if (view) {
+        setCurrentView(view);
+      } else {
+        handleShowDashboard(section || '', targetId);
+      }
+    } else {
+      // Fallback
+      handleShowDashboard('');
     }
   };
 

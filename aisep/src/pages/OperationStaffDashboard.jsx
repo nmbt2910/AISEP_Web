@@ -57,7 +57,7 @@ const T = {
 /**
  * ProjectKanbanCard - Single card for the Kanban board
  */
-const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, processingProjectId, processingAction }) => {
+const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, processingProjectId, processingAction, isHighlighted }) => {
     // Determine development stage label and class
     const getDevStageTag = (stage) => {
         if (stage === 0 || stage === 'Idea') return { label: 'Ý tưởng', class: local.btagIdea };
@@ -73,7 +73,7 @@ const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, pro
     const avaClasses = [local.maB, local.maP, local.maG, local.maPk, local.maO];
 
     return (
-        <div className={local.inv_card}>
+        <div id={`project-${project.projectId}`} className={`${local.inv_card} ${isHighlighted ? styles.targetHighlight : ''}`}>
             <div className={`${local.inv_cardStrip} ${local[status]}`}></div>
             <div className={local.bcardBody}>
                 <div className={local.bcardTopRow}>
@@ -162,7 +162,7 @@ const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, pro
 /**
  * BookingKanbanCard - Single card for the Booking Kanban board
  */
-const BookingKanbanCard = ({ booking, status, onDetail }) => {
+const BookingKanbanCard = ({ booking, status, onDetail, isHighlighted }) => {
     // map status from 'pend', 'conf', 'comp'
     let statusLabel = 'Chờ xác nhận';
     let localStatus = 'pend'; 
@@ -212,7 +212,7 @@ const BookingKanbanCard = ({ booking, status, onDetail }) => {
     };
 
     return (
-        <div className={local.bcard}>
+        <div id={`booking-${booking?.id}`} className={`${local.bcard} ${isHighlighted ? styles.targetHighlight : ''}`}>
             <div className={`${local.bcardStrip} ${local[localStatus]}`}></div>
             <div className={local.bcardBody}>
                 <div className={local.bcardRow1}>
@@ -280,12 +280,12 @@ const BookingKanbanCard = ({ booking, status, onDetail }) => {
 /**
  * InvestorKanbanCard - Single card for the Investor Approval Kanban board
  */
-const InvestorKanbanCard = ({ investor, status, onDetail, onApprove, onReject, processingId, processingAction }) => {
+const InvestorKanbanCard = ({ investor, status, onDetail, onApprove, onReject, processingId, processingAction, isHighlighted }) => {
     const isProcessing = processingId === investor.investorId;
     const isAnyProcessing = !!processingId;
 
     return (
-        <div className={local.investorProCard}>
+        <div id={`investor-${investor.investorId}`} className={`${local.investorProCard} ${isHighlighted ? styles.targetHighlight : ''}`}>
             <div className={`${local.investorProCardStrip} ${local[status]}`}></div>
 
             <div className={local.investorProHeader}>
@@ -383,7 +383,7 @@ const InvestorKanbanCard = ({ investor, status, onDetail, onApprove, onReject, p
 /**
  * UserReportCard - Redesigned report item with Twitter/X aesthetic
  */
-const UserReportCard = ({ report, onResolve, onViewBooking, isProcessing, isLoadingBooking }) => {
+const UserReportCard = ({ report, onResolve, onViewBooking, isProcessing, isLoadingBooking, isHighlighted }) => {
     const getStatusConfig = (status) => {
         switch (status) {
             case 'Pending': return { label: 'Đang chờ', class: local.glassPending, tint: local.rpPending, icon: Clock };
@@ -402,7 +402,7 @@ const UserReportCard = ({ report, onResolve, onViewBooking, isProcessing, isLoad
     const images = Array.isArray(report.evidenceImageUrls) ? report.evidenceImageUrls : [];
 
     return (
-        <div className={`${local.reportCard} ${config.tint}`}>
+        <div id={`report-${report.userReportId}`} className={`${local.reportCard} ${config.tint} ${isHighlighted ? styles.targetHighlight : ''}`}>
             {/* Header: Category & Status/Date */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -575,6 +575,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
             setHasAttemptedDeepLink(false);
         }
     }, [initialSection]);
+
 
 
     const [pendingProjects, setPendingProjects] = useState([]);
@@ -1223,32 +1224,43 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     useEffect(() => {
         if (!targetId || hasAttemptedDeepLink) return;
 
+        const scrollAndHighlight = (idPrefix) => {
+            const element = document.getElementById(`${idPrefix}-${targetId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setHasAttemptedDeepLink(true);
+                console.log(`[DeepLink] Scrolled to and highlighted ${idPrefix}: ${targetId}`);
+            }
+        };
+
         // 1. Handling Bookings
         if (activeSection === 'bookings' && bookings.length > 0) {
             const match = bookings.find(b => String(b.id) === String(targetId));
             if (match) {
                 console.log(`[DeepLink] Auto-opening Booking Details: ${targetId}`);
                 handleViewBookingDetails(match.id);
+                scrollAndHighlight('booking');
                 setHasAttemptedDeepLink(true);
             }
             return;
         }
 
         // 2. Handling Startup Management / Approvals
-        if (activeSection === 'startup_management') {
+        if (activeSection === 'approvals' || activeSection === 'startup_management') {
             const allStartups = [...pendingStartups, ...approvedStartups, ...rejectedStartups];
             if (allStartups.length > 0) {
                 const match = allStartups.find(st => String(st.id) === String(targetId));
                 if (match) {
                     console.log(`[DeepLink] Auto-opening Startup Details: ${targetId}`);
                     openStartupDetail(match);
+                    scrollAndHighlight('startup');
                     setHasAttemptedDeepLink(true);
                 }
             }
             return;
         }
 
-        // 3. Handling Project Management / Approvals
+        // 3. Handling Project Management
         if (activeSection === 'project_management') {
             const allProjects = [...pendingProjects, ...approvedProjects, ...rejectedProjects];
             if (allProjects.length > 0) {
@@ -1256,6 +1268,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                 if (match) {
                     console.log(`[DeepLink] Auto-opening Project Details: ${targetId}`);
                     openDetailModal(match);
+                    scrollAndHighlight('project');
                     setHasAttemptedDeepLink(true);
                 }
             }
@@ -1271,6 +1284,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                     console.log(`[DeepLink] Auto-opening Investor Details: ${targetId}`);
                     setSelectedInvestor(match);
                     setShowInvestorDetailModal(true);
+                    scrollAndHighlight('investor');
                     setHasAttemptedDeepLink(true);
                 }
             }
@@ -1282,12 +1296,8 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
             const match = userReports.find(r => String(r.userReportId) === String(targetId));
             if (match) {
                 console.log(`[DeepLink] Found User Report: ${targetId}. Scrolling into view.`);
-                const element = document.getElementById(`report-card-${targetId}`);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    element.style.ring = '2px solid var(--primary-blue)';
-                    setHasAttemptedDeepLink(true);
-                }
+                scrollAndHighlight('report');
+                setHasAttemptedDeepLink(true);
             }
             return;
         }
@@ -2140,6 +2150,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         onReject={() => handleRejectProject(project.projectId)}
                                                         processingProjectId={processingProjectId}
                                                         processingAction={processingAction}
+                                                        isHighlighted={String(targetId) === String(project.projectId)}
                                                     />
                                                 ))}
                                             </div>
@@ -2217,6 +2228,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         }}
                                                         processingId={processingInvestorId}
                                                         processingAction={investorAction}
+                                                        isHighlighted={String(targetId) === String(i.investorId)}
                                                     />
                                                 ))}
                                             </div>
@@ -2682,6 +2694,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                             booking={booking}
                                                             status={booking.status}
                                                             onDetail={() => handleViewBookingDetails(booking.id)}
+                                                            isHighlighted={String(targetId) === String(booking.id)}
                                                         />
                                                     ))}
                                                 </div>
@@ -2755,6 +2768,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         isProcessing={processingProjectId === s.id}
                                                         processingAction={processingAction}
                                                         isAnyProcessing={!!processingProjectId}
+                                                        isHighlighted={String(targetId) === String(s.id)}
                                                     />
                                                 ))}
                                             </div>
@@ -2852,6 +2866,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                     onViewBooking={handleViewBookingDetails}
                                                     isProcessing={processingProjectId === report.userReportId}
                                                     isLoadingBooking={fetchingBookingId === report.bookingId}
+                                                    isHighlighted={String(targetId) === String(report.userReportId)}
                                                 />
 
                                             </div>

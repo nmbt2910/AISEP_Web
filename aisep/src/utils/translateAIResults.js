@@ -185,7 +185,7 @@ export const translateAIResults = (analysisResult, eligibilityResult) => {
 
   // Translate score breakdown component names
   if (Array.isArray(data.scoreBreakdown)) {
-    data.scoreBreakdown = data.scoreBreakdown.map(item => ({
+    data.scoreBreakdown = data.scoreBreakdown.filter(item => item !== null).map(item => ({
       ...item,
       component: translateComponent(item.component)
     }));

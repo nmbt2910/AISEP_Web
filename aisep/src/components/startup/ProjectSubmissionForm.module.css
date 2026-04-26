@@ -89,12 +89,15 @@
 }
 
 .formContent {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  padding: 12px 32px 32px;
   overflow-y: auto;
   flex: 1;
+}
+
+.formElement {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
 }
 
 .errorBanner {
@@ -133,7 +136,7 @@
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .label {
@@ -141,6 +144,37 @@
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charCount {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.charCountError {
+  color: #f4212e;
+  background: rgba(244, 33, 46, 0.1);
+}
+
+.validationHint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.validationHintActive {
+  color: #17bf63;
 }
 
 .required {

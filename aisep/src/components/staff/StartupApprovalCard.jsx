@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building, User, Mail, Calendar, ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import local from '../../styles/OperationStaffDashboard.module.css';
+import styles from '../../styles/SharedDashboard.module.css';
 
 /**
  * StartupApprovalCard - A responsive card for staff to review startup profile applications.
@@ -13,7 +14,8 @@ const StartupApprovalCard = ({
     onReject, 
     isProcessing, 
     processingAction,
-    isAnyProcessing 
+    isAnyProcessing,
+    isHighlighted 
 }) => {
     // Basic info with fallbacks
     const companyName = startup?.companyName || startup?.name || 'Công ty khởi nghiệp';
@@ -24,7 +26,7 @@ const StartupApprovalCard = ({
     const startupId = startup?.id || startup?.startupId;
 
     return (
-        <div className={`${local.investorProCard} ${local[status]} ${isAnyProcessing ? local.btnDisabled : ''}`}>
+        <div id={`startup-${startupId}`} className={`${local.investorProCard} ${local[status]} ${isAnyProcessing ? local.btnDisabled : ''} ${isHighlighted ? styles.targetHighlight : ''}`}>
             {/* Status strip at the left edge */}
             <div className={`${local.investorProCardStrip} ${local[status]}`}></div>
 

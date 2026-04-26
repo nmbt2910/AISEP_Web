@@ -331,9 +331,15 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
                             const displayAdvisorName = booking.advisorName || 'Cố vấn chuyên môn';
                             const startTime = new Date(booking.startTime);
                             const endTime = new Date(booking.endTime);
+                            const isHighlighted = String(targetId) === String(booking.id || booking.bookingId);
 
                             return (
-                                <div key={booking.id || booking.bookingId} className={styles.xItem} style={{ borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.01)' }}>
+                                <div 
+                                    id={`booking-${booking.id || booking.bookingId}`} 
+                                    key={booking.id || booking.bookingId} 
+                                    className={`${styles.xItem} ${isHighlighted ? styles.targetHighlight : ''}`} 
+                                    style={{ borderRadius: '12px', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.01)' }}
+                                >
                                     <div className={styles.xAvatar}>
                                         {displayProjectName.charAt(0).toUpperCase()}
                                     </div>

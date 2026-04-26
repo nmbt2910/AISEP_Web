@@ -253,16 +253,24 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
     React.useEffect(() => {
         if (!targetId || hasAttemptedDeepLink) return;
 
-        console.log(`[StartupDashboard] Processing targetId: ${targetId} for activeSection: ${activeSection}`);
-        let matchFound = false;
+        const scrollAndHighlight = (idPrefix) => {
+            const element = document.getElementById(`${idPrefix}-${targetId}`);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setHasAttemptedDeepLink(true);
+                console.log(`[DeepLink] Scrolled to and highlighted ${idPrefix}: ${targetId}`);
+            }
+        };
 
+        console.log(`[StartupDashboard] Processing targetId: ${targetId} for activeSection: ${activeSection}`);
+        
         // 1. My Projects Deep Link
         if (activeSection === 'my-projects' && myProjects.length > 0) {
             const matchProject = myProjects.find(p => String(p.id || p.projectId) === String(targetId));
             if (matchProject) {
-                setActiveSection(`project_${matchProject.id || matchProject.projectId}`);
-                matchFound = true;
-                console.log(`[DeepLink] Transitioned to project_${targetId}`);
+                // If it's a draft or something we stay on the grid, if we want full view we navigate
+                // For now let's just scroll and highlight the card
+                scrollAndHighlight('project');
             }
         }
         
@@ -273,31 +281,26 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                 // If it's ready to sign, pop the contract modal
                 if (matchDeal.status === 'Confirmed' || matchDeal.status === 1 || matchDeal.status === 'Waiting_For_Startup_Signature' || matchDeal.status === 2) {
                     setContractDealData(matchDeal);
-                    setContractPreviewHtml(null); // Will trigger fetch down the line
+                    setContractPreviewHtml(null); 
                     setShowContractModal(true);
-                    console.log(`[DeepLink] Popped Deal Modal for dealId: ${targetId}`);
-                } else {
-                    // Just scroll to it
-                    const el = document.getElementById(`deal-card-${targetId}`);
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                matchFound = true;
+                } 
+                scrollAndHighlight('deal');
             }
         }
         
-        // 3. Connect Requests Deep Link (No modal, just scrolling to active element)
+        // 3. Connect Requests Deep Link
         else if (activeSection === 'connection-requests' && connectionRequests.length > 0) {
             const matchReq = connectionRequests.find(r => String(r.connectionRequestId) === String(targetId));
             if (matchReq) {
-                const el = document.getElementById(`connection-card-${targetId}`);
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                matchFound = true;
+                scrollAndHighlight('connection');
             }
         }
 
-        if (matchFound) {
-            setHasAttemptedDeepLink(true);
+        // 4. Bookings Deep Link (Handled by component usually, but we can helper it)
+        else if (activeSection === 'bookings') {
+            scrollAndHighlight('booking');
         }
+
     }, [targetId, activeSection, myProjects, dealsToApprove, connectionRequests, hasAttemptedDeepLink]);
 
     // --- Filter Configurations & Counts ---
@@ -2061,8 +2064,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
 
                                                 return (
                                                     <div
+                                                        id={`project-${p.id || p.projectId}`}
                                                         key={p.id || p.projectId}
-                                                        className={kanban.bcard}
+                                                        className={`${kanban.bcard} ${String(targetId) === String(p.id || p.projectId) ? styles.targetHighlight : ''}`}
                                                         style={{
                                                             margin: 0,
                                                             height: '100%',
@@ -2242,9 +2246,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
 
                                         return (
                                             <div
-                                                id={`connection-card-${request.connectionRequestId}`}
+                                                id={`connection-${request.connectionRequestId}`}
                                                 key={request.connectionRequestId}
-                                                className={styles.card}
+                                                className={`${styles.card} ${String(targetId) === String(request.connectionRequestId) ? styles.targetHighlight : ''}`}
                                                 style={{
                                                     display: 'flex',
                                                     flexDirection: 'column',
@@ -2544,9 +2548,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
 
                                         return (
                                             <div
-                                                id={`deal-card-${deal.dealId}`}
+                                                id={`deal-${deal.dealId}`}
                                                 key={deal.dealId}
-                                                className={styles.card}
+                                                className={`${styles.card} ${String(targetId) === String(deal.dealId) ? styles.targetHighlight : ''}`}
                                                 style={{
                                                     display: 'flex',
                                                     flexDirection: 'column',

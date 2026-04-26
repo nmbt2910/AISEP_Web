@@ -47,7 +47,7 @@ const InvestorAIHistoryModal = ({
 
                                 const labelsMap = { 'Team': 'Đội ngũ', 'Opportunity': 'Thị trường', 'Product': 'Sản phẩm', 'Competition': 'Cạnh tranh', 'Marketing': 'Tiếp thị', 'Investment': 'Tài chính', 'Other': 'Khác' };
 
-                                return items.map((item, idx) => (
+                                return items.filter(item => item !== null).map((item, idx) => (
                                     <div key={idx} style={{ width: '100%' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px', color: '#e7e9ea' }}>
                                             <span style={{ fontWeight: '600' }}>{labelsMap[item.component] || item.component}</span>
