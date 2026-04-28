@@ -58,8 +58,9 @@ const investorService = {
   getMyProfile: async () => {
     try {
       const response = await apiClient.get('/api/Investor/me');
-      if (response && response.data) {
-        return response.data;
+      if (response) {
+        // Handle ApiResponse wrapper: { success, message, data, ... }
+        return response?.data?.data ?? response?.data ?? response;
       }
       return null;
     } catch (error) {

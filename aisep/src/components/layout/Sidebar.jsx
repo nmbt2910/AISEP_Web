@@ -96,6 +96,7 @@ function Sidebar({
         baseItems.find(i => i.label === 'Home'),
         baseItems.find(i => i.label === 'Dashboard'),
         { icon: Calendar, label: 'Bookings', displayLabel: 'Lịch Tư Vấn', href: '#', showWhenLoggedIn: true },
+        { icon: User, label: 'InvestorProfile', displayLabel: 'Hồ sơ nhà đầu tư', href: '#', showWhenLoggedIn: true },
         baseItems.find(i => i.label === 'PRNews'),
         baseItems.find(i => i.label === 'Advisors'),
         baseItems.find(i => i.label === 'Investors'),
@@ -211,6 +212,9 @@ function Sidebar({
 
     if (label === 'AccountProfile' && onShowDashboard) {
       onShowDashboard('account_profile');
+    }
+    if (label === 'InvestorProfile' && onShowDashboard) {
+      onShowDashboard('preferences');
     }
 
     if (label === 'AdminUsers' && onShowDashboard) {
@@ -356,6 +360,7 @@ function Sidebar({
                       if (activeView === 'dashboard_package_management') return 'PackageManagement';
                       if (activeView === 'dashboard_subscription_history') return 'SubscriptionHistory';
                       if (activeView === 'dashboard_investor_approval') return 'InvestorApproval';
+                      if (activeView === 'dashboard_preferences') return 'InvestorProfile';
                       if (activeView === 'dashboard_users') return 'AdminUsers';
                       if (activeView === 'dashboard_staff') return 'AdminStaff';
                       if (activeView === 'dashboard_transactions') return 'AdminTransactions';
