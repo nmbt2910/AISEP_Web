@@ -92,3 +92,30 @@
     justify-content: center;
   }
 }
+
+/* Status States */
+.pending .iconCircle {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.pending .actionBtn {
+  background: #f59e0b;
+}
+
+.pending .actionBtn:hover {
+  background: #d97706;
+}
+
+.rejected .iconCircle {
+  background: rgba(244, 33, 46, 0.1);
+  color: #f4212e;
+}
+
+.rejected .actionBtn {
+  background: #f4212e;
+}
+
+.rejected .actionBtn:hover {
+  background: #d71921;
+}

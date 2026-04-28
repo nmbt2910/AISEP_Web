@@ -276,7 +276,13 @@ function App() {
           isFullWidthContent={currentView.startsWith('dashboard_project_')}
         >
           {currentView === 'subscription' && <SubscriptionManagement user={user} />}
-          {currentView === 'profile' && <AdvisorProfilePage user={user} onBack={handleShowHome} />}
+          {currentView === 'profile' && (
+            <AdvisorProfilePage 
+              user={user} 
+              onBack={handleShowHome} 
+              onNotificationNavigate={handleNotificationNavigate}
+            />
+          )}
           {currentView.startsWith('dashboard') && (
             (() => {
               const roleStr = user?.role?.toString().toLowerCase() || '';

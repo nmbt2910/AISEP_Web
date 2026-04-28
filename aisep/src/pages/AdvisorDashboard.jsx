@@ -21,6 +21,7 @@ import FloatingChatWidget from '../components/common/FloatingChatWidget';
 import CustomSelect from '../components/common/CustomSelect';
 import NewsPRSection from '../components/common/NewsPRSection';
 import ProjectDetailView from '../components/feed/ProjectDetailView';
+import AdvisorProfileBanner from '../components/advisor/AdvisorProfileBanner';
 import AdvisorPayoutSection from '../components/advisor/AdvisorPayoutSection';
 import AdvisorWalletSection from '../components/advisor/AdvisorWalletSection';
 import AccountProfileTab from '../components/common/AccountProfileTab';
@@ -199,105 +200,157 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
         availableSlots: availableSlotCount,
     };
 
-    const isNewAdvisor = !advisorProfile && !availabilitiesLoading;
+    const sectionTitles = {
+        'overview': "Bảng điều khiển",
+        'wallet': "Thu nhập",
+        'approve_bookings': "Duyệt Booking",
+        'booking_list': "Danh sách Booking",
+        'schedules': "Lịch rảnh",
+        'profile': "Hồ sơ chuyên gia",
+        'account_profile': "Hồ sơ người dùng",
+        'payouts': "Thanh toán & Đối soát",
+        'reports': "Báo cáo tư vấn",
+        'discovery': "Khám phá dự án",
+        'news': "Tin tức",
+        'investors': "Tìm nhà đầu tư"
+    };
+
+    const sectionSubtitles = {
+        'overview': `Xin chào, ${user?.fullName || user?.name || 'Cố vấn'}! Quản lý hoạt động tư vấn của bạn.`,
+        'wallet': "Quản lý số dư và lịch sử thu nhập của bạn.",
+        'approve_bookings': "Các yêu cầu tư vấn mới cần bạn xác nhận.",
+        'booking_list': "Lịch sử các phiên tư vấn của bạn.",
+        'schedules': "Thiết lập thời gian bạn có thể nhận tư vấn.",
+        'profile': "Cập nhật thông tin chuyên môn và kinh nghiệm.",
+        'account_profile': "Quản lý thông tin tài khoản và mật khẩu của bạn.",
+        'payouts': "Lịch sử giao dịch và yêu cầu rút tiền.",
+        'reports': "Xem lại các báo cáo sau mỗi buổi tư vấn.",
+        'discovery': "Tìm kiếm và kết nối với các dự án startup tiềm năng.",
+        'news': "Cập nhật tin tức mới nhất từ nền tảng.",
+        'investors': "Danh sách các nhà đầu tư trên hệ thống."
+    };
+
+    const showBanner = (!advisorProfile || (advisorProfile.approvalStatus !== 1 && advisorProfile.approvalStatus !== 'Approved')) && !availabilitiesLoading;
 
     return (
         <div className={styles.container}>
-            {!activeSection.startsWith('project_') && activeSection !== 'pr_news' && (
-                <FeedHeader
-                    title={
-                        activeSection === 'account_profile' ? "Hồ sơ người dùng" :
-                            activeSection === 'wallet' ? "Thu nhập" :
-                                activeSection === 'approve_bookings' ? "Duyệt Booking" :
-                                    "Bảng điều khiển Cố vấn"
-                    }
-                    subtitle={
-                        activeSection === 'account_profile'
-                            ? "Quản lý thông tin tài khoản và mật khẩu của bạn."
-                            : activeSection === 'wallet'
-                                ? "Quản lý số dư và lịch sử thu nhập của bạn."
-                                : activeSection === 'approve_bookings'
-                                    ? "Các yêu cầu tư vấn mới cần bạn xác nhận."
-                                    : (isNewAdvisor
-                                        ? `Chào mừng ${user?.fullName || user?.name || ''}, hãy bắt đầu bằng việc thiết lập hồ sơ của bạn.`
-                                        : `Xin chào, ${user?.fullName || user?.name || 'Cố vấn'}! Quản lý hoạt động tư vấn của bạn.`)
-                    }
-                    stats={!isNewAdvisor && activeSection === 'overview' ? dashboardData : null}
+            {/* Top Header - Only for dashboard-native sections. Global pages like Discovery handle their own headers. */}
+            {!['discovery', 'news', 'investors'].includes(activeSection) && !activeSection.startsWith('project_') && activeSection !== 'pr_news' && (
+                <FeedHeader 
+                    user={user}
+                    title={sectionTitles[activeSection] || "Bảng điều khiển"}
+                    subtitle={sectionSubtitles[activeSection] || "Quản lý hoạt động chuyên gia của bạn"}
+                    stats={!!advisorProfile && activeSection === 'overview' ? dashboardData : null}
+                    onNotificationNavigate={onNotificationNavigate}
                     onNavigate={handleNavigate}
                     activeSection={activeSection}
                     onOpenChat={handleOpenChat}
                     showFilter={false}
-                    user={user}
-                    onNotificationNavigate={onNotificationNavigate}
                 />
             )}
 
-            {isNewAdvisor && activeSection !== 'profile' && (
-                <div className={avStyles.onboardingBanner}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                        <div style={{
-                            width: 32, height: 32, borderRadius: '8px', flexShrink: 0,
-                            background: 'rgba(29,155,240,0.12)', color: 'var(--primary-blue)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            <AlertCircle size={16} />
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                            <span style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>Hoàn tất hồ sơ chuyên gia</span>
-                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                Bạn cần khởi tạo hồ sơ trong tab <strong>Hồ sơ</strong> để đăng ký lịch rảnh và nhận yêu cầu tư vấn từ Startup.
-                            </span>
-                        </div>
-                    </div>
-                    <button
-                        className={styles.primaryBtn}
-                        onClick={() => handleNavigate('profile')}
-                        style={{ whiteSpace: 'nowrap', flexShrink: 0, borderRadius: '9999px', padding: '8px 18px', fontSize: '13px' }}
-                    >
-                        Thiết lập hồ sơ ngay <ChevronRight size={14} />
-                    </button>
-                </div>
+            {/* Banner - Render here for dashboard sections. Global pages will render it via prop. */}
+            {showBanner && activeSection !== 'profile' && !['discovery', 'news', 'investors', 'pr_news'].includes(activeSection) && !activeSection.startsWith('project_') && (
+                <AdvisorProfileBanner
+                    status={advisorProfile?.status}
+                    approvalStatus={advisorProfile?.approvalStatus}
+                    onRedirect={activeSection === 'profile' ? null : () => handleNavigate('profile')}
+                />
             )}
 
             {activeSection === 'overview' && (
-                <div className={`${styles.statsGrid} ${isNewAdvisor ? styles.disabledOpacity : ''}`}>
-                    <div className={styles.statCard} onClick={() => !isNewAdvisor && handleNavigate('approve_bookings')}>
+                <div className={`${styles.statsGrid} ${!advisorProfile ? styles.disabledOpacity : ''}`}>
+                    <div className={styles.statCard} onClick={() => !!advisorProfile && handleNavigate('approve_bookings')}>
                         <div className={`${styles.statIcon} ${styles.iconYellow}`}><MessageSquare size={20} /></div>
                         <div className={styles.statInfo}>
-                            <div className={styles.statValue}>{isNewAdvisor ? '-' : dashboardData.pendingBookings}</div>
+                            <div className={styles.statValue}>{!advisorProfile ? '-' : dashboardData.pendingBookings}</div>
                             <div className={styles.statLabel}>Booking chờ xác nhận</div>
                         </div>
                     </div>
-                    <div className={styles.statCard} onClick={() => !isNewAdvisor && handleNavigate('availability')}>
+                    <div className={styles.statCard} onClick={() => !!advisorProfile && handleNavigate('availability')}>
                         <div className={`${styles.statIcon} ${styles.iconBlue}`}><Calendar size={20} /></div>
                         <div className={styles.statInfo}>
-                            <div className={styles.statValue}>{isNewAdvisor ? '-' : dashboardData.availableSlots}</div>
+                            <div className={styles.statValue}>{!advisorProfile ? '-' : dashboardData.availableSlots}</div>
                             <div className={styles.statLabel}>Slot còn rảnh</div>
                         </div>
                     </div>
                     <div className={styles.statCard}>
                         <div className={`${styles.statIcon} ${styles.iconGreen}`}><CheckCircle size={20} /></div>
                         <div className={styles.statInfo}>
-                            <div className={styles.statValue}>{isNewAdvisor ? '-' : availabilities.filter(a => a.status === 1 || a.status === 'Booked').length}</div>
+                            <div className={styles.statValue}>{!advisorProfile ? '-' : availabilities.filter(a => a.status === 1 || a.status === 'Booked').length}</div>
                             <div className={styles.statLabel}>Slot đã đặt</div>
                         </div>
                     </div>
                     <div className={styles.statCard}>
                         <div className={`${styles.statIcon} ${styles.iconRed}`}><Star size={20} /></div>
                         <div className={styles.statInfo}>
-                            <div className={styles.statValue}>{isNewAdvisor ? '-' : (dashboardData.averageRating > 0 ? dashboardData.averageRating.toFixed(1) : '-')}</div>
+                            <div className={styles.statValue}>{!advisorProfile ? '-' : (dashboardData.averageRating > 0 ? dashboardData.averageRating.toFixed(1) : '-')}</div>
                             <div className={styles.statLabel}>Đánh giá trung bình</div>
                         </div>
                     </div>
                 </div>
             )}
 
-            <div className={`${styles.content} ${styles.scrollableSection}`} style={activeSection.startsWith('project_') ? { padding: 0 } : activeSection === 'pr_news' ? { padding: 0 } : {}}>
+            <div className={`${styles.content} ${styles.scrollableSection}`} style={(['discovery', 'news', 'investors', 'pr_news'].includes(activeSection) || activeSection.startsWith('project_')) ? { padding: 0 } : {}}>
+                {activeSection === 'discovery' && (
+                    <DiscoveryHub 
+                        user={user} 
+                        onNotificationNavigate={handleNavigate}
+                        banner={showBanner ? (
+                            <AdvisorProfileBanner
+                                status={advisorProfile?.status}
+                                approvalStatus={advisorProfile?.approvalStatus}
+                                onRedirect={() => handleNavigate('profile')}
+                            />
+                        ) : null}
+                    />
+                )}
+                {activeSection === 'news' && (
+                    <PRHubPage 
+                        user={user} 
+                        onNotificationNavigate={handleNavigate}
+                        banner={showBanner ? (
+                            <AdvisorProfileBanner
+                                status={advisorProfile?.status}
+                                approvalStatus={advisorProfile?.approvalStatus}
+                                onRedirect={() => handleNavigate('profile')}
+                            />
+                        ) : null}
+                    />
+                )}
+                {activeSection === 'investors' && (
+                    <AdvisorsPage 
+                        user={user} 
+                        role="investor" 
+                        onNotificationNavigate={handleNavigate}
+                        startupBanner={showBanner ? (
+                            <AdvisorProfileBanner
+                                status={advisorProfile?.status}
+                                approvalStatus={advisorProfile?.approvalStatus}
+                                onRedirect={() => handleNavigate('profile')}
+                            />
+                        ) : null}
+                    />
+                )}
+                {activeSection === 'profile' && (
+                    <AdvisorProfilePage 
+                        user={user} 
+                        onBack={() => handleNavigate('overview')}
+                        banner={showBanner ? (
+                            <AdvisorProfileBanner
+                                status={advisorProfile?.status}
+                                approvalStatus={advisorProfile?.approvalStatus}
+                                onRedirect={null}
+                                isCompact={true}
+                            />
+                        ) : null}
+                    />
+                )}
                 {activeSection === 'account_profile' && (
                     <AccountProfileTab user={user} onLogout={onLogout} />
                 )}
                 {activeSection === 'overview' && (
-                    isNewAdvisor ? (
+                    !advisorProfile ? (
                         <div className={styles.emptyState} style={{ padding: '40px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
                             <AlertCircle size={40} color="var(--primary-blue)" />
                             <h3 style={{ marginTop: '16px', color: 'var(--text-primary)' }}>Chưa có dữ liệu tổng quan</h3>
@@ -317,7 +370,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                     )
                 )}
                 {activeSection === 'approve_bookings' && (
-                    isNewAdvisor ? (
+                    !advisorProfile ? (
                         <div className={styles.emptyState} style={{ padding: '40px' }}>
                             <AlertCircle size={40} />
                             <p>Bạn cần hoàn tất hồ sơ trước khi xét duyệt các yêu cầu.</p>
@@ -327,7 +380,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                     )
                 )}
                 {activeSection === 'bookings' && (
-                    isNewAdvisor ? (
+                    !advisorProfile ? (
                         <div className={styles.emptyState} style={{ padding: '40px' }}>
                             <AlertCircle size={40} />
                             <p>Bạn cần hoàn tất hồ sơ trước khi xem danh sách Booking.</p>
@@ -337,7 +390,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                     )
                 )}
                 {activeSection === 'availability' && (
-                    isNewAdvisor ? (
+                    !advisorProfile ? (
                         <div className={styles.emptyState} style={{ padding: '40px' }}>
                             <AlertCircle size={40} />
                             <p>Bạn cần hoàn tất hồ sơ trước khi quản lý lịch rảnh.</p>
@@ -347,7 +400,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                     )
                 )}
                 {activeSection === 'reports' && (
-                    isNewAdvisor ? (
+                    !advisorProfile ? (
                         <div className={styles.emptyState} style={{ padding: '40px' }}>
                             <AlertCircle size={40} />
                             <p>Bạn cần hoàn tất hồ sơ trước khi xem báo cáo tư vấn.</p>
@@ -358,12 +411,22 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                 )}
 
                 {activeSection === 'pr_news' && (
-                    <NewsPRSection user={user} onNotificationNavigate={onNotificationNavigate} />
+                    <NewsPRSection 
+                        user={user} 
+                        onNotificationNavigate={onNotificationNavigate} 
+                        startupBanner={showBanner ? (
+                            <AdvisorProfileBanner
+                                status={advisorProfile?.status}
+                                approvalStatus={advisorProfile?.approvalStatus}
+                                onRedirect={() => handleNavigate('profile')}
+                            />
+                        ) : null}
+                    />
                 )}
 
 
                 {activeSection === 'payouts' && (
-                    isNewAdvisor ? (
+                    !advisorProfile ? (
                         <div className={styles.emptyState} style={{ padding: '40px' }}>
                             <AlertCircle size={40} />
                             <p>Bạn cần hoàn tất hồ sơ trước khi quản lý thanh toán.</p>

@@ -10,7 +10,7 @@ import NewsCard from '../components/common/NewsCard';
  * PR Hub - Browse all press releases from the platform
  * Features: Search, filter by project/investor, sort options, detail view
  */
-const PRHubPage = ({ user, onNotificationNavigate }) => {
+const PRHubPage = ({ user, onNotificationNavigate, banner }) => {
     const [allPRs, setAllPRs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(null);
@@ -155,6 +155,12 @@ const PRHubPage = ({ user, onNotificationNavigate }) => {
                 }}
                 onNotificationNavigate={onNotificationNavigate}
             />
+
+            {banner && (
+                <div style={{ marginBottom: '24px' }}>
+                    {banner}
+                </div>
+            )}
 
             {/* Stats Section */}
             <div style={{

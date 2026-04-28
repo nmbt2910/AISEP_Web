@@ -13,7 +13,7 @@ import CustomSelect from './CustomSelect';
  * After a successful password change the backend revokes all tokens,
  * so we trigger `onLogout` to force the user back to the login screen.
  */
-export default function AccountProfileTab({ user, onLogout }) {
+export default function AccountProfileTab({ user, onLogout, banner }) {
   // ─── Account Info ─────────────────────────────────────────────────────────
   const [accountInfo, setAccountInfo] = useState({
     fullName: '',
@@ -225,6 +225,11 @@ export default function AccountProfileTab({ user, onLogout }) {
 
   return (
     <div className={styles.container}>
+      {banner && (
+        <div style={{ marginBottom: '24px' }}>
+          {banner}
+        </div>
+      )}
       {/* ── Header ─────────────────────────────────────────────────── */}
 
 

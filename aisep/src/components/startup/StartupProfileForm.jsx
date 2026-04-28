@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Check, AlertCircle, Loader2, Upload, X, FileText, Globe, User, MapPin, Briefcase, Tag, Mail, ExternalLink } from 'lucide-react';
 import styles from './StartupProfileForm.module.css';
 import startupProfileService from '../../services/startupProfileService';
+import validationService from '../../services/validationService';
+import enumService from '../../services/enumService';
+import CustomSelect from '../common/CustomSelect';
 
 /**
  * StartupProfileForm - Form for updating startup profile information
@@ -27,56 +30,143 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Pre-populate form with existing data
-  useEffect(() => {
-    if (initialData) {
-      // Map API string Enum to corresponding integer index for the <select> element
-      let industryVal = initialData.industry || 0;
-      if (typeof industryVal === 'string') {
-        const industryMap = {
-          'Fintech': 0, 'Edtech': 1, 'Healthtech': 2, 'Agritech': 3,
-          'E_Commerce': 4, 'Logistics': 5, 'Proptech': 6, 'Cleantech': 7,
-          'SaaS': 8, 'AI_BigData': 9, 'Web3_Crypto': 10, 'Food_Beverage': 11,
-          'Manufacturing': 12, 'Media_Entertainment': 13, 'Other': 14
-        };
-        industryVal = industryMap[industryVal] !== undefined ? industryMap[industryVal] : 0;
-      }
+  const [validationRules, setValidationRules] = useState(null);
+  const [industries, setIndustries] = useState([]);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState('');
 
-      setFormData({
-        companyName: initialData.companyName || initialData.CompanyName || '',
-        logoUrl: initialData.logoUrl || initialData.LogoUrl || '',
-        founder: initialData.founder || initialData.Founder || '',
-        email: initialData.email || initialData.Email || '',
-        phoneNumber: initialData.phoneNumber || initialData.PhoneNumber || '',
-        countryCity: initialData.countryCity || initialData.CountryCity || '',
-        website: initialData.website || initialData.Website || '',
-        industry: industryVal,
-        businessLicenseUrl: initialData.businessLicenseUrl || initialData.BusinessLicenseUrl || '',
-      });
-    }
+  // Fetch dynamic configuration
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsConfigLoading(true);
+      setConfigError('');
+      try {
+        const formKey = initialData ? 'startup.update' : 'startup.create';
+        const [rules, indOptions] = await Promise.all([
+          validationService.getFormRules(formKey),
+          enumService.getEnumOptions('Industry')
+        ]);
+        
+        if (!rules || Object.keys(rules).length === 0) {
+          throw new Error(`Không tìm thấy cấu hình xác thực cho ${formKey}.`);
+        }
+        
+        setValidationRules(rules);
+        setIndustries(indOptions);
+
+        if (initialData) {
+          const getIndustryNumericValue = (data, options = []) => {
+            // Try to find industry data in common backend field names
+            const industryField = data.industry || (data.industries && data.industries[0]) || data.Industry || '';
+            if (!industryField) return '';
+
+            // 1. If it's an object, try to get ID or Name
+            if (typeof industryField === 'object') {
+              const id = industryField.id || industryField.value || industryField.industryId;
+              if (id && options.some(opt => String(opt.value) === String(id))) return String(id);
+              
+              const name = industryField.name || industryField.label;
+              if (name) {
+                const found = options.find(i => 
+                  i.label.toLowerCase() === name.toLowerCase() ||
+                  i.label.replace('_', ' ').toLowerCase() === name.toLowerCase()
+                );
+                return found ? String(found.value) : '';
+              }
+            }
+
+            // 2. If it's a primitive (ID or Label)
+            const numeric = parseInt(industryField);
+            if (!isNaN(numeric)) {
+              if (options.some(i => String(i.value) === String(numeric))) return String(numeric);
+            }
+
+            const foundByLabel = options.find(i => 
+              i.label.toLowerCase() === String(industryField).toLowerCase() ||
+              i.label.replace('_', ' ').toLowerCase() === String(industryField).toLowerCase()
+            );
+            return foundByLabel ? String(foundByLabel.value) : '';
+          };
+
+          setFormData({
+            companyName: initialData.companyName || initialData.CompanyName || '',
+            logoUrl: initialData.logoUrl || initialData.LogoUrl || '',
+            founder: initialData.founder || initialData.Founder || '',
+            email: initialData.email || initialData.Email || '',
+            phoneNumber: initialData.phoneNumber || initialData.PhoneNumber || '',
+            countryCity: initialData.countryCity || initialData.CountryCity || '',
+            website: initialData.website || initialData.Website || '',
+            industry: getIndustryNumericValue(initialData, indOptions),
+            businessLicenseUrl: initialData.businessLicenseUrl || initialData.BusinessLicenseUrl || '',
+          });
+        }
+      } catch (err) {
+        console.error('Config loading error:', err);
+        setConfigError(err.message || 'Lỗi kết nối đến dịch vụ cấu hình.');
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+    fetchConfig();
   }, [initialData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    
+    // Real-time validation
+    const error = validateField(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    if (!formData.companyName.trim()) newErrors.companyName = 'Tên công ty là bắt buộc';
-    if (!formData.founder.trim()) newErrors.founder = 'Tên người sáng lập là bắt buộc';
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email liên hệ là bắt buộc';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email không hợp lệ';
-    }
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-    if (!formData.countryCity.trim()) newErrors.countryCity = 'Địa phương là bắt buộc';
-    if (!formData.website.trim()) newErrors.website = 'Website là bắt buộc';
+    if (!validationRules) return true;
+    
+    // Create a mapping from state keys to validation rule field keys
+  const fieldMapping = {
+    companyName: 'companyName',
+    founder: 'founder',
+    email: 'email',
+    phoneNumber: 'phoneNumber',
+    countryCity: 'countryCity',
+    website: 'website',
+    industry: 'industryOptionIds',
+    logoFile: 'logoFile',
+    businessLicenseFile: 'businessLicenseFile'
+  };
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateField = (name, value) => {
+    if (!validationRules) return null;
+    const ruleKey = fieldMapping[name]?.toLowerCase();
+    if (!ruleKey || !validationRules[ruleKey]) return null;
+    return validationService.validateField(value, validationRules[ruleKey]);
+  };
+    
+    const { isValid, errors: validationErrors } = validationService.validateForm(
+      formData,
+      validationRules,
+      fieldMapping
+    );
+    
+    // Also validate files
+    if (logoFile) {
+        const logoRule = validationRules?.logofile;
+        const logoError = validationService.validateFile(logoFile, logoRule);
+        if (logoError) validationErrors.logoFile = logoError;
+    } else if (validationRules?.logofile?.required && !formData.logoUrl) {
+        validationErrors.logoFile = 'Vui lòng tải lên logo công ty';
+    }
+
+    if (licenseFile) {
+        const licenseRule = validationRules?.businesslicensefile;
+        const licenseError = validationService.validateFile(licenseFile, licenseRule);
+        if (licenseError) validationErrors.businessLicenseFile = licenseError;
+    } else if (validationRules?.businesslicensefile?.required && !formData.businessLicenseUrl) {
+        validationErrors.businessLicenseFile = 'Vui lòng tải lên giấy phép kinh doanh';
+    }
+
+    setErrors(validationErrors);
+    return Object.keys(validationErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -97,7 +187,9 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
       dataPayload.append('PhoneNumber', formData.phoneNumber);
       dataPayload.append('CountryCity', formData.countryCity);
       dataPayload.append('Website', formData.website);
-      dataPayload.append('Industry', formData.industry);
+      if (formData.industry && formData.industry !== '0' && formData.industry !== 0) {
+          dataPayload.append('IndustryOptionIds', formData.industry);
+      }
 
       // Append files with keys matching backend IFormFile properties
       if (logoFile) {
@@ -112,20 +204,14 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
       let response;
 
       if (isUpdate) {
-        // Fix: Use the startup's own ID for update, not the userId
         const targetId = initialData.id || initialData.startupId;
+        // Pass the dataPayload directly or convert carefully
         response = await startupProfileService.updateStartupProfile({
-          ...Object.fromEntries(dataPayload),
-          LogoFile: logoFile,
-          BusinessLicenseFile: licenseFile,
+          formData: dataPayload,
           userId: targetId
         });
       } else {
-        response = await startupProfileService.createStartupProfile({
-          ...Object.fromEntries(dataPayload),
-          LogoFile: logoFile,
-          BusinessLicenseFile: licenseFile
-        });
+        response = await startupProfileService.createStartupProfile(dataPayload);
       }
 
       if (response && (response.isSuccess || response.success)) {
@@ -146,6 +232,32 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
       setIsSubmitting(false);
     }
   };
+
+  if (isConfigLoading) {
+    return (
+      <div className={styles.formCard} style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+        <Loader2 className={styles.spin} size={32} color="var(--primary-blue)" />
+      </div>
+    );
+  }
+
+  if (configError) {
+    return (
+      <div className={styles.formCard}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#ef4444' }}>
+          <AlertCircle size={48} style={{ margin: '0 auto 16px' }} />
+          <h3 style={{ marginBottom: '8px', color: '#1e293b' }}>Không thể tải biểu mẫu</h3>
+          <p style={{ marginBottom: '24px', color: '#64748b' }}>{configError}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ padding: '8px 24px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.formCard}>
@@ -184,10 +296,15 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   value={formData.companyName}
                   onChange={handleInputChange}
                   className={`${styles.input} ${errors.companyName ? styles.inputError : ''}`}
-                  placeholder="Ví dụ: TechStartup Vietnam"
+                  placeholder="Tên chính thức của công ty"
                 />
               </div>
-              {errors.companyName && <span className={styles.errorText}>{errors.companyName}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span className={styles.errorText}>{errors.companyName || ''}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {formData.companyName?.length || 0}/{validationRules?.companyname?.maxLength || 255}
+                </span>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -205,7 +322,12 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Tên người sáng lập"
                 />
               </div>
-              {errors.founder && <span className={styles.errorText}>{errors.founder}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span className={styles.errorText}>{errors.founder || ''}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {formData.founder?.length || 0}/{validationRules?.founder?.maxLength || 255}
+                </span>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -223,7 +345,12 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Ví dụ: contact@startup.com"
                 />
               </div>
-              {errors.email && <span className={styles.errorText}>{errors.email}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span className={styles.errorText}>{errors.email || ''}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {formData.email?.length || 0}/{validationRules?.email?.maxLength || 100}
+                </span>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -253,7 +380,12 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   style={{ paddingLeft: '48px' }}
                 />
               </div>
-              {errors.phoneNumber && <span className={styles.errorText}>{errors.phoneNumber}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span className={styles.errorText}>{errors.phoneNumber || ''}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {formData.phoneNumber?.length || 0}/{validationRules?.phonenumber?.maxLength || 20}
+                </span>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -271,7 +403,12 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Tỉnh/Thành phố"
                 />
               </div>
-              {errors.countryCity && <span className={styles.errorText}>{errors.countryCity}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span className={styles.errorText}>{errors.countryCity || ''}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {formData.countryCity?.length || 0}/{validationRules?.countrycity?.maxLength || 255}
+                </span>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
@@ -289,35 +426,25 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="https://example.com"
                 />
               </div>
-              {errors.website && <span className={styles.errorText}>{errors.website}</span>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <span className={styles.errorText}>{errors.website || ''}</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                    {formData.website?.length || 0}/{validationRules?.website?.maxLength || 500}
+                </span>
+              </div>
             </div>
 
             <div className={styles.formGroup}>
               <label className={styles.label}>Lĩnh vực</label>
               <div className={styles.inputWrapper}>
                 <Tag className={styles.fieldIcon} size={18} />
-                <select
+                <CustomSelect
                   name="industry"
                   value={formData.industry}
                   onChange={handleInputChange}
-                  className={styles.select}
-                >
-                  <option value="0">Fintech</option>
-                  <option value="1">Edtech</option>
-                  <option value="2">Healthtech</option>
-                  <option value="3">Agritech</option>
-                  <option value="4">E-Commerce</option>
-                  <option value="5">Logistics</option>
-                  <option value="6">Proptech</option>
-                  <option value="7">Cleantech</option>
-                  <option value="8">SaaS</option>
-                  <option value="9">AI & Big Data</option>
-                  <option value="10">Web3 & Crypto</option>
-                  <option value="11">Food & Beverage</option>
-                  <option value="12">Manufacturing</option>
-                  <option value="13">Media & Entertainment</option>
-                  <option value="14">Khác (Other)</option>
-                </select>
+                  options={industries}
+                  placeholder="Chọn lĩnh vực..."
+                />
               </div>
             </div>
           </div>
@@ -356,7 +483,14 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   type="file"
                   id="logoUpload"
                   accept="image/png, image/jpeg, image/jpg, image/webp"
-                  onChange={(e) => setLogoFile(e.target.files[0])}
+                  onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const rule = validationRules?.logofile;
+                      const error = validationService.validateFile(file, rule);
+                      setErrors(prev => ({ ...prev, logoFile: error }));
+                      if (!error) setLogoFile(file);
+                  }}
                   className={styles.hiddenInput}
                 />
                 <label htmlFor="logoUpload" className={styles.uploadLabel}>
@@ -380,10 +514,12 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                     </div>
                   ) : (
                     <div className={styles.uploadPlaceholder}>
-                      <Upload size={20} className={styles.uploadIcon} />
-                      <div className={styles.uploadText}>
-                        <span className={styles.uploadLink}>Tải Logo</span>
-                      </div>
+                      <div className={styles.uploadInfo}>
+                  <p className={styles.uploadMainText}>Logo công ty</p>
+                  <p className={styles.uploadSubText} style={{ color: errors.logoFile ? '#f4212e' : 'var(--text-secondary)' }}>
+                    {errors.logoFile || `JPG, PNG, WEBP (Tối đa ${validationRules?.logofile?.maxFileSize ? (validationRules.logofile.maxFileSize / (1024 * 1024)).toFixed(0) : '5'}MB)`}
+                  </p>
+                </div>
                     </div>
                   )}
                 </label>
@@ -408,7 +544,14 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   type="file"
                   id="licenseUpload"
                   accept="image/png, image/jpeg, image/jpg, application/pdf"
-                  onChange={(e) => setLicenseFile(e.target.files[0])}
+                  onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const rule = validationRules?.businesslicensefile;
+                      const error = validationService.validateFile(file, rule);
+                      setErrors(prev => ({ ...prev, businessLicenseFile: error }));
+                      if (!error) setLicenseFile(file);
+                  }}
                   className={styles.hiddenInput}
                 />
                 <label htmlFor="licenseUpload" className={styles.uploadLabel}>
@@ -442,6 +585,9 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                       <FileText size={20} className={styles.uploadIcon} />
                       <div className={styles.uploadText}>
                         <span className={styles.uploadLink}>Tải Giấy phép</span>
+                        <div style={{ fontSize: '10px', color: errors.businessLicenseFile ? '#f4212e' : 'var(--text-secondary)', marginTop: '4px' }}>
+                            {errors.businessLicenseFile || `Tối đa ${validationRules?.businesslicensefile?.maxFileSize ? (validationRules.businesslicensefile.maxFileSize / (1024 * 1024)).toFixed(0) : '10'}MB`}
+                        </div>
                       </div>
                     </div>
                   )}

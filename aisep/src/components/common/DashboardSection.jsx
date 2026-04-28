@@ -9,7 +9,7 @@ import styles from '../../styles/SharedDashboard.module.css';
  * @param {React.Node} filterBar - Optional filter bar (e.g., DashboardStatusFilter)
  * @param {React.Node} children - Main content (grid, list, etc.)
  */
-const DashboardSection = ({ title, topBarExtra, filterBar, children }) => {
+const DashboardSection = ({ title, topBarExtra, filterBar, banner, children }) => {
     return (
         <div className={styles.section} style={{ background: 'transparent', boxShadow: 'none', padding: 0 }}>
             {/* Header / Top Bar */}
@@ -33,6 +33,13 @@ const DashboardSection = ({ title, topBarExtra, filterBar, children }) => {
             {filterBar && (
                 <div style={{ marginBottom: '24px' }}>
                     {filterBar}
+                </div>
+            )}
+
+            {/* Banner Section (Placed below filters) */}
+            {banner && (
+                <div style={{ marginBottom: '24px' }}>
+                    {banner}
                 </div>
             )}
 

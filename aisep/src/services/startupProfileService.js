@@ -64,20 +64,24 @@ const startupProfileService = {
 
   /**
    * Create a new startup profile
-   * @param {Object} startupData - The data payload matching CreateStartupRequest
+   * @param {Object|FormData} startupData - The data payload matching CreateStartupRequest or a FormData object
    * @returns {Promise<Object>} The created startup object
    */
   createStartupProfile: async (startupData) => {
     try {
-      const formData = new FormData();
-      Object.keys(startupData).forEach(key => {
-        if (startupData[key] !== null && startupData[key] !== undefined) {
-          // Flatten objects if needed, but for files we append directly
-          formData.append(key, startupData[key]);
-        }
-      });
+      let payload;
+      if (startupData instanceof FormData) {
+        payload = startupData;
+      } else {
+        payload = new FormData();
+        Object.keys(startupData).forEach(key => {
+          if (startupData[key] !== null && startupData[key] !== undefined) {
+            payload.append(key, startupData[key]);
+          }
+        });
+      }
       
-      const response = await apiClient.post('/api/Startups', formData, {
+      const response = await apiClient.post('/api/Startups', payload, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response;
@@ -94,22 +98,26 @@ const startupProfileService = {
    */
   updateStartupProfile: async (startupData) => {
     try {
-      const { userId, LogoFile, BusinessLicenseFile, ...restData } = startupData;
+      const { userId, formData: existingFormData, ...restData } = startupData;
+      let payload;
+
+      if (existingFormData instanceof FormData) {
+        payload = existingFormData;
+      } else {
+        payload = new FormData();
+        // Append text fields
+        Object.keys(restData).forEach(key => {
+          if (restData[key] !== null && restData[key] !== undefined) {
+            payload.append(key, restData[key]);
+          }
+        });
+        
+        // Append files
+        if (startupData.LogoFile) payload.append('LogoFile', startupData.LogoFile);
+        if (startupData.BusinessLicenseFile) payload.append('BusinessLicenseFile', startupData.BusinessLicenseFile);
+      }
       
-      const formData = new FormData();
-      
-      // Append text fields
-      Object.keys(restData).forEach(key => {
-        if (restData[key] !== null && restData[key] !== undefined) {
-          formData.append(key, restData[key]);
-        }
-      });
-      
-      // Append files with exact names matching backend [FromForm] UpdateStartupRequest
-      if (LogoFile) formData.append('LogoFile', LogoFile);
-      if (BusinessLicenseFile) formData.append('BusinessLicenseFile', BusinessLicenseFile);
-      
-      const response = await apiClient.put(`/api/Startups/${userId}`, formData, {
+      const response = await apiClient.put(`/api/Startups/${userId}`, payload, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return response;

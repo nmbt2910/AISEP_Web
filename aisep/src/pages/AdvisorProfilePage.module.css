@@ -531,6 +531,33 @@
     }
 }
 
+.requiredAsterisk {
+    color: #f4212e;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+.fieldConstraints {
+    font-size: 11px;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    margin-top: 4px;
+    display: block;
+}
+
+.charCounter {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-align: right;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.counterError {
+    color: #f4212e;
+    font-weight: bold;
+}
+
 .loadingContainer {
     display: flex;
     flex-direction: column;

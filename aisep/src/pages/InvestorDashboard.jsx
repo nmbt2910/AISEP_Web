@@ -20,6 +20,7 @@ import apiDebug from '../utils/apiDebug';
 import { apiClient } from '../services/apiClient';
 import enumService from '../services/enumService';
 import investorService from '../services/investorService';
+import validationService from '../services/validationService';
 import blockchainOwnershipService from '../services/blockchainOwnershipService';
 import BlockchainOwnershipModal from '../components/common/BlockchainOwnershipModal';
 import AccountProfileTab from '../components/common/AccountProfileTab';
@@ -29,6 +30,7 @@ import InvestorAIHistoryModal from '../components/common/InvestorAIHistoryModal'
 import AIAnalyzeConfirmationModal from '../components/common/AIAnalyzeConfirmationModal';
 import subscriptionService from '../services/subscriptionService';
 import paymentService from '../services/paymentService';
+import InvestorBookings from '../components/investor/InvestorBookings';
 /**
  * InvestorDashboard - Comprehensive dashboard for investors
  * Features: Portfolio overview, Watchlist, Sent interests, Active investments, Preferences
@@ -43,6 +45,8 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
     const isFirstLoad = useRef(true);
     const isFormDirty = useRef(false);
     const [investorProfile, setInvestorProfile] = useState(null);
+    const [validationRules, setValidationRules] = useState(null);
+    const [configError, setConfigError] = useState('');
     
     // Deep Linking State Tracking
     const [hasAttemptedDeepLink, setHasAttemptedDeepLink] = useState(false);
@@ -401,6 +405,16 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
 
                 if (industriesRes && industriesRes.length > 0) {
                     setAvailableIndustries(industriesRes);
+                }
+
+                // Fetch Validation Rules
+                const formKey = profileRes ? 'investor.update' : 'investor.create';
+                try {
+                    const rulesRes = await validationService.getFormRules(formKey);
+                    setValidationRules(rulesRes);
+                } catch (err) {
+                    console.error('[InvestorDashboard] Config error:', err);
+                    setConfigError(err.message || 'Lỗi tải cấu hình biểu mẫu');
                 }
 
                 // Update States... (Omitted logic remains same)
@@ -897,36 +911,25 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
         );
     };
 
+    const fieldMapping = {
+        organizationName: 'organizationName',
+        investmentTaste: 'investmentTaste',
+        walletAddress: 'walletAddress',
+        investmentAmount: 'investmentAmount',
+        investmentRegion: 'investmentRegion',
+        previousInvestments: 'previousInvestments',
+        riskTolerance: 'riskTolerance',
+        focusIndustry: 'industryOptionIds',
+        preferredStage: 'preferredStageOptionId'
+    };
+
     const validateField = (name, value) => {
-        switch (name) {
-            case 'organizationName':
-                if (!value) return 'Vui lòng nhập tên tổ chức/cá nhân.';
-                if (!isValidProfileString(value, 255)) return 'Tên chứa ký tự không hợp lệ hoặc quá dài (tối đa 255 ký tự).';
-                return null;
-            case 'walletAddress':
-                if (!value) return 'Vui lòng nhập địa chỉ ví blockchain.';
-                const trimmed = value.trim();
-                if (trimmed.length !== 42 && trimmed.length !== 40) {
-                    return `Địa chỉ ví phải có 42 ký tự (Hiện có: ${trimmed.length}).`;
-                }
-                if (!isEthereumAddress(trimmed)) return 'Địa chỉ ví không đúng định dạng Hex (0x...).';
-                return null;
-            case 'investmentAmount':
-                if (value === '' || value === null || value === undefined) return 'Vui lòng nhập số tiền.';
-                if (Number(value) <= 0) return 'Ngân sách đầu tư phải lớn hơn 0.';
-                return null;
-            case 'investmentTaste':
-                if (!value) return 'Vui lòng mô tả gu đầu tư/chiến lược.';
-                return null;
-            case 'investmentRegion':
-                if (value && !isValidProfileString(value, 255)) return 'Khu vực đầu tư chứa ký tự không hợp lệ.';
-                return null;
-            case 'previousInvestments':
-                if (value && !isValidProfileString(value, 1000)) return 'Kinh nghiệm đầu tư chứa ký tự không hợp lệ.';
-                return null;
-            default:
-                return null;
-        }
+        if (!validationRules) return null;
+        
+        const ruleKey = fieldMapping[name]?.toLowerCase();
+        if (!ruleKey || !validationRules[ruleKey]) return null;
+        
+        return validationService.validateField(value, validationRules[ruleKey]);
     };
 
     const handleProfileInputChange = (e) => {
@@ -954,6 +957,17 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
         if (!file) return;
 
         isFormDirty.current = true;
+        
+        // Validate file immediately
+        const rule = validationRules?.profileimagefile;
+        if (rule) {
+            const fileError = validationService.validateFile(file, rule);
+            setErrors(prev => ({ ...prev, profileImageFile: fileError }));
+            if (fileError) return; // Don't preview if invalid
+        } else {
+            setErrors(prev => ({ ...prev, profileImageFile: null }));
+        }
+
         setProfileImageFile(file);
 
         const reader = new FileReader();
@@ -964,38 +978,25 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
     };
 
     const validateProfileForm = () => {
-        const newErrors = {};
+        if (!validationRules) return true;
 
-        if (!prefFormData.organizationName?.trim()) {
-            newErrors.organizationName = 'Vui lòng nhập tên tổ chức/cá nhân.';
-        } else if (!isValidProfileString(prefFormData.organizationName, 255)) {
-            newErrors.organizationName = 'Tên chứa ký tự không hợp lệ hoặc quá dài (tối đa 255 ký tự).';
+        const { isValid, errors: validationErrors } = validationService.validateForm(
+            prefFormData,
+            validationRules,
+            fieldMapping
+        );
+
+        // Also validate profile image if a new one is selected
+        if (profileImageFile) {
+            const fileRule = validationRules?.profileimagefile;
+            const fileError = validationService.validateFile(profileImageFile, fileRule);
+            if (fileError) {
+                validationErrors.profileImageFile = fileError;
+            }
         }
 
-        if (!prefFormData.walletAddress?.trim()) {
-            newErrors.walletAddress = 'Vui lòng nhập địa chỉ ví blockchain.';
-        } else if (!isEthereumAddress(prefFormData.walletAddress)) {
-            newErrors.walletAddress = 'Địa chỉ ví không hợp lệ hoặc sai định dạng EIP-55 checksum.';
-        }
-
-        if (!prefFormData.investmentAmount || prefFormData.investmentAmount <= 0) {
-            newErrors.investmentAmount = 'Ngân sách đầu tư phải lớn hơn 0.';
-        }
-
-        if (!prefFormData.investmentTaste?.trim()) {
-            newErrors.investmentTaste = 'Vui lòng mô tả gu đầu tư/chiến lược.';
-        }
-
-        if (prefFormData.investmentRegion && !isValidProfileString(prefFormData.investmentRegion, 255)) {
-            newErrors.investmentRegion = 'Khu vực đầu tư chứa ký tự không hợp lệ (VD: <, >, {, }).';
-        }
-
-        if (prefFormData.previousInvestments && !isValidProfileString(prefFormData.previousInvestments, 1000)) {
-            newErrors.previousInvestments = 'Kinh nghiệm đầu tư chứa ký tự không hợp lệ (VD: <, >, {, }).';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        setErrors(validationErrors);
+        return Object.keys(validationErrors).length === 0;
     };
 
     const toggleStage = (stageValue) => {
@@ -2286,8 +2287,8 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 <Upload size={14} />
                                                 Tải ảnh hồ sơ
                                             </button>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                                                JPG, PNG, WEBP
+                                            <div style={{ fontSize: '11px', color: errors.profileImageFile ? '#f4212e' : 'var(--text-secondary)', marginTop: '6px', fontWeight: errors.profileImageFile ? '600' : '400' }}>
+                                                {errors.profileImageFile || `Tối đa ${validationRules?.profileimagefile?.maxFileSize ? (validationRules.profileimagefile.maxFileSize / (1024 * 1024)).toFixed(0) : '5'}MB. JPG, PNG, WEBP.`}
                                             </div>
                                         </div>
                                     </div>
@@ -2372,7 +2373,7 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             }}
                                         />
                                         <p style={{ color: errors.investmentAmount ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', marginTop: '6px', fontWeight: '500' }}>
-                                            {errors.investmentAmount || 'Nhập ngân sách đầu tư dự kiến của bạn.'}
+                                            {errors.investmentAmount || (validationRules?.investmentamount?.minValue ? `Số tiền đầu tư tối thiểu: ${Number(validationRules.investmentamount.minValue).toLocaleString()} VNĐ.` : 'Nhập ngân sách đầu tư dự kiến của bạn.')}
                                         </p>
                                     </div>
 
@@ -2487,9 +2488,14 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             width: '100%'
                                         }}
                                     />
-                                    <p style={{ color: errors.investmentTaste ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', marginTop: '6px', fontWeight: '500' }}>
-                                        {errors.investmentTaste || 'Mô tả chi tiết chiến lược đầu tư của bạn.'}
-                                    </p>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                                        <p style={{ color: errors.investmentTaste ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', margin: 0, fontWeight: '500' }}>
+                                            {errors.investmentTaste || 'Mô tả chi tiết chiến lược đầu tư của bạn.'}
+                                        </p>
+                                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                            {prefFormData.investmentTaste?.length || 0}/{validationRules?.investmenttaste?.maxLength || 1000}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className={styles.formGroup} style={{ marginBottom: '24px' }}>

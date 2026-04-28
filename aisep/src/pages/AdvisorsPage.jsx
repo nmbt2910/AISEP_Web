@@ -10,7 +10,7 @@ import InvestorStatusBanner from '../components/common/InvestorStatusBanner';
 import Avatar from '../components/common/Avatar';
 import styles from './AdvisorsPage.module.css';
 
-export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate }) {
+export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate, startupBanner }) {
     const [advisors, setAdvisors] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -150,6 +150,12 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                     </div>
                 </div>
             </div>
+
+            {startupBanner && (
+                <div style={{ marginBottom: '12px' }}>
+                    {startupBanner}
+                </div>
+            )}
 
             <InvestorStatusBanner
                 status={investorProfileStatus}

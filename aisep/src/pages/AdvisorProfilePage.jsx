@@ -10,16 +10,11 @@ import CustomSelect from '../components/common/CustomSelect';
 import FeedHeader from '../components/feed/FeedHeader';
 import SuccessModal from '../components/common/SuccessModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import validationService from '../services/validationService';
+import enumService from '../services/enumService';
+import AdvisorProfileBanner from '../components/advisor/AdvisorProfileBanner';
 
-const INDUSTRIES = [
-    'Fintech', 'Edtech', 'Healthtech', 'Agritech', 'E_Commerce', 
-    'Logistics', 'Proptech', 'Cleantech', 'SaaS', 'AI_BigData', 
-    'Web3_Crypto', 'Food_Beverage', 'Manufacturing', 'Media_Entertainment', 'Other'
-];
-
-const INDUSTRY_OPTIONS = INDUSTRIES.map(ind => ({ value: ind, label: ind }));
-
-export default function AdvisorProfilePage({ user, onBack }) {
+export default function AdvisorProfilePage({ user, onBack, banner, onNotificationNavigate }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState(null);
@@ -28,6 +23,11 @@ export default function AdvisorProfilePage({ user, onBack }) {
     const [activeMenu, setActiveMenu] = useState('info'); // 'info', 'expertise', 'experience'
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+    const [validationRules, setValidationRules] = useState(null);
+    const [availableIndustries, setAvailableIndustries] = useState([]);
+    const [configError, setConfigError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
 
     // Form states
     const [formData, setFormData] = useState({
@@ -58,6 +58,61 @@ export default function AdvisorProfilePage({ user, onBack }) {
     const sectionInfoRef = useRef(null);
     const sectionExpertiseRef = useRef(null);
     const sectionExperienceRef = useRef(null);
+
+    const fieldMapping = {
+        bio: 'bio',
+        expertise: 'expertise',
+        previousExperience: 'previousExperience',
+        languagesSpoken: 'languagesSpoken',
+        location: 'location',
+        hourlyRate: 'hourlyRate',
+        industryOptionIds: 'industryOptionIds',
+        profileImageFile: 'profileImageFile',
+        certificationFile: 'certificationFile'
+    };
+
+    const renderLabel = (label, fieldKey) => {
+        const ruleKey = fieldMapping[fieldKey]?.toLowerCase() || fieldKey.toLowerCase();
+        const rule = validationRules?.[ruleKey];
+        return (
+            <label>
+                {label}
+                {rule?.required && <span className={styles.requiredAsterisk}> *</span>}
+            </label>
+        );
+    };
+
+    const renderCharCounter = (value, fieldKey) => {
+        const ruleKey = fieldMapping[fieldKey]?.toLowerCase() || fieldKey.toLowerCase();
+        const maxLength = validationRules?.[ruleKey]?.maxLength;
+        if (!maxLength) return null;
+        
+        const count = (value || '').length;
+        const isOver = count > maxLength;
+        return (
+            <div className={`${styles.charCounter} ${isOver ? styles.counterError : ''}`}>
+                {count}/{maxLength}
+            </div>
+        );
+    };
+
+    const renderFieldConstraints = (fieldKey) => {
+        const ruleKey = fieldMapping[fieldKey]?.toLowerCase() || fieldKey.toLowerCase();
+        const rule = validationRules?.[ruleKey];
+        if (!rule) return null;
+
+        const constraints = [];
+        if (rule.minLength) constraints.push(`Tối thiểu ${rule.minLength} ký tự`);
+        if (rule.regex && rule.regex.includes('03|05|07|08|09')) constraints.push('Định dạng số điện thoại Việt Nam');
+        
+        if (constraints.length === 0) return null;
+
+        return (
+            <div className={styles.fieldConstraints}>
+                {constraints.join(' • ')}
+            </div>
+        );
+    };
 
     useEffect(() => {
         loadProfile();
@@ -109,8 +164,23 @@ export default function AdvisorProfilePage({ user, onBack }) {
 
     const loadProfile = async () => {
         setIsLoading(true);
+        setConfigError('');
         try {
-            const data = await advisorService.getMyProfile();
+            const data = await advisorService.getMyProfile().catch(() => null);
+            const formKey = data ? 'advisor.update' : 'advisor.create';
+            
+            const [rules, industriesData] = await Promise.all([
+                validationService.getFormRules(formKey),
+                enumService.getEnumOptions('Industry').catch(() => [])
+            ]);
+            
+            if (!rules || Object.keys(rules).length === 0) {
+              throw new Error(`Không tìm thấy cấu hình xác thực cho ${formKey}.`);
+            }
+            
+            setValidationRules(rules);
+            setAvailableIndustries(industriesData);
+
             if (data) {
                 setProfile(data);
                 setFormData({
@@ -134,6 +204,9 @@ export default function AdvisorProfilePage({ user, onBack }) {
                     }));
                 }
             }
+        } catch (err) {
+            console.error('Config error:', err);
+            setConfigError(err.message || 'Lỗi tải cấu hình biểu mẫu.');
         } finally {
             setIsLoading(false);
         }
@@ -147,6 +220,15 @@ export default function AdvisorProfilePage({ user, onBack }) {
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
+        
+        // Live checking if validationRules present
+        if (validationRules) {
+            const mappedName = fieldMapping[name]?.toLowerCase();
+            if (mappedName && validationRules[mappedName]) {
+                const errorMsg = validationService.validateField(value, validationRules[mappedName]);
+                setFieldErrors(prev => ({ ...prev, [name]: errorMsg }));
+            }
+        }
     };
 
     const handleIndustryToggle = (ind) => {
@@ -154,6 +236,16 @@ export default function AdvisorProfilePage({ user, onBack }) {
             const industries = prev.industries.includes(ind)
                 ? prev.industries.filter(i => i !== ind)
                 : [...prev.industries, ind];
+            
+            // Validate industries immediately
+            if (validationRules?.industryoptionids) {
+                const errorMsg = validationService.validateField(
+                    industries.length > 0 ? industries.join(',') : '', 
+                    validationRules.industryoptionids
+                );
+                setFieldErrors(errors => ({ ...errors, industryOptionIds: errorMsg }));
+            }
+            
             return { ...prev, industries };
         });
     };
@@ -177,6 +269,45 @@ export default function AdvisorProfilePage({ user, onBack }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        if (!validationRules) return;
+
+        const validationData = {
+            ...formData,
+            industryOptionIds: formData.industries.length > 0 ? formData.industries.join(',') : ''
+        };
+        
+        const { isValid, errors: validationErrs } = validationService.validateForm(
+            validationData,
+            validationRules,
+            fieldMapping
+        );
+        
+        const newErrors = { ...validationErrs };
+        
+        if (validationRules.profileImageFile) {
+            const fileErr = validationService.validateFile(files.profileImage, validationRules.profileImageFile);
+            if (fileErr) newErrors.profileImageFile = fileErr;
+            else if (validationRules.profileImageFile.isRequired && !files.profileImage && !previews.profileImage) {
+                newErrors.profileImageFile = 'Vui lòng tải lên ảnh đại diện';
+            }
+        }
+        
+        if (validationRules.certificationFile) {
+            const fileErr = validationService.validateFile(files.certification, validationRules.certificationFile);
+            if (fileErr) newErrors.certificationFile = fileErr;
+            else if (validationRules.certificationFile.isRequired && !files.certification && !previews.certificationUrl) {
+                newErrors.certificationFile = 'Vui lòng tải lên chứng chỉ';
+            }
+        }
+        
+        if (Object.keys(newErrors).length > 0) {
+            setFieldErrors(newErrors);
+            setError('Vui lòng kiểm tra lại thông tin và cung cấp đủ giấy tờ.');
+            return;
+        }
+        
+        setFieldErrors({});
         setShowConfirmModal(true);
     };
 
@@ -231,6 +362,18 @@ export default function AdvisorProfilePage({ user, onBack }) {
         );
     }
 
+    if (configError) {
+        return (
+            <div className={styles.pageContainer}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh' }}>
+                    <AlertCircle size={64} color="#ef4444" style={{ marginBottom: '16px' }} />
+                    <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>Lỗi tải cấu hình</h2>
+                    <p style={{ color: '#6b7280' }}>{configError}</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={styles.pageContainer}>
             <FeedHeader 
@@ -238,7 +381,22 @@ export default function AdvisorProfilePage({ user, onBack }) {
                 subtitle="Quản lý thông tin cá nhân và chuyên môn để kết nối với startup."
                 showFilter={false}
                 user={user}
+                onNotificationNavigate={onNotificationNavigate}
+                showNotification={true}
             />
+
+            {banner ? (
+                <div style={{ marginBottom: '24px' }}>
+                    {banner}
+                </div>
+            ) : (!profile || (profile.approvalStatus !== 1 && profile.approvalStatus !== 'Approved')) && !isLoading ? (
+                <div style={{ marginBottom: '24px' }}>
+                    <AdvisorProfileBanner
+                        status={profile?.status}
+                        approvalStatus={profile?.approvalStatus}
+                    />
+                </div>
+            ) : null}
 
             <form onSubmit={handleSubmit} className={styles.formLayout}>
                 {/* Left Column: Visual Profile */}
@@ -265,9 +423,13 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                     type="file" 
                                     hidden 
                                     accept="image/*"
-                                    onChange={(e) => handleFileChange(e, 'profileImage')}
+                                    onChange={(e) => {
+                                        handleFileChange(e, 'profileImage');
+                                        setFieldErrors(prev => ({ ...prev, profileImageFile: null }));
+                                    }}
                                 />
                             </div>
+                            {fieldErrors.profileImageFile && <p style={{ color: 'red', fontSize: '12px', marginTop: '4px', textAlign: 'center' }}>{fieldErrors.profileImageFile}</p>}
                             <h2 className={styles.userName}>{profile?.userName || user?.name || user?.fullName}</h2>
                             <p className={styles.userEmail}>{profile?.email || user?.email}</p>
                             <div className={styles.roleBadge}>{profile ? 'Advisor Specialist' : 'New Advisor Onboarding'}</div>
@@ -314,7 +476,7 @@ export default function AdvisorProfilePage({ user, onBack }) {
                         <div className={styles.cardBody}>
                             <div className={styles.grid2}>
                                 <div className={styles.formGroup}>
-                                    <label>Vị trí / Địa điểm hiện tại</label>
+                                    {renderLabel('Vị trí / Địa điểm hiện tại', 'location')}
                                     <div className={styles.inputWrapper}>
                                         <MapPin size={16} className={styles.inputIcon} />
                                         <input 
@@ -324,9 +486,11 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                             placeholder="VD: Hà Nội, Việt Nam" 
                                         />
                                     </div>
+                                    {renderFieldConstraints('location')}
+                                    {fieldErrors.location && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.location}</span>}
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Ngôn ngữ</label>
+                                    {renderLabel('Ngôn ngữ', 'languagesSpoken')}
                                     <div className={styles.inputWrapper}>
                                         <Globe size={16} className={styles.inputIcon} />
                                         <input 
@@ -336,11 +500,13 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                             placeholder="VD: Tiếng Việt, Tiếng Anh" 
                                         />
                                     </div>
+                                    {renderFieldConstraints('languagesSpoken')}
+                                    {fieldErrors.languagesSpoken && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.languagesSpoken}</span>}
                                 </div>
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label>Giới thiệu bản thân</label>
+                                {renderLabel('Giới thiệu bản thân', 'bio')}
                                 <textarea 
                                     name="bio"
                                     value={formData.bio}
@@ -348,6 +514,11 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                     rows={4} 
                                     placeholder="Chia sẻ về hành trình chuyên môn và đam mê hỗ trợ startup của bạn..."
                                 />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    {renderFieldConstraints('bio')}
+                                    {renderCharCounter(formData.bio, 'bio')}
+                                </div>
+                                {fieldErrors.bio && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.bio}</span>}
                             </div>
                         </div>
                     </div>
@@ -360,7 +531,7 @@ export default function AdvisorProfilePage({ user, onBack }) {
                         <div className={styles.cardBody}>
                             <div className={styles.grid2}>
                                 <div className={styles.formGroup}>
-                                    <label>Kỹ năng chuyên sâu</label>
+                                    {renderLabel('Kỹ năng chuyên sâu', 'expertise')}
                                     <div className={styles.inputWrapper}>
                                         <Briefcase size={16} className={styles.inputIcon} />
                                         <input 
@@ -370,9 +541,11 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                             placeholder="VD: Gọi vốn, Growth Hacking, Quản trị rủi ro..." 
                                         />
                                     </div>
+                                    {renderFieldConstraints('expertise')}
+                                    {fieldErrors.expertise && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.expertise}</span>}
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Phí tư vấn theo giờ (VNĐ)</label>
+                                    {renderLabel('Phí tư vấn theo giờ (VNĐ)', 'hourlyRate')}
                                     <div className={styles.inputWrapper}>
                                         <span className={styles.currencyIcon}>₫</span>
                                         <input 
@@ -383,24 +556,27 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                             placeholder="500,000" 
                                         />
                                     </div>
+                                    {renderFieldConstraints('hourlyRate')}
+                                    {fieldErrors.hourlyRate && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.hourlyRate}</span>}
                                 </div>
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label>Lĩnh vực chuyên môn</label>
+                                {renderLabel('Lĩnh vực chuyên môn', 'industryOptionIds')}
                                 <div className={styles.industryPills}>
-                                    {INDUSTRIES.map(ind => (
+                                    {availableIndustries.map(ind => (
                                         <button
-                                            key={ind}
+                                            key={ind.value}
                                             type="button"
-                                            className={`${styles.pill} ${formData.industries.includes(ind) ? styles.pillActive : ''}`}
-                                            onClick={() => handleIndustryToggle(ind)}
+                                            className={`${styles.pill} ${formData.industries.includes(ind.label) ? styles.pillActive : ''}`}
+                                            onClick={() => handleIndustryToggle(ind.label)}
                                         >
-                                            {ind}
-                                            {formData.industries.includes(ind) ? <X size={12} /> : <Plus size={12} />}
+                                            {ind.label}
+                                            {formData.industries.includes(ind.label) ? <X size={12} /> : <Plus size={12} />}
                                         </button>
                                     ))}
                                 </div>
+                                {fieldErrors.industryOptionIds && <span style={{ color: 'red', fontSize: '12px', marginTop: '4px', display: 'block' }}>{fieldErrors.industryOptionIds}</span>}
                             </div>
                         </div>
                     </div>
@@ -412,7 +588,7 @@ export default function AdvisorProfilePage({ user, onBack }) {
                         </div>
                         <div className={styles.cardBody}>
                             <div className={styles.formGroup}>
-                                <label>Quá trình làm việc & Kinh nghiệm</label>
+                                {renderLabel('Quá trình làm việc & Kinh nghiệm', 'previousExperience')}
                                 <textarea 
                                     name="previousExperience"
                                     value={formData.previousExperience}
@@ -420,10 +596,15 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                     rows={4} 
                                     placeholder="Liệt kê các vị trí quan trọng hoặc dự án thành công..."
                                 />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    {renderFieldConstraints('previousExperience')}
+                                    {renderCharCounter(formData.previousExperience, 'previousExperience')}
+                                </div>
+                                {fieldErrors.previousExperience && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.previousExperience}</span>}
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label>Chứng chỉ chuyên môn</label>
+                                {renderLabel('Chứng chỉ chuyên môn', 'certificationFile')}
                                 <div 
                                     className={styles.fileDropZone}
                                     onClick={() => certInputRef.current?.click()}
@@ -453,9 +634,13 @@ export default function AdvisorProfilePage({ user, onBack }) {
                                         ref={certInputRef}
                                         type="file" 
                                         hidden 
-                                        onChange={(e) => handleFileChange(e, 'certification')}
+                                        onChange={(e) => {
+                                            handleFileChange(e, 'certification');
+                                            setFieldErrors(prev => ({ ...prev, certificationFile: null }));
+                                        }}
                                     />
                                 </div>
+                                {fieldErrors.certificationFile && <span style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}>{fieldErrors.certificationFile}</span>}
                             </div>
                         </div>
 

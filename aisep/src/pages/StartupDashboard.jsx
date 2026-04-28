@@ -529,7 +529,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                 // 1. Fetch startup profile (if user exists)
                 if (user && user.userId) {
                     promises.push(
-                        startupProfileService.getStartupProfileByUserId(user.userId)
+                        startupProfileService.getStartupMe()
                             .then(data => ({ key: 'profile', data }))
                     );
                 }
@@ -1928,15 +1928,11 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                         );
                     })()}
 
-                    {activeSection !== 'account_profile' && !isLoadingInitialData && !startupProfile && (
-                        <StartupProfileBanner
-                            onRedirect={() => setActiveSection('complete-info')}
-                        />
-                    )}
+                    {/* Global Banner Removed - Now moved into individual sections below filters */}
 
 
                     {/* Navigation Tabs List */}
-                    {activeSection !== 'account_profile' && (
+                    {activeSection !== 'account_profile' && activeSection !== 'complete-info' && (
                         <div className={styles.tabSwitcherWrapper}>
                             {isMobile && showLeftTabIndicator && <div className={`${styles.scrollIndicator} ${styles.scrollIndicatorLeft}`} />}
 
@@ -1969,12 +1965,6 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                 >
                                     Yêu cầu thông tin
                                 </button>
-                                <button
-                                    className={`${styles.tab} ${activeSection === 'complete-info' ? styles.active : ''}`}
-                                    onClick={() => setActiveSection('complete-info')}
-                                >
-                                    Thông tin bổ sung
-                                </button>
                                 {/* Animated Indicator Line */}
                                 <div className={styles.tabIndicator} style={indicatorStyle} />
                             </div>
@@ -1982,6 +1972,17 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                         </div>
                     )}
                 </>
+            )}
+
+            {(!startupProfile || (String(startupProfile.status || startupProfile.approvalStatus || '').toUpperCase() !== 'APPROVED')) && 
+             !activeSection.startsWith('project_') && (
+                <div style={{ padding: '0', marginBottom: '0', width: '100%' }}>
+                    <StartupProfileBanner
+                        status={startupProfile?.status}
+                        approvalStatus={startupProfile?.approvalStatus}
+                        onRedirect={activeSection === 'complete-info' ? null : () => setActiveSection('complete-info')}
+                    />
+                </div>
             )}
 
             {activeSection !== 'pr_news' && (
@@ -2458,7 +2459,10 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                     )}
 
                     {activeSection === 'account_profile' && (
-                        <AccountProfileTab user={user} onLogout={onLogout} />
+                        <AccountProfileTab 
+                            user={user} 
+                            onLogout={onLogout} 
+                        />
                     )}
 
                     {activeSection.startsWith('project_') && (

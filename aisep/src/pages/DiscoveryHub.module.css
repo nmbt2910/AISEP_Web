@@ -5,6 +5,14 @@
     overflow-x: hidden !important;
 }
 
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
 .searchSection {
     padding: var(--spacing-md);
     background-color: var(--bg-primary);

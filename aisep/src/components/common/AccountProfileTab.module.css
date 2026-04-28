@@ -1,6 +1,6 @@
 /* ─── Container ──────────────────────────────────────────────────────────── */
 .container {
-  padding: 40px 4px 40px; /* Increased top padding */
+  padding: 24px 4px 40px; /* Increased top padding */
   max-width: 960px;
   margin: 0 auto;
 }

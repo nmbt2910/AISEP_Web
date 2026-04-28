@@ -29,7 +29,7 @@ import styles from './DiscoveryHub.module.css';
  * StartupDiscovery - Explore and discover startup companies
  * Featuring search, industry filtering, and premium startup cards.
  */
-const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate }) => {
+const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner }) => {
     const [startups, setStartups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -231,6 +231,12 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate }) => {
                     </div>
                 </div>
             </header>
+
+            {banner && (
+                <div style={{ marginBottom: '8px' }}>
+                    {banner}
+                </div>
+            )}
 
             {/* Main Content Grid */}
             <div style={{

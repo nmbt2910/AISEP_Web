@@ -54,7 +54,7 @@ const FILTER_OPTIONS = [
     { id: 'Complaint', label: 'Khiếu nại' }
 ];
 
-export default function StartupBookings({ user, targetId, onViewProject, initialFilterStatus, onFilterStatusChange }) {
+export default function StartupBookings({ user, targetId, onViewProject, initialFilterStatus, onFilterStatusChange, banner }) {
     const [bookings, setBookings] = useState([]);
     const [userReports, setUserReports] = useState([]);
     const [userReviews, setUserReviews] = useState([]);
@@ -270,6 +270,13 @@ export default function StartupBookings({ user, targetId, onViewProject, initial
                         }}
                     />
                 </div>
+
+                {/* Banner Section (Placed below filters) */}
+                {banner && (
+                    <div style={{ marginBottom: '24px' }}>
+                        {banner}
+                    </div>
+                )}
 
                 {loading ? (
                     <div className={styles.loadingState}>

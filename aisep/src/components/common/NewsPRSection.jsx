@@ -15,7 +15,7 @@ import InvestorStatusBanner from './InvestorStatusBanner';
  * Data from GET /api/PostPRs (prService.getPRs).
  * Clicking a card opens NewsDetailModal.
  */
-export default function NewsPRSection({ user, onOpenChat, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate }) {
+export default function NewsPRSection({ user, onOpenChat, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate, startupBanner }) {
     const [prNewsList, setPrNewsList] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -99,7 +99,12 @@ export default function NewsPRSection({ user, onOpenChat, investorProfileStatus,
                     </div>
                 </div>
             </header>
-
+            
+            {startupBanner && (
+                <div style={{ marginBottom: '16px' }}>
+                    {startupBanner}
+                </div>
+            )}
             {investorProfileStatus && (
                 <InvestorStatusBanner 
                     status={investorProfileStatus}

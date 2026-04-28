@@ -8,7 +8,7 @@ import NotificationCenter from '../common/NotificationCenter';
 import FloatingChatWidget from '../common/FloatingChatWidget';
 import styles from './InvestorDiscovery.module.css';
 
-export default function InvestorDiscovery({ user, onShowLogin, onNotificationNavigate }) {
+export default function InvestorDiscovery({ user, onShowLogin, onNotificationNavigate, startupBanner }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [selectedInvestorId, setSelectedInvestorId] = useState(null);
@@ -145,6 +145,12 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                     </div>
                 </div>
             </div>
+
+            {startupBanner && (
+                <div style={{ marginBottom: '12px' }}>
+                    {startupBanner}
+                </div>
+            )}
 
             {/* MOBILE FILTER MODAL (PORTAL) */}
             {isFilterOpen && createPortal(

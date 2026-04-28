@@ -32,6 +32,8 @@ import subscriptionService from '../../services/subscriptionService';
 import ProfileRequiredModal from '../startup/ProfileRequiredModal';
 import startupProfileService from '../../services/startupProfileService';
 import SuccessModal from '../common/SuccessModal';
+import StartupProfileBanner from '../startup/StartupProfileBanner';
+import AdvisorProfileBanner from '../advisor/AdvisorProfileBanner';
 
 /**
  * MainLayout Component - Main application layout
@@ -204,6 +206,10 @@ function MainLayout({
   const [investorsByProject, setInvestorsByProject] = useState(new Map()); // Map: projectId -> array of investor objects (Contract_Signed only)
   const [investorProfileStatus, setInvestorProfileStatus] = useState(null); // 'Pending', 'Approved', 'Rejected', 'Missing' or null
   const [investorProfile, setInvestorProfile] = useState(null);
+  const [startupProfileStatus, setStartupProfileStatus] = useState(null); // 'Pending', 'Approved', 'Rejected', 'Missing'
+  const [startupProfile, setStartupProfile] = useState(null);
+  const [advisorProfileStatus, setAdvisorProfileStatus] = useState(null);
+  const [advisorProfile, setAdvisorProfile] = useState(null);
 
   // Refetch invested projects (called after successful investment)
   const refetchInvestedProjects = useCallback(async () => {
@@ -371,8 +377,12 @@ function MainLayout({
           const profile = await startupProfileService.getStartupProfileByUserId(user.userId);
           const hasProfile = !!profile;
           setHasStartupProfile(hasProfile);
+          setStartupProfile(profile);
           if (profile) {
             setMyStartupProfileId(profile.startupId || profile.id);
+            setStartupProfileStatus(profile.status || profile.approvalStatus || 'Pending');
+          } else {
+            setStartupProfileStatus('Missing');
           }
 
           // If redirected with setup=true and no profile, show modal
@@ -538,8 +548,8 @@ function MainLayout({
       }
     };
 
-    const fetchInvestorProfile = async () => {
-      const isInvestor = user?.role === 'Investor' || user?.role === 1 || String(user?.role) === '1';
+    const fetchProfiles = async () => {
+      const isInvestor = user?.role?.toString().toLowerCase() === 'investor' || Number(user?.role) === 1;
       if (token && isInvestor) {
         try {
           const res = await investorService.getMyProfile();
@@ -557,11 +567,30 @@ function MainLayout({
           }
         }
       }
+
+      const isAdvisor = user?.role?.toString().toLowerCase() === 'advisor' || Number(user?.role) === 2;
+      if (token && isAdvisor) {
+        try {
+          const res = await advisorService.getMyProfile();
+          setAdvisorProfile(res);
+          if (res) {
+            setAdvisorProfileStatus(res.status || res.approvalStatus || 'Pending');
+          } else {
+            setAdvisorProfileStatus('Missing');
+          }
+        } catch (error) {
+          if (error.response?.status === 404) {
+            setAdvisorProfileStatus('Missing');
+          } else {
+            console.error('[MainLayout] Failed to fetch advisor profile:', error);
+          }
+        }
+      }
     };
 
     fetchFeed();
     fetchStats();
-    fetchInvestorProfile();
+    fetchProfiles();
   }, [showAdvisors, showInvestors, user, token]);
 
   // 2. Define Handlers
@@ -748,6 +777,31 @@ function MainLayout({
                 homeScrollPos.current = scrollPos;
                 setSelectedAdvisor(advisor);
               }}
+              startupBanner={
+                (() => {
+                  const roleStr = user?.role?.toString().toLowerCase() || '';
+                  const roleNum = Number(user?.role);
+                  if ((roleStr === 'startup' || roleNum === 0) && (!startupProfileStatus || startupProfileStatus.toUpperCase() !== 'APPROVED')) {
+                    return (
+                      <StartupProfileBanner
+                        status={startupProfile?.status}
+                        approvalStatus={startupProfile?.approvalStatus}
+                        onRedirect={() => onShowDashboard('complete-info')}
+                      />
+                    );
+                  }
+                  if ((roleStr === 'advisor' || roleNum === 2) && (!advisorProfileStatus || (advisorProfileStatus.toUpperCase() !== 'APPROVED' && advisorProfileStatus !== 1))) {
+                    return (
+                      <AdvisorProfileBanner
+                        status={advisorProfileStatus}
+                        approvalStatus={advisorProfile?.approvalStatus}
+                        onRedirect={() => onShowDashboard('profile')}
+                      />
+                    );
+                  }
+                  return null;
+                })()
+              }
             />
           )
         ) : showInvestors ? (
@@ -755,6 +809,32 @@ function MainLayout({
             user={user}
             onShowLogin={onShowLogin}
             onNotificationNavigate={onNotificationNavigate}
+            startupBanner={
+              (() => {
+                const roleStr = user?.role?.toString().toLowerCase() || '';
+                const roleNum = Number(user?.role);
+                if ((roleStr === 'startup' || roleNum === 0) && (!startupProfileStatus || startupProfileStatus.toUpperCase() !== 'APPROVED')) {
+                  return (
+                    <StartupProfileBanner
+                      status={startupProfile?.status}
+                      approvalStatus={startupProfile?.approvalStatus}
+                      onRedirect={() => onShowDashboard('complete-info')}
+                    />
+                  );
+                }
+                if ((roleStr === 'advisor' || roleNum === 2) && (!advisorProfileStatus || (advisorProfileStatus.toUpperCase() !== 'APPROVED' && advisorProfileStatus !== 1))) {
+                  return (
+                    <AdvisorProfileBanner
+                      status={advisorProfileStatus}
+                      approvalStatus={advisorProfile?.approvalStatus}
+                      onRedirect={() => onShowDashboard('profile')}
+                      isCompact={true}
+                    />
+                  );
+                }
+                return null;
+              })()
+            }
           />
         ) : showAI ? (
           <AIChatAssistant />
@@ -815,6 +895,26 @@ function MainLayout({
                   reason={investorProfile?.rejectionReason}
                   onUpdateProfile={() => onShowDashboard('preferences')}
                 />
+              )}
+
+              {(user?.role === 'Startup' || user?.role === 0 || String(user?.role) === '0') && (!startupProfileStatus || startupProfileStatus.toUpperCase() !== 'APPROVED') && (
+                <div style={{ marginBottom: '12px', padding: '0' }}>
+                  <StartupProfileBanner
+                    status={startupProfile?.status}
+                    approvalStatus={startupProfile?.approvalStatus}
+                    onRedirect={() => onShowDashboard('complete-info')}
+                  />
+                </div>
+              )}
+
+              {(user?.role?.toString().toLowerCase() === 'advisor' || Number(user?.role) === 2) && (!advisorProfileStatus || advisorProfileStatus.toUpperCase() !== 'APPROVED' && advisorProfileStatus !== 1) && (
+                <div style={{ marginBottom: '12px', padding: '0' }}>
+                  <AdvisorProfileBanner
+                    status={advisorProfileStatus}
+                    approvalStatus={advisorProfile?.approvalStatus}
+                    onRedirect={() => onShowDashboard('profile')}
+                  />
+                </div>
               )}
 
               {showProfileModal && (
