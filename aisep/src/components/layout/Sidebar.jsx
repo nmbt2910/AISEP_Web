@@ -49,6 +49,7 @@ function Sidebar({
         { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminStaff', displayLabel: 'Quản lý Staff', href: '#', showWhenLoggedIn: true },
         { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
+        { icon: Settings, label: 'AdminValidationRules', displayLabel: 'Rule validate động', href: '#', showWhenLoggedIn: true },
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
       return adminItems;
@@ -243,6 +244,9 @@ function Sidebar({
     if (label === 'AdminTransactions' && onShowDashboard) {
       onShowDashboard('transactions');
     }
+    if (label === 'AdminValidationRules' && onShowDashboard) {
+      onShowDashboard('validation_rules');
+    }
 
     // Navigate to home when clicking Home
     if (label === 'Home' && onShowHome) {
@@ -382,6 +386,7 @@ function Sidebar({
                       if (activeView === 'dashboard_users') return 'AdminUsers';
                       if (activeView === 'dashboard_staff') return 'AdminStaff';
                       if (activeView === 'dashboard_transactions') return 'AdminTransactions';
+                      if (activeView === 'dashboard_validation_rules') return 'AdminValidationRules';
                       if (activeView === 'dashboard_account_profile') return 'AccountProfile';
                       if (activeView === 'profile') return 'Profile';
                       if (activeView === 'advisors') return 'Advisors';

@@ -34,6 +34,30 @@ const adminService = {
   createStaff: async (staffData = {}) => {
     const response = await apiClient.post('/api/admin/create-staff', staffData);
     return response;
+  },
+
+  /**
+   * Get dynamic form validation rules by formKey
+   * GET /api/form-validation-rules/{formKey}
+   * @param {string} formKey
+   * @param {object} params - filters/sorts/page/pageSize
+   * @returns {Promise<any>}
+   */
+  getFormValidationRules: async (formKey, params = {}) => {
+    const response = await apiClient.get(`/api/form-validation-rules/${formKey}`, { params });
+    return response;
+  },
+
+  /**
+   * Update a dynamic validation rule by rule id
+   * PUT /api/form-validation-rules/{id}
+   * @param {number|string} id
+   * @param {object} payload
+   * @returns {Promise<any>}
+   */
+  updateFormValidationRule: async (id, payload = {}) => {
+    const response = await apiClient.put(`/api/form-validation-rules/${id}`, payload);
+    return response;
   }
 };
 

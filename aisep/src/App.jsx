@@ -340,7 +340,7 @@ function App() {
                 const section = currentView.startsWith('dashboard_') ? currentView.replace('dashboard_', '') : 'statistics';
                 return <OperationStaffDashboard user={user} initialSection={section} targetId={dashboardTargetId} onLogout={handleLogout} />;
               } else if (isAdmin) {
-                const section = currentView.startsWith('dashboard_') ? currentView.replace('dashboard_', '') : 'overview';
+                const section = currentView.startsWith('dashboard_') ? currentView.replace('dashboard_', '') : 'users';
                 return <AdminDashboard user={user} initialSection={section} />;
               } else {
                 return <div style={{ padding: '20px', textAlign: 'center' }}><p>Dashboard not available for your role</p></div>;

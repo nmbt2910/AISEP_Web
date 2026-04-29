@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Users, Database, ChevronRight, Loader2 } from 'lucide-react';
+import { Users, Database, ChevronRight, Loader2, ShieldCheck, Save } from 'lucide-react';
 import styles from '../styles/SharedDashboard.module.css';
 import DashboardSection from '../components/common/DashboardSection';
 import adminService from '../services/adminService';
@@ -9,11 +9,13 @@ const ADMIN_SECTIONS = [
     { id: 'users', label: 'Quản lý người dùng', icon: Users, description: 'Danh sách, quyền và trạng thái tài khoản.' },
     { id: 'staff', label: 'Quản lý Staff', icon: Users, description: 'Tạo và quản lý tài khoản staff vận hành.' },
     { id: 'transactions', label: 'Giao dịch', icon: Database, description: 'Theo dõi giao dịch thanh toán toàn hệ thống.' },
+    { id: 'validation_rules', label: 'Rule validate động', icon: ShieldCheck, description: 'Cấu hình validate theo từng formKey.' },
     { id: 'account_profile', label: 'Hồ sơ người dùng', icon: Users, description: 'Quản lý thông tin cá nhân và mật khẩu.' },
 ];
 
 export default function AdminDashboard({ user, initialSection = 'users' }) {
-    const [activeSection, setActiveSection] = useState(initialSection || 'users');
+    const normalizedInitialSection = ADMIN_SECTIONS.some((s) => s.id === initialSection) ? initialSection : 'users';
+    const [activeSection, setActiveSection] = useState(normalizedInitialSection);
     const [transactions, setTransactions] = useState([]);
     const [transactionsMeta, setTransactionsMeta] = useState({ page: 1, pageSize: 1000, totalCount: 0, totalPages: 1 });
     const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
@@ -40,6 +42,25 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
     const [isSubmittingStaff, setIsSubmittingStaff] = useState(false);
     const [staffError, setStaffError] = useState('');
     const [staffSuccess, setStaffSuccess] = useState('');
+    const [selectedFormKey, setSelectedFormKey] = useState('startup.create');
+    const [validationItems, setValidationItems] = useState([]);
+    const [validationMeta, setValidationMeta] = useState({ page: 1, pageSize: 50, totalCount: 0, totalPages: 1 });
+    const [isLoadingValidationRules, setIsLoadingValidationRules] = useState(false);
+    const [validationError, setValidationError] = useState('');
+    const [validationSuccess, setValidationSuccess] = useState('');
+    const [ruleDrafts, setRuleDrafts] = useState({});
+    const [savingRuleIds, setSavingRuleIds] = useState({});
+
+    const FORM_KEYS = [
+        'startup.create',
+        'startup.update',
+        'investor.create',
+        'investor.update',
+        'advisor.create',
+        'advisor.update',
+        'project.create',
+        'project.update'
+    ];
 
     const currentSection = useMemo(
         () => ADMIN_SECTIONS.find((s) => s.id === activeSection) || ADMIN_SECTIONS[0],
@@ -138,6 +159,125 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         }
     };
 
+    const toNullableNumber = (value) => {
+        if (value === '' || value === null || value === undefined) return null;
+        const num = Number(value);
+        return Number.isNaN(num) ? null : num;
+    };
+
+    const sanitizeRegexAscii = (value) => {
+        if (value === null || value === undefined) return '';
+        const raw = String(value);
+        // Regex rules in this module are expected to be ASCII-only.
+        // Strip hidden/unicode noise characters that cause mojibake in UI.
+        return raw
+            .replace(/\uFFFD/g, "'")
+            .replace(/[^\x20-\x7E]/g, '');
+    };
+
+    const buildRulePayload = (draft) => ({
+        isRequired: !!draft.isRequired,
+        minLength: toNullableNumber(draft.minLength),
+        maxLength: toNullableNumber(draft.maxLength),
+        customRegexPattern: draft.customRegexPattern?.trim()
+            ? sanitizeRegexAscii(draft.customRegexPattern.trim())
+            : null,
+        minValue: toNullableNumber(draft.minValue),
+        maxValue: toNullableNumber(draft.maxValue),
+        allowedFileTypes: draft.allowedFileTypesInput?.trim()
+            ? draft.allowedFileTypesInput.split(',').map(t => t.trim()).filter(Boolean)
+            : [],
+        maxFileSizeBytes: toNullableNumber(draft.maxFileSizeBytes)
+    });
+
+    const fetchValidationRules = async (formKey = selectedFormKey, page = 1, pageSize = 50) => {
+        setIsLoadingValidationRules(true);
+        setValidationError('');
+        setValidationSuccess('');
+        try {
+            const response = await adminService.getFormValidationRules(formKey, { page, pageSize });
+            const payload = response?.data || response || {};
+            const data = payload?.data || payload;
+            const items = Array.isArray(data?.items) ? data.items : [];
+
+            setValidationItems(items);
+            setValidationMeta({
+                page: data?.page || page,
+                pageSize: data?.pageSize || pageSize,
+                totalCount: data?.totalCount || items.length,
+                totalPages: data?.totalPages || 1
+            });
+
+            const draftMap = {};
+            items.forEach((item) => {
+                draftMap[item.id] = {
+                    ...item,
+                    customRegexPattern: sanitizeRegexAscii(item.customRegexPattern || ''),
+                    allowedFileTypesInput: Array.isArray(item.allowedFileTypes) ? item.allowedFileTypes.join(', ') : '',
+                };
+            });
+            setRuleDrafts(draftMap);
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to fetch validation rules:', error);
+            setValidationError('Không thể tải danh sách rule validation.');
+            setValidationItems([]);
+        } finally {
+            setIsLoadingValidationRules(false);
+        }
+    };
+
+    const handleRuleDraftChange = (ruleId, key, value) => {
+        setRuleDrafts(prev => ({
+            ...prev,
+            [ruleId]: {
+                ...prev[ruleId],
+                [key]: value
+            }
+        }));
+    };
+
+    const handleSaveRule = async (ruleId) => {
+        const draft = ruleDrafts[ruleId];
+        if (!draft) return;
+
+        if (
+            draft.minLength !== '' &&
+            draft.maxLength !== '' &&
+            draft.minLength !== null &&
+            draft.maxLength !== null &&
+            Number(draft.minLength) > Number(draft.maxLength)
+        ) {
+            setValidationError(`Rule #${ruleId}: minLength không thể lớn hơn maxLength.`);
+            return;
+        }
+
+        if (
+            draft.minValue !== '' &&
+            draft.maxValue !== '' &&
+            draft.minValue !== null &&
+            draft.maxValue !== null &&
+            Number(draft.minValue) > Number(draft.maxValue)
+        ) {
+            setValidationError(`Rule #${ruleId}: minValue không thể lớn hơn maxValue.`);
+            return;
+        }
+
+        setValidationError('');
+        setValidationSuccess('');
+        setSavingRuleIds(prev => ({ ...prev, [ruleId]: true }));
+        try {
+            const payload = buildRulePayload(draft);
+            await adminService.updateFormValidationRule(ruleId, payload);
+            setValidationSuccess(`Đã cập nhật rule #${ruleId} thành công.`);
+            await fetchValidationRules(selectedFormKey, validationMeta.page, validationMeta.pageSize);
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to update validation rule:', error);
+            setValidationError(error?.message || `Không thể cập nhật rule #${ruleId}.`);
+        } finally {
+            setSavingRuleIds(prev => ({ ...prev, [ruleId]: false }));
+        }
+    };
+
     useEffect(() => {
         if (activeSection === 'transactions') {
             fetchTransactions(1);
@@ -148,12 +288,22 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         if (activeSection === 'staff') {
             fetchUsers(1);
         }
+        if (activeSection === 'validation_rules') {
+            fetchValidationRules(selectedFormKey, 1, validationMeta.pageSize);
+        }
     }, [activeSection]);
+
+    useEffect(() => {
+        if (activeSection === 'validation_rules') {
+            fetchValidationRules(selectedFormKey, 1, validationMeta.pageSize);
+        }
+    }, [selectedFormKey]);
 
     // Sync activeSection with initialSection prop when it changes
     useEffect(() => {
-        if (initialSection && initialSection !== activeSection) {
-            setActiveSection(initialSection);
+        const nextSection = ADMIN_SECTIONS.some((s) => s.id === initialSection) ? initialSection : 'users';
+        if (nextSection !== activeSection) {
+            setActiveSection(nextSection);
         }
     }, [initialSection]);
 
@@ -211,7 +361,7 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                                         transition: 'all 0.2s'
                                     }}
                                 >
-                                    {role === 'Advisor' ? '👨‍💼' : role === 'Investor' ? '💰' : '🚀'} {role} ({roleStats[role]})
+                                    {role} ({roleStats[role]})
                                 </button>
                             ))}
                         </div>
@@ -221,17 +371,16 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                                 <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '15px' }}>Không có người dùng nào với vai trò {selectedUserRole}</p>
                             </div>
                         ) : (
-                            <div className={styles.tableWrapper} style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                            <div className={styles.tableWrapper} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                                 <table className={styles.docsTable} style={{ tableLayout: 'fixed' }}>
                                     <thead>
                                         <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '10%' }}>ID</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '20%' }}>Username</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '25%' }}>Email</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '12%' }}>Role</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '14%' }}>Trạng thái</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '12%' }}>Email xác nhận</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '7%' }}>Premium</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '24%' }}>Username</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '29%' }}>Email</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '13%' }}>Role</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '16%' }}>Trạng thái</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '10%' }}>Email OK</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '8%' }}>Premium</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -249,9 +398,6 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
 
                                             return (
                                                 <tr key={item.userId} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)' }}>
-                                                    <td style={{ padding: '14px 12px', fontWeight: 700, color: 'var(--primary-blue)', fontSize: '13px' }}>
-                                                        #{item.userId}
-                                                    </td>
                                                     <td style={{ padding: '14px 12px', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                         {item.userName || 'N/A'}
                                                     </td>
@@ -291,255 +437,132 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
 
     const renderStaffSection = () => {
         const staffList = users.filter(u => u.role === 'Staff');
-        
+        const resetStaffForm = () => setStaffFormData({
+            userName: '',
+            fullName: '',
+            email: '',
+            phoneNumber: '',
+            password: '',
+            confirmPassword: '',
+            status: 'Active',
+            isPremium: false,
+            dateOfBirth: ''
+        });
+
+        const inputStyle = {
+            width: '100%',
+            padding: '9px 11px',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            boxSizing: 'border-box'
+        };
+
         return (
         <div>
-            <div className={styles.card}>
-                <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                        Tạo Staff Vận Hành
-                    </h3>
-                    
-                    {staffSuccess && (
-                        <div style={{ padding: '12px 16px', marginBottom: '16px', backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '6px', color: '#065f46', fontWeight: 600, fontSize: '14px' }}>
-                            ✓ {staffSuccess}
-                        </div>
-                    )}
-
-                    {staffError && (
-                        <div style={{ padding: '12px 16px', marginBottom: '16px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '6px', color: '#991b1b', fontWeight: 600, fontSize: '14px' }}>
-                            ✕ {staffError}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleCreateStaff} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        {/* Username */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Username *
-                            </label>
-                            <input
-                                type="text"
-                                value={staffFormData.userName}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, userName: e.target.value })}
-                                placeholder="Nhập username"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Full Name */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Họ và Tên
-                            </label>
-                            <input
-                                type="text"
-                                value={staffFormData.fullName}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, fullName: e.target.value })}
-                                placeholder="Nhập họ và tên"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Email */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Email *
-                            </label>
-                            <input
-                                type="email"
-                                value={staffFormData.email}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, email: e.target.value })}
-                                placeholder="Nhập email"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Phone Number */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Số điện thoại
-                            </label>
-                            <input
-                                type="tel"
-                                value={staffFormData.phoneNumber}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, phoneNumber: e.target.value })}
-                                placeholder="Nhập số điện thoại"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Mật khẩu *
-                            </label>
-                            <input
-                                type="password"
-                                value={staffFormData.password}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, password: e.target.value })}
-                                placeholder="Nhập mật khẩu"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Confirm Password */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Xác nhận mật khẩu *
-                            </label>
-                            <input
-                                type="password"
-                                value={staffFormData.confirmPassword}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, confirmPassword: e.target.value })}
-                                placeholder="Nhập lại mật khẩu"
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Date of Birth */}
-                        <div>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                                Ngày sinh
-                            </label>
-                            <input
-                                type="date"
-                                value={staffFormData.dateOfBirth}
-                                onChange={(e) => setStaffFormData({ ...staffFormData, dateOfBirth: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    backgroundColor: 'var(--bg-primary)',
-                                    color: 'var(--text-primary)',
-                                    boxSizing: 'border-box'
-                                }}
-                            />
-                        </div>
-
-                        {/* Premium & Status */}
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={staffFormData.isPremium}
-                                    onChange={(e) => setStaffFormData({ ...staffFormData, isPremium: e.target.checked })}
-                                    style={{ cursor: 'pointer' }}
-                                />
-                                Premium
-                            </label>
-                        </div>
-
-                        {/* Submit Button */}
-                        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px', marginTop: '12px' }}>
-                            <button
-                                type="submit"
-                                disabled={isSubmittingStaff}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px 20px',
-                                    backgroundColor: isSubmittingStaff ? '#9ca3af' : 'var(--primary-blue)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontWeight: 700,
-                                    fontSize: '14px',
-                                    cursor: isSubmittingStaff ? 'not-allowed' : 'pointer',
-                                    transition: 'background-color 0.2s'
-                                }}
-                            >
-                                {isSubmittingStaff ? '⏳ Đang tạo...' : '➕ Tạo Staff'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setStaffFormData({
-                                    userName: '',
-                                    fullName: '',
-                                    email: '',
-                                    phoneNumber: '',
-                                    password: '',
-                                    confirmPassword: '',
-                                    status: 'Active',
-                                    isPremium: false,
-                                    dateOfBirth: ''
-                                })}
-                                style={{
-                                    padding: '12px 20px',
-                                    backgroundColor: 'var(--bg-secondary)',
-                                    color: 'var(--text-secondary)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '6px',
-                                    fontWeight: 700,
-                                    fontSize: '14px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                ↻ Làm mới
-                            </button>
-                        </div>
-                    </form>
+            <div className={styles.card} style={{ borderRadius: '14px' }}>
+                <div style={{ marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Tạo Staff Vận Hành
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            Form gọn cho thao tác tạo staff nhanh.
+                        </p>
+                    </div>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        <input
+                            type="checkbox"
+                            checked={staffFormData.isPremium}
+                            onChange={(e) => setStaffFormData({ ...staffFormData, isPremium: e.target.checked })}
+                            style={{ cursor: 'pointer' }}
+                        />
+                        Premium
+                    </label>
                 </div>
+
+                {staffSuccess && (
+                    <div style={{ padding: '10px 12px', marginBottom: '12px', backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px', color: '#065f46', fontWeight: 600, fontSize: '13px' }}>
+                        {staffSuccess}
+                    </div>
+                )}
+
+                {staffError && (
+                    <div style={{ padding: '10px 12px', marginBottom: '12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>
+                        {staffError}
+                    </div>
+                )}
+
+                <form onSubmit={handleCreateStaff} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Username *</label>
+                        <input type="text" value={staffFormData.userName} onChange={(e) => setStaffFormData({ ...staffFormData, userName: e.target.value })} placeholder="staff.username" style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Họ và Tên</label>
+                        <input type="text" value={staffFormData.fullName} onChange={(e) => setStaffFormData({ ...staffFormData, fullName: e.target.value })} placeholder="Nguyễn Văn A" style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Email *</label>
+                        <input type="email" value={staffFormData.email} onChange={(e) => setStaffFormData({ ...staffFormData, email: e.target.value })} placeholder="staff@aisep.com" style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Số điện thoại</label>
+                        <input type="tel" value={staffFormData.phoneNumber} onChange={(e) => setStaffFormData({ ...staffFormData, phoneNumber: e.target.value })} placeholder="09xxxxxxxx" style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Mật khẩu *</label>
+                        <input type="password" value={staffFormData.password} onChange={(e) => setStaffFormData({ ...staffFormData, password: e.target.value })} placeholder="••••••••" style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Xác nhận mật khẩu *</label>
+                        <input type="password" value={staffFormData.confirmPassword} onChange={(e) => setStaffFormData({ ...staffFormData, confirmPassword: e.target.value })} placeholder="••••••••" style={inputStyle} />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Ngày sinh</label>
+                        <input type="date" value={staffFormData.dateOfBirth} onChange={(e) => setStaffFormData({ ...staffFormData, dateOfBirth: e.target.value })} style={inputStyle} />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                        <button
+                            type="button"
+                            onClick={resetStaffForm}
+                            style={{
+                                padding: '8px 12px',
+                                backgroundColor: 'var(--bg-secondary)',
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Làm mới
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSubmittingStaff}
+                            style={{
+                                padding: '8px 14px',
+                                backgroundColor: isSubmittingStaff ? '#9ca3af' : 'var(--primary-blue)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                cursor: isSubmittingStaff ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {isSubmittingStaff ? 'Đang tạo...' : 'Tạo Staff'}
+                        </button>
+                    </div>
+                </form>
             </div>
 
-            {/* Existing Staff List */}
-            <div className={styles.card} style={{ marginTop: '24px' }}>
+            <div className={styles.card} style={{ marginTop: '16px', borderRadius: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)' }}>
                     <div>
                         <p className={styles.subtitle} style={{ margin: '0 0 4px 0', fontSize: '13px' }}>
@@ -564,14 +587,13 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '15px' }}>Không có staff nào</p>
                     </div>
                 ) : (
-                    <div className={styles.tableWrapper} style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                    <div className={styles.tableWrapper} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                         <table className={styles.docsTable} style={{ tableLayout: 'fixed' }}>
                             <thead>
                                 <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '10%' }}>ID</th>
-                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '20%' }}>Username</th>
-                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '25%' }}>Họ và Tên</th>
-                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '25%' }}>Email</th>
+                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '24%' }}>Username</th>
+                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '28%' }}>Họ và Tên</th>
+                                    <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '28%' }}>Email</th>
                                     <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '20%' }}>Trạng thái</th>
                                 </tr>
                             </thead>
@@ -587,9 +609,6 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
 
                                     return (
                                         <tr key={staff.userId} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)' }}>
-                                            <td style={{ padding: '14px 12px', fontWeight: 700, color: 'var(--primary-blue)', fontSize: '13px' }}>
-                                                #{staff.userId}
-                                            </td>
                                             <td style={{ padding: '14px 12px', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                 {staff.userName || 'N/A'}
                                             </td>
@@ -649,17 +668,15 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                         </div>
                     ) : (
                         <>
-                            <div className={styles.tableWrapper} style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                            <div className={styles.tableWrapper} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                                 <table className={styles.docsTable} style={{ tableLayout: 'fixed' }}>
                                     <thead>
                                         <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '8%' }}>Mã GD</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '25%' }}>Người dùng</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '14%' }}>Số tiền</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '12%' }}>Loại</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '15%' }}>Trạng thái</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '14%' }}>Tham chiếu</th>
-                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '12%' }}>Thời gian</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '34%' }}>Người dùng</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '20%' }}>Số tiền</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '16%' }}>Loại</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '16%' }}>Trạng thái</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '14%' }}>Thời gian</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -677,9 +694,6 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
 
                                             return (
                                                 <tr key={item.transactionId} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)', transition: 'background-color 0.2s' }}>
-                                                    <td style={{ padding: '14px 12px', fontWeight: 700, color: 'var(--primary-blue)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                        #{item.transactionId}
-                                                    </td>
                                                     <td style={{ padding: '14px 12px' }}>
                                                         <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                             {item.userName || 'N/A'}
@@ -698,10 +712,6 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                                                         <span style={{ display: 'inline-block', padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, backgroundColor: statusBg, color: statusColor, whiteSpace: 'nowrap' }}>
                                                             {item.status || 'Unknown'}
                                                         </span>
-                                                    </td>
-                                                    <td style={{ padding: '14px 12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                        <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.referenceType || '-'}</div>
-                                                        {item.referenceId && <div style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#{item.referenceId}</div>}
                                                     </td>
                                                     <td style={{ padding: '14px 12px', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                                                         {item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -747,53 +757,153 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         <AccountProfileTab user={user} />
     );
 
+    const renderValidationRulesSection = () => (
+        <div className={styles.card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                    <p className={styles.subtitle} style={{ margin: '0 0 4px 0' }}>Form key</p>
+                    <select
+                        value={selectedFormKey}
+                        onChange={(e) => setSelectedFormKey(e.target.value)}
+                        style={{ minWidth: '240px', padding: '10px 12px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+                    >
+                        {FORM_KEYS.map((key) => (
+                            <option key={key} value={key}>{key}</option>
+                        ))}
+                    </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                        {validationMeta.totalCount} rules
+                    </span>
+                    <button
+                        className={styles.secondaryBtn}
+                        onClick={() => fetchValidationRules(selectedFormKey, 1, validationMeta.pageSize)}
+                        disabled={isLoadingValidationRules}
+                    >
+                        {isLoadingValidationRules ? 'Đang tải...' : 'Làm mới'}
+                    </button>
+                </div>
+            </div>
+
+            {validationSuccess && (
+                <div style={{ padding: '10px 12px', marginBottom: '12px', borderRadius: '8px', backgroundColor: '#d1fae5', color: '#065f46', fontWeight: 600, fontSize: '13px' }}>
+                    {validationSuccess}
+                </div>
+            )}
+            {validationError && (
+                <div style={{ padding: '10px 12px', marginBottom: '12px', borderRadius: '8px', backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>
+                    {validationError}
+                </div>
+            )}
+
+            {isLoadingValidationRules ? (
+                <div className={styles.loadingState}>
+                    <Loader2 size={24} className={styles.spinner} />
+                    <span>Đang tải rule validation...</span>
+                </div>
+            ) : validationItems.length === 0 ? (
+                <div className={styles.emptyState}>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Không có rule cho form key này.</p>
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gap: '12px' }}>
+                    {validationItems.map((item) => {
+                        const draft = ruleDrafts[item.id] || item;
+                        const isSaving = !!savingRuleIds[item.id];
+                        return (
+                            <div key={item.id} style={{ border: '1px solid var(--border-color)', borderRadius: '12px', padding: '14px', backgroundColor: 'var(--bg-secondary)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr 1fr auto', gap: '10px', alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '14px' }}>{item.fieldKey}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                            Updated: {item.updatedAt ? new Date(item.updatedAt).toLocaleString('vi-VN') : '-'}
+                                        </div>
+                                    </div>
+
+                                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={!!draft.isRequired}
+                                            onChange={(e) => handleRuleDraftChange(item.id, 'isRequired', e.target.checked)}
+                                        />
+                                        Bắt buộc
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        placeholder="min-max length (vd 1-255)"
+                                        value={`${draft.minLength ?? ''}${(draft.minLength !== null && draft.minLength !== '' && (draft.maxLength !== null && draft.maxLength !== '')) ? '-' : ''}${draft.maxLength ?? ''}`}
+                                        onChange={(e) => {
+                                            const [min, max] = e.target.value.split('-');
+                                            handleRuleDraftChange(item.id, 'minLength', min ?? '');
+                                            handleRuleDraftChange(item.id, 'maxLength', max ?? '');
+                                        }}
+                                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                                    />
+
+                                    <input
+                                        type="text"
+                                        placeholder="min-max value (vd 0-100)"
+                                        value={`${draft.minValue ?? ''}${(draft.minValue !== null && draft.minValue !== '' && (draft.maxValue !== null && draft.maxValue !== '')) ? '-' : ''}${draft.maxValue ?? ''}`}
+                                        onChange={(e) => {
+                                            const [min, max] = e.target.value.split('-');
+                                            handleRuleDraftChange(item.id, 'minValue', min ?? '');
+                                            handleRuleDraftChange(item.id, 'maxValue', max ?? '');
+                                        }}
+                                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                                    />
+
+                                    <button
+                                        className={styles.primaryBtn}
+                                        onClick={() => handleSaveRule(item.id)}
+                                        disabled={isSaving}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                    >
+                                        {isSaving ? <Loader2 size={14} className={styles.spinner} /> : <Save size={14} />}
+                                        {isSaving ? 'Đang lưu' : 'Lưu'}
+                                    </button>
+                                </div>
+
+                                <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr 180px', gap: '10px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Regex pattern"
+                                        value={draft.customRegexPattern ?? ''}
+                                        onChange={(e) => handleRuleDraftChange(item.id, 'customRegexPattern', e.target.value)}
+                                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="File types (image/png, image/jpeg)"
+                                        value={draft.allowedFileTypesInput ?? ''}
+                                        onChange={(e) => handleRuleDraftChange(item.id, 'allowedFileTypesInput', e.target.value)}
+                                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Max file bytes"
+                                        value={draft.maxFileSizeBytes ?? ''}
+                                        onChange={(e) => handleRuleDraftChange(item.id, 'maxFileSizeBytes', e.target.value)}
+                                        style={{ padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+
     return (
         <div className={styles.container}>
             <div className={styles.content}>
                 <DashboardSection
                     title={currentSection.label}
-                    topBarExtra={(
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                            Module: {currentSection.id}
-                        </span>
-                    )}
+                    topBarExtra={null}
                 >
-                    {activeSection === 'transactions' ? renderTransactionsSection() : activeSection === 'users' ? renderUsersSection() : activeSection === 'staff' ? renderStaffSection() : activeSection === 'account_profile' ? renderAccountProfileSection() : (
-                        <>
-                            <div className={styles.sectionGrid}>
-                                <div className={styles.card}>
-                                    <h4 className={styles.cardTitle} style={{ marginBottom: '8px' }}>
-                                        <currentSection.icon size={18} />
-                                        {currentSection.label}
-                                    </h4>
-                                    <p className={styles.subtitle} style={{ marginBottom: '10px' }}>
-                                        {currentSection.description}
-                                    </p>
-                                    <div className={styles.badge + ' ' + styles.badgeInfo}>Sẵn sàng kết nối API</div>
-                                </div>
-
-                                <div className={styles.card}>
-                                    <h4 className={styles.cardTitle} style={{ marginBottom: '8px' }}>Kế hoạch mapping API</h4>
-                                    <p className={styles.subtitle}>Bạn gửi endpoint + field response, mình sẽ map vào bảng/list/filter/action tương ứng.</p>
-                                    <ul style={{ margin: '12px 0 0 18px', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>
-                                        <li>Fetch danh sách theo phân mục</li>
-                                        <li>Hiển thị trạng thái và badge màu</li>
-                                        <li>Thêm hành động CRUD/duyệt/từ chối khi có API</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div className={styles.card} style={{ marginTop: '20px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                                    <ChevronRight size={16} color="var(--primary-blue)" />
-                                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Bước tiếp theo</span>
-                                </div>
-                                <p className={styles.subtitle} style={{ margin: 0 }}>
-                                    Gửi cho mình danh sách API + request/response mẫu, mình sẽ triển khai từng phân mục theo đúng dữ liệu thực tế.
-                                </p>
-                            </div>
-                        </>
-                    )}
+                    {activeSection === 'transactions' ? renderTransactionsSection() : activeSection === 'users' ? renderUsersSection() : activeSection === 'staff' ? renderStaffSection() : activeSection === 'validation_rules' ? renderValidationRulesSection() : activeSection === 'account_profile' ? renderAccountProfileSection() : renderUsersSection()}
                 </DashboardSection>
             </div>
         </div>
