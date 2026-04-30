@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, Compass, Search, TrendingUp, Users, User, Rocket, X, LogOut, Sun, Moon, LayoutDashboard, Sparkles, LogIn, UserPlus, FileText, Calendar, ShieldCheck, Activity, MessageSquare, Award, AlertCircle, Loader, Shield, Settings, History, ChevronUp, ChevronDown, DollarSign, CreditCard, Newspaper, Landmark } from 'lucide-react';
+import { Home, Compass, Search, TrendingUp, Users, User, Rocket, X, LogOut, Sun, Moon, LayoutDashboard, Sparkles, LogIn, UserPlus, FileText, Calendar, ShieldCheck, Activity, MessageSquare, Award, AlertCircle, Loader, Shield, Settings, History, ChevronUp, ChevronDown, DollarSign, CreditCard, Newspaper, Landmark, Factory, Milestone } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import Button from '../common/Button';
 import { useTheme } from '../../context/ThemeContext';
@@ -74,6 +74,10 @@ function Sidebar({
         { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminStaff', displayLabel: 'Quản lý Staff', href: '#', showWhenLoggedIn: true },
         { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
+        { icon: Shield, label: 'AdminPackageManagement', displayLabel: 'Quản lý gói', href: '#', showWhenLoggedIn: true },
+        { icon: History, label: 'AdminSubscriptionHistory', displayLabel: 'Lịch sử đăng ký gói', href: '#', showWhenLoggedIn: true },
+        { icon: Factory, label: 'AdminIndustryOptions', displayLabel: 'Ngành nghề', href: '#', showWhenLoggedIn: true },
+        { icon: Milestone, label: 'AdminStageOptions', displayLabel: 'Giai đoạn dự án', href: '#', showWhenLoggedIn: true },
         { icon: Settings, label: 'AdminValidationRules', displayLabel: 'Rule validate động', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'AdminTerms', displayLabel: 'Quản lý Điều khoản', href: '#', showWhenLoggedIn: true },
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
@@ -93,8 +97,6 @@ function Sidebar({
         { icon: ShieldCheck, label: 'Approvals', displayLabel: 'Phê duyệt Startup', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'AdvisorApproval', displayLabel: 'Phê duyệt cố vấn', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'InvestorApproval', displayLabel: 'Phê duyệt nhà đầu tư', href: '#', showWhenLoggedIn: true },
-        { icon: Shield, label: 'PackageManagement', displayLabel: 'Quản lý gói', href: '#', showWhenLoggedIn: true },
-        { icon: History, label: 'SubscriptionHistory', displayLabel: 'Lịch sử đăng ký gói', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'Terms', displayLabel: 'Quản lý Điều khoản', href: '#', showWhenLoggedIn: true },
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
@@ -239,12 +241,6 @@ function Sidebar({
     if (label === 'Payouts' && onShowDashboard) {
       onShowDashboard('payouts');
     }
-    if (label === 'PackageManagement' && onShowDashboard) {
-      onShowDashboard('package_management');
-    }
-    if (label === 'SubscriptionHistory' && onShowDashboard) {
-      onShowDashboard('subscription_history');
-    }
     if (label === 'PRManagement' && onShowDashboard) {
       onShowDashboard('pr_management');
     }
@@ -273,6 +269,18 @@ function Sidebar({
     }
     if (label === 'AdminTransactions' && onShowDashboard) {
       onShowDashboard('transactions');
+    }
+    if (label === 'AdminPackageManagement' && onShowDashboard) {
+      onShowDashboard('package_management');
+    }
+    if (label === 'AdminSubscriptionHistory' && onShowDashboard) {
+      onShowDashboard('subscription_history');
+    }
+    if (label === 'AdminIndustryOptions' && onShowDashboard) {
+      onShowDashboard('industry_options');
+    }
+    if (label === 'AdminStageOptions' && onShowDashboard) {
+      onShowDashboard('stage_options');
     }
     if (label === 'AdminValidationRules' && onShowDashboard) {
       onShowDashboard('validation_rules');
@@ -411,14 +419,16 @@ function Sidebar({
                       if (activeView === 'dashboard_commission') return 'CommissionConfig';
                       if (activeView === 'dashboard_wallet') return 'Wallet';
                       if (activeView === 'dashboard_payouts') return 'Payouts';
-                      if (activeView === 'dashboard_package_management') return 'PackageManagement';
-                      if (activeView === 'dashboard_subscription_history') return 'SubscriptionHistory';
+                      if (activeView === 'dashboard_package_management') return 'AdminPackageManagement';
+                      if (activeView === 'dashboard_subscription_history') return 'AdminSubscriptionHistory';
                       if (activeView === 'dashboard_investor_approval') return 'InvestorApproval';
                       if (activeView === 'dashboard_preferences') return 'InvestorProfile';
                       if (activeView === 'complete-info' || activeView === 'dashboard_complete-info') return 'StartupProfile';
                       if (activeView === 'dashboard_users') return 'AdminUsers';
                       if (activeView === 'dashboard_staff') return 'AdminStaff';
                       if (activeView === 'dashboard_transactions') return 'AdminTransactions';
+                      if (activeView === 'dashboard_industry_options') return 'AdminIndustryOptions';
+                      if (activeView === 'dashboard_stage_options') return 'AdminStageOptions';
                       if (activeView === 'dashboard_validation_rules') return 'AdminValidationRules';
                       if (activeView === 'dashboard_account_profile') return 'AccountProfile';
                       if (activeView === 'dashboard_terms') {

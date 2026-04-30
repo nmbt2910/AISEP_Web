@@ -1,15 +1,21 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Users, Database, ChevronRight, Loader2, ShieldCheck, Save, Plus } from 'lucide-react';
+import { Users, Database, ChevronRight, Loader2, ShieldCheck, Save, Plus, Factory, Milestone, Shield, History } from 'lucide-react';
 import styles from '../styles/SharedDashboard.module.css';
 import DashboardSection from '../components/common/DashboardSection';
 import adminService from '../services/adminService';
 import TermsManagement from '../components/admin/TermsManagement';
 import AccountProfileTab from '../components/common/AccountProfileTab';
+import PackageManagement from '../components/staff/PackageManagement';
+import GlobalSubscriptionHistory from '../components/staff/GlobalSubscriptionHistory';
 
 const ADMIN_SECTIONS = [
     { id: 'users', label: 'Quản lý người dùng', icon: Users, description: 'Danh sách, quyền và trạng thái tài khoản.' },
     { id: 'staff', label: 'Quản lý Staff', icon: Users, description: 'Tạo và quản lý tài khoản staff vận hành.' },
     { id: 'transactions', label: 'Giao dịch', icon: Database, description: 'Theo dõi giao dịch thanh toán toàn hệ thống.' },
+    { id: 'package_management', label: 'Quản lý gói', icon: Shield, description: 'Cấu hình gói đăng ký Investor và Startup.' },
+    { id: 'subscription_history', label: 'Lịch sử đăng ký gói', icon: History, description: 'Theo dõi lịch sử đăng ký gói người dùng.' },
+    { id: 'industry_options', label: 'Ngành nghề', icon: Factory, description: 'Danh mục ngành (industry options) dùng trong form startup và hệ thống.' },
+    { id: 'stage_options', label: 'Giai đoạn dự án', icon: Milestone, description: 'Các giai đoạn dự án (stage options): Idea, MVP, Growth, v.v.' },
     { id: 'validation_rules', label: 'Rule validate động', icon: ShieldCheck, description: 'Cấu hình validate theo từng formKey.' },
     { id: 'terms', label: 'Quản lý Điều khoản', icon: ShieldCheck, description: 'Cập nhật và quản lý lịch sử điều khoản hệ thống.' },
     { id: 'account_profile', label: 'Hồ sơ người dùng', icon: Users, description: 'Quản lý thông tin cá nhân và mật khẩu.' },
@@ -53,6 +59,26 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
     const [validationSuccess, setValidationSuccess] = useState('');
     const [ruleDrafts, setRuleDrafts] = useState({});
     const [savingRuleIds, setSavingRuleIds] = useState({});
+
+    const [industryItems, setIndustryItems] = useState([]);
+    const [industryMeta, setIndustryMeta] = useState({ page: 1, pageSize: 10, totalCount: 0, totalPages: 1 });
+    const [isLoadingIndustry, setIsLoadingIndustry] = useState(false);
+    const [industryError, setIndustryError] = useState('');
+    const [industrySuccess, setIndustrySuccess] = useState('');
+    const [newIndustryValue, setNewIndustryValue] = useState('');
+    const [newIndustryActive, setNewIndustryActive] = useState(true);
+    const [isSubmittingIndustry, setIsSubmittingIndustry] = useState(false);
+    const [industryTogglingId, setIndustryTogglingId] = useState(null);
+
+    const [stageItems, setStageItems] = useState([]);
+    const [stageMeta, setStageMeta] = useState({ page: 1, pageSize: 10, totalCount: 0, totalPages: 1 });
+    const [isLoadingStage, setIsLoadingStage] = useState(false);
+    const [stageError, setStageError] = useState('');
+    const [stageSuccess, setStageSuccess] = useState('');
+    const [newStageValue, setNewStageValue] = useState('');
+    const [newStageActive, setNewStageActive] = useState(true);
+    const [isSubmittingStage, setIsSubmittingStage] = useState(false);
+    const [stageTogglingId, setStageTogglingId] = useState(null);
 
     const FORM_KEYS = [
         'startup.create',
@@ -113,6 +139,164 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
             setUsers([]);
         } finally {
             setIsLoadingUsers(false);
+        }
+    };
+
+    const fetchIndustryOptions = async (page = 1, pageSize = 10, options = {}) => {
+        const { silent = false, preserveMessages = false } = options;
+        if (!silent) {
+            setIsLoadingIndustry(true);
+        }
+        if (!preserveMessages) {
+            setIndustryError('');
+            setIndustrySuccess('');
+        }
+        try {
+            const response = await adminService.getIndustryOptions({ page, pageSize });
+            const payload = response?.data || response || {};
+            const items = Array.isArray(payload?.items) ? payload.items : [];
+            setIndustryItems(items);
+            setIndustryMeta({
+                page: payload?.page || page,
+                pageSize: payload?.pageSize || pageSize,
+                totalCount: payload?.totalCount ?? items.length,
+                totalPages: payload?.totalPages || 1
+            });
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to fetch industry options:', error);
+            setIndustryError('Không thể tải danh sách ngành nghề.');
+            setIndustryItems([]);
+        } finally {
+            if (!silent) {
+                setIsLoadingIndustry(false);
+            }
+        }
+    };
+
+    const handleIndustrySetActive = async (row, nextActive) => {
+        if (!row?.id || row.isActive === nextActive) return;
+        setIndustryTogglingId(row.id);
+        setIndustryError('');
+        try {
+            if (nextActive) {
+                await adminService.activateIndustryOption(row.id);
+            } else {
+                await adminService.deactivateIndustryOption(row.id);
+            }
+            setIndustrySuccess(nextActive ? 'Đã bật ngành nghề.' : 'Đã tắt ngành nghề.');
+            setTimeout(() => setIndustrySuccess(''), 3500);
+            await fetchIndustryOptions(industryMeta.page, industryMeta.pageSize, { silent: true, preserveMessages: true });
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to toggle industry option:', error);
+            const msg = error?.response?.data?.message || error?.message;
+            setIndustryError(msg || 'Không thể cập nhật trạng thái ngành nghề.');
+        } finally {
+            setIndustryTogglingId(null);
+        }
+    };
+
+    const handleCreateIndustry = async (e) => {
+        e.preventDefault();
+        setIndustryError('');
+        setIndustrySuccess('');
+        const trimmed = newIndustryValue.trim();
+        if (!trimmed) {
+            setIndustryError('Vui lòng nhập giá trị ngành (value).');
+            return;
+        }
+        setIsSubmittingIndustry(true);
+        try {
+            await adminService.createIndustryOption({ value: trimmed, isActive: newIndustryActive });
+            setIndustrySuccess('Đã tạo ngành nghề thành công.');
+            setNewIndustryValue('');
+            setNewIndustryActive(true);
+            setTimeout(() => setIndustrySuccess(''), 4000);
+            await fetchIndustryOptions(industryMeta.page, industryMeta.pageSize, { preserveMessages: true });
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to create industry option:', error);
+            const msg = error?.response?.data?.message || error?.message;
+            setIndustryError(msg || 'Không thể tạo ngành nghề.');
+        } finally {
+            setIsSubmittingIndustry(false);
+        }
+    };
+
+    const fetchStageOptions = async (page = 1, pageSize = 10, options = {}) => {
+        const { silent = false, preserveMessages = false } = options;
+        if (!silent) {
+            setIsLoadingStage(true);
+        }
+        if (!preserveMessages) {
+            setStageError('');
+            setStageSuccess('');
+        }
+        try {
+            const response = await adminService.getStageOptions({ page, pageSize });
+            const payload = response?.data || response || {};
+            const items = Array.isArray(payload?.items) ? payload.items : [];
+            setStageItems(items);
+            setStageMeta({
+                page: payload?.page || page,
+                pageSize: payload?.pageSize || pageSize,
+                totalCount: payload?.totalCount ?? items.length,
+                totalPages: payload?.totalPages || 1
+            });
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to fetch stage options:', error);
+            setStageError('Không thể tải danh sách giai đoạn dự án.');
+            setStageItems([]);
+        } finally {
+            if (!silent) {
+                setIsLoadingStage(false);
+            }
+        }
+    };
+
+    const handleStageSetActive = async (row, nextActive) => {
+        if (!row?.id || row.isActive === nextActive) return;
+        setStageTogglingId(row.id);
+        setStageError('');
+        try {
+            if (nextActive) {
+                await adminService.activateStageOption(row.id);
+            } else {
+                await adminService.deactivateStageOption(row.id);
+            }
+            setStageSuccess(nextActive ? 'Đã bật giai đoạn.' : 'Đã tắt giai đoạn.');
+            setTimeout(() => setStageSuccess(''), 3500);
+            await fetchStageOptions(stageMeta.page, stageMeta.pageSize, { silent: true, preserveMessages: true });
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to toggle stage option:', error);
+            const msg = error?.response?.data?.message || error?.message;
+            setStageError(msg || 'Không thể cập nhật trạng thái giai đoạn.');
+        } finally {
+            setStageTogglingId(null);
+        }
+    };
+
+    const handleCreateStage = async (e) => {
+        e.preventDefault();
+        setStageError('');
+        setStageSuccess('');
+        const trimmed = newStageValue.trim();
+        if (!trimmed) {
+            setStageError('Vui lòng nhập giá trị giai đoạn (value).');
+            return;
+        }
+        setIsSubmittingStage(true);
+        try {
+            await adminService.createStageOption({ value: trimmed, isActive: newStageActive });
+            setStageSuccess('Đã tạo giai đoạn thành công.');
+            setNewStageValue('');
+            setNewStageActive(true);
+            setTimeout(() => setStageSuccess(''), 4000);
+            await fetchStageOptions(stageMeta.page, stageMeta.pageSize, { preserveMessages: true });
+        } catch (error) {
+            console.error('[AdminDashboard] Failed to create stage option:', error);
+            const msg = error?.response?.data?.message || error?.message;
+            setStageError(msg || 'Không thể tạo giai đoạn.');
+        } finally {
+            setIsSubmittingStage(false);
         }
     };
 
@@ -293,6 +477,12 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         }
         if (activeSection === 'validation_rules') {
             fetchValidationRules(selectedFormKey, 1, validationMeta.pageSize);
+        }
+        if (activeSection === 'industry_options') {
+            fetchIndustryOptions(industryMeta.page, industryMeta.pageSize);
+        }
+        if (activeSection === 'stage_options') {
+            fetchStageOptions(stageMeta.page, stageMeta.pageSize);
         }
     }, [activeSection]);
 
@@ -756,6 +946,443 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         </div>
     );
 
+    const renderIndustryOptionsSection = () => {
+        const inputStyle = {
+            width: '100%',
+            padding: '9px 11px',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            boxSizing: 'border-box'
+        };
+
+        return (
+            <div>
+                <div className={styles.card} style={{ borderRadius: '14px', marginBottom: '16px' }}>
+                    <div style={{ marginBottom: '14px' }}>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Tạo ngành nghề mới
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            Nhập mã hiển thị ngành và chọn có đang dùng hay không.
+                        </p>
+                    </div>
+
+                    {industrySuccess && (
+                        <div style={{ padding: '10px 12px', marginBottom: '12px', backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px', color: '#065f46', fontWeight: 600, fontSize: '13px' }}>
+                            {industrySuccess}
+                        </div>
+                    )}
+                    {industryError && (
+                        <div style={{ padding: '10px 12px', marginBottom: '12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>
+                            {industryError}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleCreateIndustry} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '12px', alignItems: 'end' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Giá trị (value) *</label>
+                            <input
+                                type="text"
+                                value={newIndustryValue}
+                                onChange={(e) => setNewIndustryValue(e.target.value)}
+                                placeholder="Ví dụ: Fintech, Agritech"
+                                style={inputStyle}
+                            />
+                        </div>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', paddingBottom: '10px' }}>
+                            <input
+                                type="checkbox"
+                                checked={newIndustryActive}
+                                onChange={(e) => setNewIndustryActive(e.target.checked)}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            Đang hoạt động
+                        </label>
+                        <button
+                            type="submit"
+                            disabled={isSubmittingIndustry}
+                            style={{
+                                padding: '9px 16px',
+                                backgroundColor: isSubmittingIndustry ? '#9ca3af' : 'var(--primary-blue)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                cursor: isSubmittingIndustry ? 'not-allowed' : 'pointer',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {isSubmittingIndustry ? 'Đang tạo...' : 'Tạo mới'}
+                        </button>
+                    </form>
+                </div>
+
+                <div className={styles.card} style={{ borderRadius: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                            <p className={styles.subtitle} style={{ margin: '0 0 4px 0', fontSize: '13px' }}>
+                                Danh sách ngành
+                            </p>
+                            <p style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {industryMeta.totalCount} mục
+                            </p>
+                        </div>
+                        <button className={styles.secondaryBtn} onClick={() => fetchIndustryOptions(industryMeta.page, industryMeta.pageSize)} disabled={isLoadingIndustry || industryTogglingId !== null}>
+                            {isLoadingIndustry ? 'Đang tải...' : '↻ Làm mới'}
+                        </button>
+                    </div>
+
+                    <p style={{ margin: '0 0 16px 0', fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                        <strong>Bật / Tắt</strong> gọi API kích hoạt hoặc vô hiệu hóa từng ngành: bản ghi vẫn lưu trong hệ thống nhưng{' '}
+                        <code style={{ fontSize: '11px' }}>isActive</code> đổi theo — thường dùng để ẩn ngành khỏi danh sách chọn (dropdown, form đăng ký startup, v.v.) mà không xóa dữ liệu.
+                    </p>
+
+                    {isLoadingIndustry ? (
+                        <div className={styles.loadingState}>
+                            <Loader2 size={24} className={styles.spinner} />
+                            <span>Đang tải danh sách ngành nghề...</span>
+                        </div>
+                    ) : industryItems.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '15px' }}>Chưa có dữ liệu hoặc trang trống.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={styles.tableWrapper} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                                <table className={styles.docsTable} style={{ tableLayout: 'fixed' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '32%' }}>Giá trị</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '14%' }}>Trạng thái</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '22%' }}>Cập nhật</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '32%' }}>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {industryItems.map((row, idx) => (
+                                            <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)' }}>
+                                                <td style={{ padding: '14px 12px', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                                                    {row.value ?? '—'}
+                                                </td>
+                                                <td style={{ padding: '14px 12px' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        padding: '5px 10px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 600,
+                                                        backgroundColor: row.isActive ? '#d1fae5' : '#f3f4f6',
+                                                        color: row.isActive ? '#065f46' : '#6b7280'
+                                                    }}>
+                                                        {row.isActive ? 'Hoạt động' : 'Tắt'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '14px 12px', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                                    {row.updatedAt ? new Date(row.updatedAt).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                </td>
+                                                <td style={{ padding: '14px 12px' }}>
+                                                    {industryTogglingId === row.id ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                                            <Loader2 size={14} className={styles.spinner} />
+                                                            Đang xử lý…
+                                                        </span>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleIndustrySetActive(row, true)}
+                                                                disabled={row.isActive || industryTogglingId !== null}
+                                                                style={{
+                                                                    padding: '6px 10px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: 700,
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid #6ee7b7',
+                                                                    backgroundColor: row.isActive ? 'var(--bg-secondary)' : '#ecfdf5',
+                                                                    color: row.isActive ? 'var(--text-secondary)' : '#065f46',
+                                                                    cursor: row.isActive || industryTogglingId !== null ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                            >
+                                                                Bật
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleIndustrySetActive(row, false)}
+                                                                disabled={!row.isActive || industryTogglingId !== null}
+                                                                style={{
+                                                                    padding: '6px 10px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: 700,
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid #fca5a5',
+                                                                    backgroundColor: !row.isActive ? 'var(--bg-secondary)' : '#fef2f2',
+                                                                    color: !row.isActive ? 'var(--text-secondary)' : '#991b1b',
+                                                                    cursor: !row.isActive || industryTogglingId !== null ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                            >
+                                                                Tắt
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {industryMeta.totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+                                    <button
+                                        className={styles.secondaryBtn}
+                                        disabled={industryMeta.page <= 1 || isLoadingIndustry || industryTogglingId !== null}
+                                        style={{ opacity: industryMeta.page <= 1 ? 0.5 : 1 }}
+                                        onClick={() => fetchIndustryOptions(industryMeta.page - 1, industryMeta.pageSize)}
+                                    >
+                                        ← Trước
+                                    </button>
+                                    <span style={{ alignSelf: 'center', fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '100px', textAlign: 'center' }}>
+                                        Trang {industryMeta.page}/{industryMeta.totalPages}
+                                    </span>
+                                    <button
+                                        className={styles.secondaryBtn}
+                                        disabled={industryMeta.page >= industryMeta.totalPages || isLoadingIndustry || industryTogglingId !== null}
+                                        style={{ opacity: industryMeta.page >= industryMeta.totalPages ? 0.5 : 1 }}
+                                        onClick={() => fetchIndustryOptions(industryMeta.page + 1, industryMeta.pageSize)}
+                                    >
+                                        Sau →
+                                    </button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderStageOptionsSection = () => {
+        const inputStyle = {
+            width: '100%',
+            padding: '9px 11px',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+            boxSizing: 'border-box'
+        };
+
+        return (
+            <div>
+                <div className={styles.card} style={{ borderRadius: '14px', marginBottom: '16px' }}>
+                    <div style={{ marginBottom: '14px' }}>
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Tạo giai đoạn dự án mới
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            Giá trị hiển thị (ví dụ Idea, MVP, Growth) và trạng thái sử dụng.
+                        </p>
+                    </div>
+
+                    {stageSuccess && (
+                        <div style={{ padding: '10px 12px', marginBottom: '12px', backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px', color: '#065f46', fontWeight: 600, fontSize: '13px' }}>
+                            {stageSuccess}
+                        </div>
+                    )}
+                    {stageError && (
+                        <div style={{ padding: '10px 12px', marginBottom: '12px', backgroundColor: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontWeight: 600, fontSize: '13px' }}>
+                            {stageError}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleCreateStage} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: '12px', alignItems: 'end' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '5px' }}>Giá trị (value) *</label>
+                            <input
+                                type="text"
+                                value={newStageValue}
+                                onChange={(e) => setNewStageValue(e.target.value)}
+                                placeholder="Ví dụ: Seed, Series A"
+                                style={inputStyle}
+                            />
+                        </div>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', paddingBottom: '10px' }}>
+                            <input
+                                type="checkbox"
+                                checked={newStageActive}
+                                onChange={(e) => setNewStageActive(e.target.checked)}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            Đang hoạt động
+                        </label>
+                        <button
+                            type="submit"
+                            disabled={isSubmittingStage}
+                            style={{
+                                padding: '9px 16px',
+                                backgroundColor: isSubmittingStage ? '#9ca3af' : 'var(--primary-blue)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 700,
+                                fontSize: '12px',
+                                cursor: isSubmittingStage ? 'not-allowed' : 'pointer',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {isSubmittingStage ? 'Đang tạo...' : 'Tạo mới'}
+                        </button>
+                    </form>
+                </div>
+
+                <div className={styles.card} style={{ borderRadius: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                            <p className={styles.subtitle} style={{ margin: '0 0 4px 0', fontSize: '13px' }}>
+                                Danh sách giai đoạn
+                            </p>
+                            <p style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {stageMeta.totalCount} mục
+                            </p>
+                        </div>
+                        <button className={styles.secondaryBtn} onClick={() => fetchStageOptions(stageMeta.page, stageMeta.pageSize)} disabled={isLoadingStage || stageTogglingId !== null}>
+                            {isLoadingStage ? 'Đang tải...' : '↻ Làm mới'}
+                        </button>
+                    </div>
+
+                    <p style={{ margin: '0 0 16px 0', fontSize: '12px', lineHeight: 1.5, color: 'var(--text-secondary)' }}>
+                        <strong>Bật / Tắt</strong> cập nhật <code style={{ fontSize: '11px' }}>isActive</code> cho từng giai đoạn — thường dùng để ẩn giai đoạn khỏi form tạo/cập nhật dự án mà không xóa bản ghi.
+                    </p>
+
+                    {isLoadingStage ? (
+                        <div className={styles.loadingState}>
+                            <Loader2 size={24} className={styles.spinner} />
+                            <span>Đang tải danh sách giai đoạn...</span>
+                        </div>
+                    ) : stageItems.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '15px' }}>Chưa có dữ liệu hoặc trang trống.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={styles.tableWrapper} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                                <table className={styles.docsTable} style={{ tableLayout: 'fixed' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '32%' }}>Giá trị</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '14%' }}>Trạng thái</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '22%' }}>Cập nhật</th>
+                                            <th style={{ padding: '14px 12px', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '32%' }}>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {stageItems.map((row, idx) => (
+                                            <tr key={row.id} style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--bg-secondary)' }}>
+                                                <td style={{ padding: '14px 12px', fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                                                    {row.value ?? '—'}
+                                                </td>
+                                                <td style={{ padding: '14px 12px' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        padding: '5px 10px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '12px',
+                                                        fontWeight: 600,
+                                                        backgroundColor: row.isActive ? '#d1fae5' : '#f3f4f6',
+                                                        color: row.isActive ? '#065f46' : '#6b7280'
+                                                    }}>
+                                                        {row.isActive ? 'Hoạt động' : 'Tắt'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '14px 12px', fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                                    {row.updatedAt ? new Date(row.updatedAt).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                </td>
+                                                <td style={{ padding: '14px 12px' }}>
+                                                    {stageTogglingId === row.id ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                                            <Loader2 size={14} className={styles.spinner} />
+                                                            Đang xử lý…
+                                                        </span>
+                                                    ) : (
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleStageSetActive(row, true)}
+                                                                disabled={row.isActive || stageTogglingId !== null}
+                                                                style={{
+                                                                    padding: '6px 10px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: 700,
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid #6ee7b7',
+                                                                    backgroundColor: row.isActive ? 'var(--bg-secondary)' : '#ecfdf5',
+                                                                    color: row.isActive ? 'var(--text-secondary)' : '#065f46',
+                                                                    cursor: row.isActive || stageTogglingId !== null ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                            >
+                                                                Bật
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleStageSetActive(row, false)}
+                                                                disabled={!row.isActive || stageTogglingId !== null}
+                                                                style={{
+                                                                    padding: '6px 10px',
+                                                                    fontSize: '11px',
+                                                                    fontWeight: 700,
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid #fca5a5',
+                                                                    backgroundColor: !row.isActive ? 'var(--bg-secondary)' : '#fef2f2',
+                                                                    color: !row.isActive ? 'var(--text-secondary)' : '#991b1b',
+                                                                    cursor: !row.isActive || stageTogglingId !== null ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                            >
+                                                                Tắt
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {stageMeta.totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+                                    <button
+                                        className={styles.secondaryBtn}
+                                        disabled={stageMeta.page <= 1 || isLoadingStage || stageTogglingId !== null}
+                                        style={{ opacity: stageMeta.page <= 1 ? 0.5 : 1 }}
+                                        onClick={() => fetchStageOptions(stageMeta.page - 1, stageMeta.pageSize)}
+                                    >
+                                        ← Trước
+                                    </button>
+                                    <span style={{ alignSelf: 'center', fontSize: '14px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '100px', textAlign: 'center' }}>
+                                        Trang {stageMeta.page}/{stageMeta.totalPages}
+                                    </span>
+                                    <button
+                                        className={styles.secondaryBtn}
+                                        disabled={stageMeta.page >= stageMeta.totalPages || isLoadingStage || stageTogglingId !== null}
+                                        style={{ opacity: stageMeta.page >= stageMeta.totalPages ? 0.5 : 1 }}
+                                        onClick={() => fetchStageOptions(stageMeta.page + 1, stageMeta.pageSize)}
+                                    >
+                                        Sau →
+                                    </button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     const renderAccountProfileSection = () => (
         <AccountProfileTab user={user} />
     );
@@ -903,6 +1530,18 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
         <TermsManagement ref={termsRef} canEdit={true} hideHeader={true} />
     );
 
+    const renderPackageManagementSection = () => (
+        <div style={{ minHeight: 0 }}>
+            <PackageManagement searchTerm="" />
+        </div>
+    );
+
+    const renderSubscriptionHistorySection = () => (
+        <div style={{ minHeight: 0 }}>
+            <GlobalSubscriptionHistory searchTerm="" />
+        </div>
+    );
+
     return (
         <div className={styles.container}>
             <div className={styles.content}>
@@ -921,6 +1560,10 @@ export default function AdminDashboard({ user, initialSection = 'users' }) {
                     {activeSection === 'transactions' ? renderTransactionsSection() : 
                      activeSection === 'users' ? renderUsersSection() : 
                      activeSection === 'staff' ? renderStaffSection() : 
+                     activeSection === 'package_management' ? renderPackageManagementSection() : 
+                     activeSection === 'subscription_history' ? renderSubscriptionHistorySection() : 
+                     activeSection === 'industry_options' ? renderIndustryOptionsSection() : 
+                     activeSection === 'stage_options' ? renderStageOptionsSection() : 
                      activeSection === 'validation_rules' ? renderValidationRulesSection() : 
                      activeSection === 'terms' ? renderTermsSection() :
                      activeSection === 'account_profile' ? renderAccountProfileSection() : 

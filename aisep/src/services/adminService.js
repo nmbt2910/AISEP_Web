@@ -61,6 +61,66 @@ const adminService = {
   },
 
   /**
+   * List industry options (paged, Sieve)
+   * GET /api/industry-options
+   * @param {object} params - page, pageSize, filters, sorts
+   */
+  getIndustryOptions: async (params = {}) => {
+    const queryParams = { page: 1, pageSize: 10, ...params };
+    return await apiClient.get('/api/industry-options', { params: queryParams });
+  },
+
+  /**
+   * Create industry option
+   * POST /api/industry-options
+   * @param {{ value: string, isActive: boolean }} payload
+   */
+  createIndustryOption: async (payload) => {
+    return await apiClient.post('/api/industry-options', payload);
+  },
+
+  /**
+   * Set industry option active (isActive = true)
+   * PATCH /api/industry-options/{id}/activate
+   */
+  activateIndustryOption: async (id) => {
+    return await apiClient.patch(`/api/industry-options/${id}/activate`);
+  },
+
+  /**
+   * Set industry option inactive (isActive = false)
+   * PATCH /api/industry-options/{id}/deactivate
+   */
+  deactivateIndustryOption: async (id) => {
+    return await apiClient.patch(`/api/industry-options/${id}/deactivate`);
+  },
+
+  /**
+   * List stage options (paged, Sieve)
+   * GET /api/stage-options
+   */
+  getStageOptions: async (params = {}) => {
+    const queryParams = { page: 1, pageSize: 10, ...params };
+    return await apiClient.get('/api/stage-options', { params: queryParams });
+  },
+
+  /**
+   * Create stage option
+   * POST /api/stage-options
+   */
+  createStageOption: async (payload) => {
+    return await apiClient.post('/api/stage-options', payload);
+  },
+
+  activateStageOption: async (id) => {
+    return await apiClient.patch(`/api/stage-options/${id}/activate`);
+  },
+
+  deactivateStageOption: async (id) => {
+    return await apiClient.patch(`/api/stage-options/${id}/deactivate`);
+  },
+
+  /**
    * Publish new system terms
    * POST /api/admin/terms
    * @param {object} payload - { contentHtml, version }
