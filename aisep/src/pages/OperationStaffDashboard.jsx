@@ -24,6 +24,7 @@ import CommissionManagement from '../components/staff/CommissionManagement';
 import TermsManagement from '../components/admin/TermsManagement';
 import EmptyState from '../components/common/EmptyState';
 import BlockchainVerificationModal from '../components/common/BlockchainVerificationModal';
+import BlockchainOnchainResultModal from '../components/common/BlockchainOnchainResultModal';
 import blockchainVerificationService from '../services/blockchainVerificationService';
 import AccountProfileTab from '../components/common/AccountProfileTab';
 import StartupApprovalCard from '../components/staff/StartupApprovalCard';
@@ -4303,93 +4304,16 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                 </div>
             )}
 
-            {showOnchainResultModal && onchainCheckResult && (
-                <div className={styles.modalOverlay} onClick={() => setShowOnchainResultModal(false)}>
-                    <div className={styles.modalContent} style={{ maxWidth: '680px', height: 'auto', maxHeight: '86vh' }} onClick={(e) => e.stopPropagation()}>
-                        <div className={local.staffModalHeader}>
-                            <div className={local.staffModalTitleGrp}>
-                                <Shield size={22} color={onchainCheckResult.error ? '#ef4444' : '#10b981'} />
-                                <h2 className={local.staffModalTitleText}>Xác thực Blockchain</h2>
-                            </div>
-                            <button onClick={() => setShowOnchainResultModal(false)} className={local.staffModalCloseBtn}>
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div style={{ padding: '18px 22px' }}>
-                            {onchainCheckResult.error ? (
-                                <div style={{ padding: '12px', borderRadius: '10px', border: '1px solid #fecaca', background: '#fff1f2', color: '#b91c1c', fontSize: '13px' }}>
-                                    {onchainCheckResult.message}
-                                </div>
-                            ) : (
-                                <>
-                                    <div style={{ padding: '12px', borderRadius: '12px', background: onchainCheckResult.isVerified ? '#ecfdf3' : '#fff7ed', border: `1px solid ${onchainCheckResult.isVerified ? '#86efac' : '#fdba74'}`, textAlign: 'center', marginBottom: '14px' }}>
-                                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px' }}>TÌNH TRẠNG XÁC THỰC</div>
-                                        <div style={{ fontSize: '28px', fontWeight: 900, color: onchainCheckResult.isVerified ? '#16a34a' : '#ea580c' }}>
-                                            {onchainCheckResult.isVerified ? '✓ Đã xác thực' : '⏳ Chưa xác thực'}
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-                                        <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px' }}>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Deal ID</div>
-                                            <div style={{ fontSize: '24px', fontWeight: 900 }}>{onchainCheckResult.dealId ?? '-'}</div>
-                                        </div>
-                                        <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px' }}>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Thông điệp</div>
-                                            <div style={{ fontSize: '13px', fontWeight: 700 }}>{onchainCheckResult.message || '-'}</div>
-                                        </div>
-                                    </div>
-
-                                    <div style={{ display: 'grid', gap: '10px' }}>
-                                        <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px' }}>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Document Hash</div>
-                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                <code style={{ flex: 1, fontSize: '12px', wordBreak: 'break-all' }}>{onchainCheckResult.documentHash || '-'}</code>
-                                                {!!onchainCheckResult.documentHash && (
-                                                    <button className={styles.secondaryBtn} style={{ padding: '6px 10px' }} onClick={() => navigator.clipboard.writeText(onchainCheckResult.documentHash)}>
-                                                        Sao chép
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px' }}>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Investor Wallet</div>
-                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                                <code style={{ flex: 1, fontSize: '12px', wordBreak: 'break-all' }}>{onchainCheckResult.investorWallet || '-'}</code>
-                                                {!!onchainCheckResult.investorWallet && (
-                                                    <button className={styles.secondaryBtn} style={{ padding: '6px 10px' }} onClick={() => navigator.clipboard.writeText(onchainCheckResult.investorWallet)}>
-                                                        Sao chép
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px' }}>
-                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Thời gian ghi nhận blockchain</div>
-                                            <div style={{ fontSize: '13px', fontWeight: 700 }}>{onchainCheckResult.timestampOnBlockchain || '-'}</div>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', maxWidth: '420px' }}>
-                                Ghi chú: Liên kết Explorer cho phép bạn đối soát dữ liệu công khai trực tiếp trên blockchain.
-                            </p>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                {!onchainCheckResult.error && (
-                                    <a href={onchainCheckResult.explorerLink} target="_blank" rel="noreferrer" className={styles.secondaryBtn} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                                        <ExternalLink size={14} />
-                                        Mở Blockchain Explorer
-                                    </a>
-                                )}
-                                <button className={styles.primaryBtn} onClick={() => setShowOnchainResultModal(false)}>Đóng</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <BlockchainOnchainResultModal
+                isOpen={showOnchainResultModal && !!onchainCheckResult}
+                onClose={() => setShowOnchainResultModal(false)}
+                result={onchainCheckResult?.error ? null : onchainCheckResult}
+                errorMessage={
+                    onchainCheckResult?.error
+                        ? onchainCheckResult.message || 'Không thể kiểm tra on-chain.'
+                        : null
+                }
+            />
 
             {showBlockchainModal && blockchainData && (
                 <BlockchainVerificationModal
