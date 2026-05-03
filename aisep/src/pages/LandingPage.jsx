@@ -19,6 +19,7 @@ import advisorService from '../services/advisorService';
 import { getStageLabel } from '../constants/ProjectStatus';
 import TermsModal from '../components/common/TermsModal';
 import termsService from '../services/termsService';
+import optionService from '../services/optionService';
 
 const LandingPage = ({ onShowLogin, onShowRegister }) => {
   const [stats, setStats] = useState({
@@ -30,6 +31,7 @@ const LandingPage = ({ onShowLogin, onShowRegister }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [termsData, setTermsData] = useState({ version: '', content: '', error: null, isLoading: true });
+  const [stages, setStages] = useState([]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -61,11 +63,16 @@ const LandingPage = ({ onShowLogin, onShowRegister }) => {
 
     const fetchData = async () => {
       try {
-        const [projRes, invRes, advRes] = await Promise.all([
+        const [projRes, invRes, advRes, stagesRes] = await Promise.all([
           projectSubmissionService.getAllProjects(),
           investorService.getAllInvestors({ pageSize: 1 }),
-          advisorService.getAllAdvisors({ pageSize: 1 })
+          advisorService.getAllAdvisors({ pageSize: 1 }),
+          optionService.getStages()
         ]);
+
+        if (stagesRes) {
+          setStages(stagesRes.filter(s => s.isActive));
+        }
 
         setStats({
           projects: projRes?.data?.totalCount || 10,
@@ -236,7 +243,7 @@ const LandingPage = ({ onShowLogin, onShowRegister }) => {
                   <p className={styles.projectDesc}>{project.shortDescription}</p>
                   <div className={styles.projectFooter}>
                     <span>{project.industries?.[0] || project.industryName || project.industry}</span>
-                    <span>{getStageLabel(project.stageOptionId || project.developmentStage)}</span>
+                    <span>{getStageLabel(project.stageOptionId || project.StageOptionId || project.developmentStage || project.DevelopmentStage, stages)}</span>
                   </div>
                 </div>
               </div>

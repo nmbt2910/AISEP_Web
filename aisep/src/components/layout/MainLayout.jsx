@@ -28,6 +28,8 @@ import AIChatAssistant from '../../pages/AIChatAssistant';
 import AIEvaluationService from '../../services/AIEvaluationService';
 import FloatingChatWidget from '../common/FloatingChatWidget';
 import subscriptionService from '../../services/subscriptionService';
+import { getStageLabel } from '../../constants/ProjectStatus';
+import optionService from '../../services/optionService';
 
 import ProfileRequiredModal from '../startup/ProfileRequiredModal';
 import startupProfileService from '../../services/startupProfileService';
@@ -235,6 +237,7 @@ function MainLayout({
   const [isLoading, setIsLoading] = useState(false);
   const [feedError, setFeedError] = useState(null);
   const [investorCount, setInvestorCount] = useState(0);
+  const [stages, setStages] = useState([]);
   const [followedProjectIds, setFollowedProjectIds] = useState(new Set()); // Cache for quick lookup
   const [sentConnectionIds, setSentConnectionIds] = useState(new Set()); // Cache for connection status
   const [investedProjectIds, setInvestedProjectIds] = useState(new Set()); // Cache for already invested projects
@@ -447,6 +450,18 @@ function MainLayout({
   }, [fetchInvestorDealsForGrid]);
 
   useEffect(() => {
+    const fetchStages = async () => {
+      try {
+        const res = await optionService.getStages();
+        setStages(res.filter(s => s.isActive));
+      } catch (err) {
+        console.error("[MainLayout] Failed to fetch stages", err);
+      }
+    };
+    fetchStages();
+  }, []);
+
+  useEffect(() => {
     // Only fetch if we are showing the main feed
     if (showAdvisors || showInvestors) return;
 
@@ -500,8 +515,14 @@ function MainLayout({
                 startupName: mappedName,
                 name: p.projectName,
                 description: p.shortDescription,
-                stage: p.developmentStage,
-                industry: p.industry,
+                stage: getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages),
+                industry: (() => {
+                  const ind = p.industry || p.Industry;
+                  if (ind) return Array.isArray(ind) ? ind[0] : ind;
+                  const inds = p.industries || p.Industries;
+                  if (Array.isArray(inds) && inds.length > 0) return inds[0];
+                  return 'Chưa cập nhật';
+                })(),
                 imageUrl: p.projectImageUrl,
                 tags: [], // No tags from new API
                 aiScore: p.startupPotentialScore,
@@ -575,10 +596,20 @@ function MainLayout({
       }
     };
 
+    const fetchStages = async () => {
+      try {
+        const res = await optionService.getStages();
+        setStages(res.filter(s => s.isActive));
+      } catch (err) {
+        console.error("Failed to fetch stages", err);
+      }
+    };
+
     fetchFeed();
     fetchStats();
+    fetchStages();
     // Profile fetching removed — handled globally by ProfileContext
-  }, [showAdvisors, showInvestors, user, token]);
+  }, [showAdvisors, showInvestors, user, token, stages.length]);
 
 
   // 2. Define Handlers
@@ -598,7 +629,7 @@ function MainLayout({
 
     let filtered = allStartups.filter((startup) => {
       if (activeFilters.industry && startup.industry !== activeFilters.industry) return false;
-      if (activeFilters.stage && startup.stage !== activeFilters.stage) return false;
+      if (activeFilters.stage && startup.stage !== activeFilters.stage && !activeFilters.stage.includes(startup.stage)) return false;
       if (activeFilters.minScore && (startup.aiScore || 0) < activeFilters.minScore) return false;
       if (activeFilters.fundingStage && startup.fundingStage !== activeFilters.fundingStage) return false;
 

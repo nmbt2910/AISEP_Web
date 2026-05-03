@@ -227,7 +227,8 @@ function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, se
     return { bg: 'var(--surface2, rgba(255,255,255,0.05))', color: 'var(--text-muted)' };
   };
 
-  const mainTag = (startup.tags && startup.tags.length > 0) ? startup.tags[0] : (startup.industry || '');
+  const industryValue = (startup.tags && startup.tags.length > 0) ? startup.tags : (startup.industry || '');
+  const mainTag = Array.isArray(industryValue) ? industryValue[0] : industryValue;
   const stageStyles = getStageColor(startup.stage);
 
   // Priority: mapped startupName > organization > company > project-owner-name fallback
@@ -347,9 +348,14 @@ function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, se
             )}
 
             {/* Tags */}
-            {(startup.tags && startup.tags.length > 0 ? startup.tags : (startup.industry ? [startup.industry] : [])).slice(0, 3).map(tag => (
-              <span key={tag} className={styles.tag}>#{tag}</span>
-            ))}
+            {(() => {
+              const tags = (startup.tags && startup.tags.length > 0) 
+                ? startup.tags 
+                : (Array.isArray(startup.industry) ? startup.industry : (startup.industry ? [startup.industry] : []));
+              return tags.slice(0, 3).map(tag => (
+                <span key={tag} className={styles.tag}>#{tag}</span>
+              ));
+            })()}
           </div>
         </div>
 

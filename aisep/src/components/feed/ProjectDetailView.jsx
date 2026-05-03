@@ -40,6 +40,8 @@ import UnlockConfirmationModal from '../common/UnlockConfirmationModal';
 import AIAnalyzeConfirmationModal from '../common/AIAnalyzeConfirmationModal';
 import AIEvaluationModal from '../common/AIEvaluationModal';
 import InvestorAIHistoryModal from '../common/InvestorAIHistoryModal';
+import { getStageLabel } from '../../constants/ProjectStatus';
+import optionService from '../../services/optionService';
 
 /* ─── Design tokens (hardcoded to guarantee correct rendering) ─── */
 const T = {
@@ -302,6 +304,7 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
   // Investor AI Analysis State
   const [showAIConfirmModal, setShowAIConfirmModal] = useState(false);
   const [isAnalyzingAI, setIsAnalyzingAI] = useState(false);
+  const [stages, setStages] = useState([]);
   const [investorAIResults, setInvestorAIResults] = useState([]);
   const [activeAIResult, setActiveAIResult] = useState(null);
   const [showAIResultModal, setShowAIResultModal] = useState(false);
@@ -426,6 +429,10 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
   }, [user, isPaidUser, projectId]);
 
   useEffect(() => {
+    optionService.getStages().then(res => setStages(res.filter(s => s.isActive)));
+  }, []);
+
+  useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -468,7 +475,6 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
         setProject({
           ...projectData,
           name: projectData.projectName || 'Dự án',
-          stage: projectData.developmentStage || 'Ý tưởng',
           status: projectData.status || 'Pending',
           tags: projectData.keySkills ? projectData.keySkills.split(',').map(s => s.trim()).filter(Boolean) : [],
         });
@@ -510,7 +516,7 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
     };
 
     fetchData();
-  }, [projectId, user, isFullView, myStartupProfile]);
+  }, [projectId, user, isFullView, myStartupProfile, stages]);
 
   const handleUnlockClick = (e) => {
     if (e) e.stopPropagation();
@@ -544,7 +550,6 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
         setProject({
           ...d,
           name: d.projectName || 'Dự án',
-          stage: d.developmentStage || 'Ý tưởng',
           status: d.status || 'Pending',
           tags: d.keySkills ? d.keySkills.split(',').map(s => s.trim()).filter(Boolean) : [],
         });
@@ -618,19 +623,20 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
     />
   );
 
-  const chip = stageChip(project.stage);
+  const stageLabel = getStageLabel(project.stageOptionId || project.StageOptionId || project.developmentStage || project.DevelopmentStage, stages);
+  const chip = stageChip(stageLabel);
   const letter = project.name.charAt(0).toUpperCase();
-  const industryTags = Array.isArray(project.industries) && project.industries.length > 0
-    ? project.industries
-    : [
-      project?.industry ||
-      project?.industryName ||
-      project?.projectIndustry ||
-      project?.category ||
-      project?.field ||
-      (project.tags && project.tags[0]) ||
-      ''
-    ].filter(Boolean);
+  const industryTags = (() => {
+    const rawInds = project.industries || project.Industries;
+    if (Array.isArray(rawInds) && rawInds.length > 0) return rawInds;
+    
+    const singleInd = project.industry || project.Industry || project.industryName || project.projectIndustry || project.category || project.field;
+    if (Array.isArray(singleInd)) return singleInd;
+    if (singleInd) return [singleInd];
+    
+    if (project.tags && project.tags.length > 0) return project.tags;
+    return [];
+  })();
 
   const mainTag = industryTags[0] || '';
   const approved = ['approved', 'Approved'].includes(project.status);
@@ -857,7 +863,7 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
             <SectionBody>
               <FieldGrid cols={1}>
                 <Field label="Mô tả ngắn" full>{DISP(project.shortDescription)}</Field>
-                <Field label="Giai đoạn phát triển" full><span style={{ background: chip.bg, color: chip.color, border: chip.border, padding: '3px 10px', borderRadius: 5, fontSize: 12, fontWeight: 700 }}>📈 {project.stage}</span></Field>
+                <Field label="Giai đoạn phát triển" full><span style={{ background: chip.bg, color: chip.color, border: chip.border, padding: '3px 10px', borderRadius: 5, fontSize: 12, fontWeight: 700 }}>📈 {stageLabel}</span></Field>
                 <Field label="Vấn đề cần giải quyết">{DISP(project.problemStatement)}</Field>
                 <Field label="Giải pháp đề xuất">{DISP(project.solutionDescription)}</Field>
               </FieldGrid>

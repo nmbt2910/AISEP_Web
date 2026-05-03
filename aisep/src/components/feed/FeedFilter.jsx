@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Filter, X, Clock, Flame, Star, Coins, List } from 'lucide-react';
 import styles from './FeedFilter.module.css';
+import optionService from '../../services/optionService';
+import { getStageLabel } from '../../constants/ProjectStatus';
 
 /**
  * FeedFilter Component - Filter startups for investors
@@ -108,6 +110,16 @@ function FeedFilter({ onFilterChange, totalCount = 0, activeFilters }) {
     }
   }, [activeFilters]);
 
+  const [stageOptions, setStageOptions] = useState([]);
+
+  useEffect(() => {
+    const fetchStages = async () => {
+      const res = await optionService.getStages();
+      setStageOptions(res.filter(s => s.isActive));
+    };
+    fetchStages();
+  }, []);
+
   const handleFilterChange = (filterName, value) => {
     const newFilters = { ...filters, [filterName]: value };
     setFilters(newFilters);
@@ -128,7 +140,12 @@ function FeedFilter({ onFilterChange, totalCount = 0, activeFilters }) {
           <label>Giai đoạn</label>
           <select value={filters.stage} onChange={(e) => handleFilterChange('stage', e.target.value)}>
             <option value="">Tất cả giai đoạn</option>
-            {['Ý tưởng (Idea)', 'MVP', 'Vận hành (Growth)'].map(s => <option key={s} value={s}>{s}</option>)}
+            {stageOptions.map(s => {
+              const label = getStageLabel(s.label);
+              return (
+                <option key={s.value} value={label}>{label}</option>
+              );
+            })}
           </select>
         </div>
         {/* AI Score Filter */}

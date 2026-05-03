@@ -14,9 +14,7 @@ import UserReportModal from '../booking/UserReportModal';
 import UserReportStatusModal from '../booking/UserReportStatusModal';
 import reviewService from '../../services/reviewService';
 import ReviewModal from '../booking/ReviewModal';
-import FeedHeader from '../feed/FeedHeader';
-import investorService from '../../services/investorService';
-import InvestorStatusBanner from '../common/InvestorStatusBanner';
+import DashboardStatusFilter from '../common/DashboardStatusFilter';
 
 const BOOKING_STATUS_LABELS = {
     0: { label: 'Chờ xác nhận', cls: 'badgePending', color: 'var(--text-secondary)' },
@@ -41,13 +39,16 @@ const BOOKING_STATUS_LABELS = {
     'ComplaintPending': { label: 'Đang khiếu nại', cls: 'badgeInfo', color: '#1d9bf0' },
 };
 
-// Helper for literal UTC time display
-const formatTimeUTC = (dateStr) => {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    return d.getUTCHours().toString().padStart(2, '0') + ':' + 
-           d.getUTCMinutes().toString().padStart(2, '0');
-};
+const FILTER_OPTIONS = [
+    { id: 'all', label: 'Tất cả' },
+    { id: 'Pending', label: 'Chờ duyệt' },
+    { id: 'ApprovedAwaitingPayment', label: 'Chờ thanh toán' },
+    { id: 'Confirmed', label: 'Đã xác nhận' },
+    { id: 'Completed', label: 'Hoàn thành' },
+    { id: 'NoResponse', label: 'Không phản hồi' },
+    { id: 'Cancel', label: 'Đã hủy' },
+    { id: 'Complaint', label: 'Khiếu nại' }
+];
 
 export default function InvestorBookings({ user, targetId, onViewProject, initialFilterStatus, onFilterStatusChange, onUpdateProfile, isApproved, onRestrictedAction }) {
     const [bookings, setBookings] = useState([]);
@@ -58,10 +59,6 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
     // Filter & Search State
     const [filterStatus, setFilterStatus] = useState(initialFilterStatus || 'all');
     const [searchTerm, setSearchTerm] = useState('');
-
-    // Profile Status State
-    const [investorProfileStatus, setInvestorProfileStatus] = useState(null);
-    const [investorProfileReason, setInvestorProfileReason] = useState(null);
 
     // UI state
     const [reportModal, setReportModal] = useState(null);
@@ -83,11 +80,10 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
     const loadBookings = useCallback(async (isSilent = false) => {
         if (!isSilent) setLoading(true);
         try {
-            const [bookingRes, reportRes, reviewRes, profileRes] = await Promise.all([
+            const [bookingRes, reportRes, reviewRes] = await Promise.all([
                 bookingService.getMyCustomerBookings('', '-Id', 1, 100).catch(() => []),
                 userReportService.getMyReportsAsReporter().catch(() => []),
-                reviewService.getMyReviews().catch(() => []),
-                investorService.getMyProfile().catch(() => null)
+                reviewService.getMyReviews().catch(() => [])
             ]);
             
             const items = bookingRes?.items ?? (Array.isArray(bookingRes) ? bookingRes : []);
@@ -98,16 +94,8 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
 
             const reviews = reviewRes?.items ?? (Array.isArray(reviewRes) ? reviewRes : []);
             setUserReviews(reviews);
-
-            if (profileRes) {
-                setInvestorProfileStatus(profileRes.status || profileRes.approvalStatus || 'Pending');
-                setInvestorProfileReason(profileRes.rejectionReason);
-            } else {
-                setInvestorProfileStatus('Missing');
-                setInvestorProfileReason(null);
-            }
         } catch (error) {
-            console.error('Failed to load investor bookings or profile', error);
+            console.error('Failed to load investor bookings', error);
         } finally {
             if (!isSilent) setLoading(false);
         }
@@ -271,12 +259,23 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
         loadBookings(true); // Silent background refresh
     }, [loadBookings]);
 
-    // Calculate Stats
+    // Calculate Stats for Filter Badges
+    const filterCounts = {
+        all: bookings.length,
+        Pending: bookings.filter(b => b.status === 0 || b.status === 'Pending').length,
+        ApprovedAwaitingPayment: bookings.filter(b => b.status === 1 || b.status === 'ApprovedAwaitingPayment').length,
+        Confirmed: bookings.filter(b => b.status === 2 || b.status === 'Confirmed').length,
+        Completed: bookings.filter(b => b.status === 3 || b.status === 'Completed').length,
+        NoResponse: bookings.filter(b => b.status === 7 || b.status === 'NoResponse').length,
+        Cancel: bookings.filter(b => b.status === 6 || b.status === 'Cancel').length,
+        Complaint: bookings.filter(b => userReports.some(r => String(r.bookingId) === String(b.id || b.bookingId))).length
+    };
+
     const stats = {
         total: bookings.length,
-        completed: bookings.filter(b => b.status === 3 || b.status === 'Completed').length,
-        confirmed: bookings.filter(b => b.status === 2 || b.status === 'Confirmed').length,
-        canceled: bookings.filter(b => [6, 7, 'Cancel', 'NoResponse'].includes(b.status)).length
+        completed: filterCounts.Completed,
+        confirmed: filterCounts.Confirmed,
+        canceled: filterCounts.Cancel + filterCounts.NoResponse
     };
 
     // Derived filtered bookings
@@ -286,6 +285,7 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
             filterStatus === 'all' ||
             (filterStatus === 'ApprovedAwaitingPayment' && (b.status === 1 || b.status === 'ApprovedAwaitingPayment')) ||
             (filterStatus === 'Pending' && (b.status === 0 || b.status === 'Pending')) ||
+            (filterStatus === 'Confirmed' && (b.status === 2 || b.status === 'Confirmed')) ||
             (filterStatus === 'Completed' && (b.status === 3 || b.status === 'Completed')) ||
             (filterStatus === 'NoResponse' && (b.status === 7 || b.status === 'NoResponse')) ||
             (filterStatus === 'Cancel' && (b.status === 6 || b.status === 'Cancel')) ||
@@ -303,32 +303,24 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
 
     return (
         <div className={styles.dashboardSection}>
-            {/* Unified Header matching Investor Dashboard */}
-            <FeedHeader
-                title="Lịch tư vấn"
-                subtitle="Quản lý các buổi tư vấn với cố vấn và chuyên gia."
-                showFilter={false}
-                user={user}
-                onOpenChat={(chatSessionId, notification) => {
-                    setChatSession({
-                        chatSessionId,
-                        displayName: notification?.title || 'Chat mới',
-                        currentUserId: user?.userId,
-                        sentTime: new Date().toISOString()
-                    });
-                }}
-                customAction={
-                    <button className={styles.xRefreshIconBtn} onClick={loadBookings} disabled={loading} title="Làm mới danh sách">
+            <div className={styles.xHeaderIsland}>
+                <div className={styles.xHeaderInfo}>
+                    <h1 className={styles.xHeaderTitle}>Lịch tư vấn</h1>
+                    <p className={styles.xHeaderSubtitle}>
+                        Bạn có {stats.total} buổi tư vấn được ghi nhận trong hệ thống.
+                    </p>
+                </div>
+                <div className={styles.xHeaderAction}>
+                    <button
+                        className={styles.xRefreshIconBtn}
+                        onClick={loadBookings}
+                        disabled={loading}
+                        title="Làm mới danh sách"
+                    >
                         <ArrowsClockwise size={18} className={loading ? styles.xSpin : ''} />
                     </button>
-                }
-            />
-
-            <InvestorStatusBanner
-                status={investorProfileStatus}
-                reason={investorProfileReason}
-                onUpdateProfile={onUpdateProfile}
-            />
+                </div>
+            </div>
 
             <div className={styles.dashboardContent}>
 
@@ -352,31 +344,18 @@ export default function InvestorBookings({ user, targetId, onViewProject, initia
                     </div>
                 </div>
 
-                {/* Toolbar: Filters Only (Search moved to Header) */}
+                {/* Toolbar */}
                 <div className={styles.xToolbar}>
-                    <div className={styles.xFilters}>
-                        {[
-                            { id: 'all', label: 'Tất cả' },
-                            { id: 'Pending', label: 'Chờ duyệt' },
-                            { id: 'ApprovedAwaitingPayment', label: 'Chờ thanh toán' },
-                            { id: 'Confirmed', label: 'Đã xác nhận' },
-                            { id: 'Completed', label: 'Hoàn thành' },
-                            { id: 'NoResponse', label: 'Không phản hồi' },
-                            { id: 'Cancel', label: 'Đã hủy' },
-                            { id: 'Complaint', label: 'Khiếu nại' }
-                        ].map(tab => (
-                            <button
-                                key={tab.id}
-                                className={`${styles.xFilterTab} ${filterStatus === tab.id ? styles.xFilterTabActive : ''}`}
-                                onClick={() => {
-                                    setFilterStatus(tab.id);
-                                    if (onFilterStatusChange) onFilterStatusChange(tab.id);
-                                }}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
+                    <DashboardStatusFilter
+                        options={FILTER_OPTIONS}
+                        counts={filterCounts}
+                        activeFilter={filterStatus}
+                        onFilterChange={(id) => {
+                            setFilterStatus(id);
+                            if (onFilterStatusChange) onFilterStatusChange(id);
+                        }}
+                    />
+
                 </div>
 
                 {loading ? (

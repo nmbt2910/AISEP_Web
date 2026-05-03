@@ -26,6 +26,7 @@ import kanban from '../styles/OperationStaffDashboard.module.css';
 import bookingService from '../services/bookingService';
 import projectAssignmentService from '../services/projectAssignmentService';
 import BookingWizard from '../components/booking/BookingWizard';
+import optionService from '../services/optionService';
 
 import StartupProfileBanner from '../components/startup/StartupProfileBanner';
 import StartupBookings from '../components/startup/StartupBookings';
@@ -197,6 +198,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
     const [selectedHistoryResult, setSelectedHistoryResult] = React.useState(null);
     const [evaluatingProjectId, setEvaluatingProjectId] = React.useState(null);
     const [showFullscreenImage, setShowFullscreenImage] = React.useState(false);
+    const [stages, setStages] = React.useState([]);
 
     // Booking Eligibility States
     const [canBookDetailProject, setCanBookDetailProject] = React.useState(false);
@@ -500,13 +502,14 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
 
         // Use a small timeout to ensure DOM is ready and styles are applied
         const timer = setTimeout(updateIndicator, 10);
+
         window.addEventListener('resize', handleResize);
 
         return () => {
             clearTimeout(timer);
             window.removeEventListener('resize', handleResize);
         };
-    }, [activeSection]);
+    }, [activeSection, refreshTrigger, stages.length]);
 
     React.useEffect(() => {
         if (showDetailModal || showFullscreenImage) {
@@ -574,10 +577,17 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         }
         try {
             // Fetch projects in parallel with other dashboard-specific data
-            const response = await projectSubmissionService.getMyProjects();
+            const [projectsRes, stagesRes] = await Promise.all([
+                projectSubmissionService.getMyProjects(),
+                optionService.getStages()
+            ]);
 
-            if (response.success && response.data) {
-                const rawProjects = Array.isArray(response.data) ? response.data : (response.data.items || []);
+            if (stagesRes) {
+                setStages(stagesRes.filter(s => s.isActive));
+            }
+
+            if (projectsRes.success && projectsRes.data) {
+                const rawProjects = Array.isArray(projectsRes.data) ? projectsRes.data : (projectsRes.data.items || []);
                 // Sort projects by CreatedAt descending (most recent first)
                 const sortedProjects = [...rawProjects].sort((a, b) => {
                     const dateB = new Date(b.createdAt || 0);
@@ -1703,6 +1713,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                         showRestrictedActionModal('đăng dự án mới');
                                         return;
                                     }
+                                    setDetailProject(null);
                                     setShowProjectForm(true);
                                 }}
                             />
@@ -1801,29 +1812,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                     {activeSection === 'my-projects' && (
                         <DashboardSection
                             title="Dự án của tôi"
-                            topBarExtra={
-                                <div className={styles.searchWrapper} style={{ position: 'relative', width: isMobile ? '100%' : '300px' }}>
-                                    <Search className={styles.searchIcon} size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                                    <input
-                                        type="text"
-                                        placeholder="Tìm kiếm dự án..."
-                                        className={styles.searchInput}
-                                        value={projectSearchTerm}
-                                        onChange={(e) => setProjectSearchTerm(e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '10px 12px 10px 36px',
-                                            borderRadius: '9999px',
-                                            border: '1px solid rgba(29, 155, 240, 0.4)',
-                                            background: 'var(--bg-primary)',
-                                            fontSize: '13px',
-                                            color: 'var(--text-primary)',
-                                            outline: 'none',
-                                            transition: 'all 0.2s ease',
-                                        }}
-                                    />
-                                </div>
-                            }
+                            topBarExtra={null}
                             filterBar={
                                 <DashboardStatusFilter
                                     options={projectFilterOptions}
@@ -1898,8 +1887,8 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                                     <div className={kanban.bcardName} title={p.name || p.projectName}>
                                                                         {p.name || p.projectName}
                                                                     </div>
-                                                                    <span className={`${kanban.btag} ${p.developmentStage === 'MVP' ? kanban.btagMvp : p.developmentStage === 'Idea' ? kanban.btagIdea : kanban.btagGrowth}`}>
-                                                                        {getStageLabel(p.developmentStage)}
+                                                                    <span className={`${kanban.btag} ${String(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage).toLowerCase().includes('mvp') || p.developmentStage === 'MVP' || p.DevelopmentStage === 'MVP' ? kanban.btagMvp : String(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage).toLowerCase().includes('idea') || p.developmentStage === 'Idea' || p.DevelopmentStage === 'Idea' ? kanban.btagIdea : kanban.btagGrowth}`}>
+                                                                        {getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages)}
                                                                     </span>
                                                                 </div>
                                                             </div>
@@ -2586,7 +2575,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                         borderRadius: '6px',
                                         whiteSpace: 'nowrap'
                                     }}>
-                                        {getStageLabel(detailProject.developmentStage)}
+                                        {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}
                                     </div>
                                     <button
                                         className={styles.modalCloseBtn}
@@ -2667,7 +2656,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                         }}
                                         title="Xem ảnh đầy đủ"
                                     >
-                                        <Maximize2 size={24} />
+                                        <Maximize2 size={18} />
                                     </button>
                                 </div>
                             )}
@@ -2689,7 +2678,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                     padding: '4px 8px',
                                                     borderRadius: '6px'
                                                 }}>
-                                                    {getStageLabel(detailProject.developmentStage)}
+                                                    {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}
                                                 </div>
                                                 <span
                                                     style={{
@@ -2742,7 +2731,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                         {STATUS_LABELS[detailProject.status || 'Draft'] || 'Bản nháp'}
                                                     </span>
                                                     <span className={styles.mobileHeroBadge} style={{ backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', color: 'white' }}>
-                                                        {getStageLabel(detailProject.developmentStage)}
+                                                        {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -2933,12 +2922,21 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.05em' }}>Giai đoạn dự án</label>
                                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', fontSize: '14px', fontWeight: 700, color: 'var(--primary-blue)' }}>
-                                                        <TrendingUp size={16} /> {getStageLabel(detailProject.developmentStage)}
+                                                        <TrendingUp size={16} /> {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}
                                                     </div>
                                                 </div>
                                                 <div>
                                                     <label style={{ display: 'block', fontSize: '11px', fontWeight: 900, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.05em' }}>Lĩnh vực chính</label>
-                                                    <p style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{detailProject.industry || 'Chưa cập nhật'}</p>
+                                                    <p style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                        {(() => {
+                                                            const ind = detailProject.industry || detailProject.Industry;
+                                                            if (Array.isArray(ind)) return ind.join(', ');
+                                                            if (ind) return ind;
+                                                            const inds = detailProject.industries || detailProject.Industries;
+                                                            if (Array.isArray(inds) && inds.length > 0) return inds.join(', ');
+                                                            return 'Chưa cập nhật';
+                                                        })()}
+                                                    </p>
                                                 </div>
                                             </div>
 

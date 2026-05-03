@@ -23,6 +23,8 @@ import prService from '../services/prService';
 import NotificationCenter from '../components/common/NotificationCenter';
 import FloatingChatWidget from '../components/common/FloatingChatWidget';
 import StartupCard from '../components/feed/StartupCard';
+import optionService from '../services/optionService';
+import { getStageLabel } from '../constants/ProjectStatus';
 import styles from './DiscoveryHub.module.css';
 
 /**
@@ -41,6 +43,8 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
     const [showAllPRs, setShowAllPRs] = useState(false); // Toggle for PR modal
     const [activeChatSession, setActiveChatSession] = useState(null);
     const [myStartupProfile, setMyStartupProfile] = useState(null);
+    const [stages, setStages] = useState([]);
+    const [activeStage, setActiveStage] = useState('Tất cả');
 
     const industries = ['Tất cả', 'FinTech', 'AgriTech', 'EdTech', 'HealthTech', 'SaaS', 'AI/ML', 'GreenTech'];
 
@@ -55,7 +59,17 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
     };
 
     useEffect(() => {
-        const fetchMyStartup = async () => {
+        const fetchInitialData = async () => {
+            const fetchStages = async () => {
+                try {
+                    const res = await optionService.getStages();
+                    setStages(res.filter(s => s.isActive));
+                } catch (err) {
+                    console.error("Failed to fetch stages", err);
+                }
+            };
+            fetchStages();
+
             if (isStartup) {
                 try {
                     const profile = await startupProfileService.getStartupMe();
@@ -65,7 +79,7 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
                 }
             }
         };
-        fetchMyStartup();
+        fetchInitialData();
     }, [isStartup]);
 
     const fetchProjects = async () => {
@@ -95,6 +109,16 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
             const items = approved.map(p => {
                 const sid = p.startupId || p.StartupId || p.userId || p.UserId;
                 const info = startupMap[sid];
+                
+                // Robust industry mapping
+                let industryDisp = 'Chưa cập nhật';
+                const ind = p.industry || p.Industry;
+                if (ind) industryDisp = ind;
+                else {
+                    const inds = p.industries || p.Industries;
+                    if (Array.isArray(inds) && inds.length > 0) industryDisp = inds[0];
+                }
+
                 return {
                     ...p,
                     id: p.projectId,
@@ -103,6 +127,8 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
                     // Map current API fields to StartupCard expected fields if missing
                     name: p.projectName,
                     description: p.shortDescription,
+                    industry: industryDisp,
+                    stage: getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages),
                     score: p.startupPotentialScore,
                     timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : ''
                 };
@@ -187,7 +213,8 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
         const matchesSearch = (startup.projectName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (startup.shortDescription?.toLowerCase() || '').includes(searchQuery.toLowerCase());
         const matchesIndustry = activeIndustry === 'Tất cả' || startup.industry === activeIndustry;
-        return matchesSearch && matchesIndustry;
+        const matchesStage = activeStage === 'Tất cả' || startup.stage === activeStage;
+        return matchesSearch && matchesIndustry && matchesStage;
     });
 
     return (
@@ -216,26 +243,51 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
                 </div>
 
                 <div className={styles.searchRow}>
-                    <div className={styles.searchContainer}>
-                        <MagnifyingGlass size={18} weight="bold" className={styles.searchIcon} />
-                        <input
-                            type="text"
-                            placeholder="Tìm tên dự án, lĩnh vực hoặc từ khóa..."
-                            className={styles.searchInput}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <div className={styles.filterGroup}>
-                        {industries.map(industry => (
-                            <button
-                                key={industry}
-                                className={`${styles.industryBtn} ${activeIndustry === industry ? styles.active : ''}`}
-                                onClick={() => setActiveIndustry(industry)}
-                            >
-                                {industry}
-                            </button>
-                        ))}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}>
+                        <div className={styles.searchContainer}>
+                            <MagnifyingGlass size={18} weight="bold" className={styles.searchIcon} />
+                            <input
+                                type="text"
+                                placeholder="Tìm tên dự án, lĩnh vực hoặc từ khóa..."
+                                className={styles.searchInput}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                            <div className={styles.filterGroup}>
+                                <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginRight: '8px', alignSelf: 'center' }}>Ngành:</span>
+                                {industries.map(industry => (
+                                    <button
+                                        key={industry}
+                                        className={`${styles.industryBtn} ${activeIndustry === industry ? styles.active : ''}`}
+                                        onClick={() => setActiveIndustry(industry)}
+                                    >
+                                        {industry}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className={styles.filterGroup}>
+                                <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginRight: '8px', alignSelf: 'center' }}>Giai đoạn:</span>
+                                <button
+                                    className={`${styles.industryBtn} ${activeStage === 'Tất cả' ? styles.active : ''}`}
+                                    onClick={() => setActiveStage('Tất cả')}
+                                >
+                                    Tất cả
+                                </button>
+                                {stages.map(stage => (
+                                    <button
+                                        key={stage.value}
+                                        className={`${styles.industryBtn} ${activeStage === stage.label ? styles.active : ''}`}
+                                        onClick={() => setActiveStage(stage.label)}
+                                    >
+                                        {stage.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>

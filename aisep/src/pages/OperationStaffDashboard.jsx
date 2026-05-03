@@ -16,6 +16,7 @@ import prService from '../services/prService';
 import investorService from '../services/investorService';
 import AIEvaluationModal from '../components/common/AIEvaluationModal';
 import { STATUS_COLORS, STATUS_LABELS, getStageLabel } from '../constants/ProjectStatus';
+import optionService from '../services/optionService';
 import AdvisorApprovalPage from '../components/advisor/AdvisorApprovalPage';
 import PackageManagement from '../components/staff/PackageManagement';
 import GlobalSubscriptionHistory from '../components/staff/GlobalSubscriptionHistory';
@@ -60,15 +61,19 @@ const T = {
 /**
  * ProjectKanbanCard - Single card for the Kanban board
  */
-const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, processingProjectId, processingAction, isHighlighted }) => {
+const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, processingProjectId, processingAction, isHighlighted, stages }) => {
     // Determine development stage label and class
-    const getDevStageTag = (stage) => {
-        if (stage === 0 || stage === 'Idea') return { label: 'Ý tưởng', class: local.btagIdea };
-        if (stage === 1 || stage === 'MVP') return { label: 'MVP', class: local.btagMvp };
-        return { label: 'Tăng trưởng', class: local.btagGrowth };
+    const getDevStageTag = (p, stages) => {
+        const label = getStageLabel(p?.stageOptionId || p?.StageOptionId || p?.developmentStage || p?.DevelopmentStage, stages);
+        const classMap = {
+            'Ý tưởng': local.btagIdea,
+            'MVP': local.btagMvp,
+            'Tăng trưởng': local.btagGrowth
+        };
+        return { label, class: classMap[label] || local.btagGrowth };
     };
 
-    const stageInfo = getDevStageTag(project?.developmentStage);
+    const stageInfo = getDevStageTag(project, stages);
     const teamSize = project?.teamMembers?.toString().split(',').length || 0;
     const teamMembers = project?.teamMembers?.toString().split(',') || [];
 
@@ -587,6 +592,16 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         }
     }, [initialSection]);
 
+    useEffect(() => {
+        const fetchStages = async () => {
+            const stagesRes = await optionService.getStages();
+            if (stagesRes) {
+                setStages(stagesRes.filter(s => s.isActive));
+            }
+        };
+        fetchStages();
+    }, []);
+
 
 
     const [pendingProjects, setPendingProjects] = useState([]);
@@ -598,6 +613,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const [approvedStartups, setApprovedStartups] = useState([]);
     const [rejectedStartups, setRejectedStartups] = useState([]);
     const [isLoadingStartups, setIsLoadingStartups] = useState(true);
+    const [stages, setStages] = useState([]);
     const [selectedStartupForDetail, setSelectedStartupForDetail] = useState(null);
     const [showStartupDetailModal, setShowStartupDetailModal] = useState(false);
     const [activeMobileStartupTab, setActiveMobileStartupTab] = useState('pend'); // 'all', 'pend', 'appr', 'rej'
@@ -2363,6 +2379,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         processingProjectId={processingProjectId}
                                                         processingAction={processingAction}
                                                         isHighlighted={String(targetId) === String(project.projectId)}
+                                                        stages={stages}
                                                     />
                                                 ))}
                                             </div>
@@ -3717,7 +3734,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                         }}
                                         title="Xem ảnh đầy đủ"
                                     >
-                                        <Maximize2 size={24} />
+                                        <Maximize2 size={18} />
                                     </button>
                                 </div>
                             )}
@@ -3754,7 +3771,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                 {STATUS_LABELS[detailProject.status || 'Draft']}
                                             </span>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: 'var(--primary-blue)', background: 'rgba(29, 155, 240, 0.08)', padding: '4px 12px', borderRadius: '8px' }}>
-                                                <TrendingUp size={14} /> {getStageLabel(detailProject.developmentStage)}
+                                                <TrendingUp size={14} /> {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}
                                             </div>
                                         </div>
                                     </div>
@@ -3818,8 +3835,8 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                                                 <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Mô tả dự án</label><p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.7' }}>{detailProject.shortDescription || 'Chưa cung cấp'}</p></div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                                    <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Giai đoạn dự án</label><p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-blue)' }}>📈 {getStageLabel(detailProject.developmentStage)}</p></div>
-                                                    <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Lĩnh vực chính</label><p style={{ fontSize: '15px', fontWeight: 700 }}>{detailProject.industry || 'Công nghệ'}</p></div>
+                                                    <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Giai đoạn dự án</label><p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-blue)' }}>📈 {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}</p></div>
+                                                    <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Lĩnh vực chính</label><p style={{ fontSize: '15px', fontWeight: 700 }}>{Array.isArray(detailProject.industry) ? detailProject.industry.join(', ') : (detailProject.industry || 'Công nghệ')}</p></div>
                                                 </div>
                                                 <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Vấn đề & Giải pháp</label><p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.7' }}>{detailProject.problemStatement || '—'}</p><p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.7' }}>{detailProject.solutionDescription || '—'}</p></div>
                                             </div>

@@ -191,10 +191,30 @@ function canBePublished(status, hasAIEvaluation = true) {
 /**
  * Get display label for development stage
  * @param {any} stage - Development stage value (numeric or string)
+ * @param {Array} dynamicStages - Optional list of dynamic stage options from API
  * @returns {string} - Display label
  */
-function getStageLabel(stage) {
+function getStageLabel(stage, dynamicStages = null) {
   if (stage === null || stage === undefined) return 'Không xác định';
+
+  // Try dynamic mapping first if provided
+  if (Array.isArray(dynamicStages)) {
+    const stageId = Number(stage);
+    const dynamicMatch = dynamicStages.find(s => 
+      (s.id !== undefined && s.id === stageId) || 
+      (s.value !== undefined && Number(s.value) === stageId) ||
+      (s.label && s.label.toLowerCase() === String(stage).toLowerCase())
+    );
+    
+    if (dynamicMatch) {
+      const label = dynamicMatch.label || dynamicMatch.value || '';
+      if (label.toLowerCase() === 'idea') return 'Ý tưởng';
+      if (label.toLowerCase() === 'growth') return 'Tăng trưởng';
+      return label;
+    }
+  }
+
+  // Fallback to static mapping
   const normalizedStage = DEVELOPMENT_STAGE_MAPPING[stage];
   if (normalizedStage) return DEVELOPMENT_STAGE_LABELS[normalizedStage];
 

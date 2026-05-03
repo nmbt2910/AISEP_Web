@@ -254,6 +254,21 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
             );
           }
 
+          // 7: NoResponse + Free Booking (Any type)
+          if ((status === 7 || status === 'NoResponse') && isFree) {
+            return (
+              <div className={`${styles.guidanceBanner} ${styles.guidanceInfo}`}>
+                <Info size={20} weight="fill" className={styles.guidanceIcon} />
+                <div className={styles.guidanceContent}>
+                  <strong className={styles.guidanceTitle}>Lượt đặt tư vấn miễn phí sẽ được hoàn trả</strong>
+                  <p className={styles.guidanceDesc}>
+                    Hệ thống ghi nhận Advisor không phản hồi yêu cầu tư vấn. Lượt đặt tư vấn miễn phí của bạn sẽ được hoàn trả về tài khoản của khách hàng trong 24 tiếng.
+                  </p>
+                </div>
+              </div>
+            );
+          }
+
           return null;
         })()}
 

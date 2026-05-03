@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CaretLeft, CaretRight, Check, WarningCircle, CircleNotch, Calendar, Clock, User, Briefcase, CreditCard, Sparkle, Info, ShieldCheck, Gavel, Crown, CurrencyCircleDollar } from '@phosphor-icons/react';
 import subscriptionService from '../../services/subscriptionService';
 import bookingService from '../../services/bookingService';
@@ -408,7 +409,7 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
 
   // ── Restricted Access Screen ──────────────────────────────────────────
   if (!isApproved) {
-    return (
+    return createPortal(
       <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div className={styles.modal} style={{ maxWidth: '440px' }}>
           <div className={styles.header}>
@@ -435,13 +436,14 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   // ── Success Screen ─────────────────────────────────────────────────────
   if (isSuccess) {
-    return (
+    return createPortal(
       <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div className={styles.modal}>
           <div className={styles.successScreen}>
@@ -530,11 +532,12 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
             }}
           />
         )}
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.modal}>
         {/* Header */}
@@ -903,9 +906,9 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
                 />
               </div>
             )}
-            </>
-          )}
-        </div>
+          </>
+        )}
+      </div>
 
         {/* Micro-Toast Feedback */}
         <div className={`${styles.toastContainer} ${toast.visible ? styles.toastVisible : ''}`}>
@@ -954,6 +957,7 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
