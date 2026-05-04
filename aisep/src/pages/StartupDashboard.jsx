@@ -2363,7 +2363,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                             {deal.projectName || 'Dự án không tên'}
                                                         </h4>
                                                         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                            Deal #{deal.dealId}
+                                                            {deal.investorName || 'Nhà đầu tư'}
                                                         </p>
                                                     </div>
                                                     <div style={{
@@ -3383,7 +3383,10 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                         </div>
 
                         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
-                            Nhà đầu tư: <strong style={{ color: 'var(--text-primary)' }}>{contractDealData.investorName || 'N/A'}</strong> - Deal #{contractDealData.dealId}
+                            Nhà đầu tư: <strong style={{ color: 'var(--text-primary)' }}>{contractDealData.investorName || 'N/A'}</strong>
+                            {contractDealData.projectName ? (
+                                <> — Dự án: <strong style={{ color: 'var(--text-primary)' }}>{contractDealData.projectName}</strong></>
+                            ) : null}
                         </div>
 
                         <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
@@ -3414,13 +3417,13 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                         {isImageDocumentUrl(contractDealData.documentUrl) ? (
                                             <img
                                                 src={contractDealData.documentUrl}
-                                                alt={`Tài liệu deal #${contractDealData.dealId}`}
+                                                alt={contractDealData.projectName ? `Tài liệu — ${contractDealData.projectName}` : 'Tài liệu yêu cầu đầu tư'}
                                                 style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                             />
                                         ) : (
                                             <iframe
                                                 src={contractDealData.documentUrl}
-                                                title={`preview-deal-${contractDealData.dealId}`}
+                                                title="Xem trước tài liệu đầu tư"
                                                 style={{ width: '100%', height: '100%', border: 'none' }}
                                             />
                                         )}
@@ -3642,14 +3645,14 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                         {isImageDocumentUrl(contractDealData.documentUrl) ? (
                             <img
                                 src={contractDealData.documentUrl}
-                                alt={`Tài liệu deal #${contractDealData.dealId}`}
+                                alt={contractDealData.projectName ? `Tài liệu — ${contractDealData.projectName}` : 'Tài liệu yêu cầu đầu tư'}
                                 className={styles.lightboxImage}
                                 style={{ objectFit: 'contain' }}
                             />
                         ) : (
                             <iframe
                                 src={contractDealData.documentUrl}
-                                title={`deal-document-${contractDealData.dealId}`}
+                                title="Tài liệu yêu cầu đầu tư"
                                 style={{ width: '100%', height: '100%', border: 'none', borderRadius: '12px', backgroundColor: '#fff' }}
                             />
                         )}

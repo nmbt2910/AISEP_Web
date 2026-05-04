@@ -96,7 +96,7 @@ const dealsService = {
   /**
    * Get all signed deals (for staff/admin)
    * @param {object} params - Query params (pageNumber, pageSize, etc.)
-   * @returns {Promise} - API response with all deals (will be filtered client-side for Contract_Signed)
+   * @returns {Promise} - API response with all deals (staff PR list lọc client-side: Contract_Signed / Minted_NFT / Completed)
    */
   getAllSignedDeals: async (params = {}) => {
     try {

@@ -988,6 +988,8 @@ function MainLayout({
                       investedProjectIds={investedProjectIds}
                       investors={investorsByProject.get(startup.id) || []}
                       onInvestmentSuccess={refetchInvestedProjects}
+                      onConnectionRequestSuccess={fetchSentConnections}
+                      requireConnectionBeforeInvest={true}
                       isInvestorApproved={isInvestorApproved}
                       onRestrictedAction={showRestrictedActionModal}
                       myStartupProfileId={myStartupProfileId}

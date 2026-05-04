@@ -26,7 +26,26 @@ import dealsService from '../../services/dealsService';
  * StartupCard Component - "Visual Priority (Concept C)"
  * Clean, full-width data density
  */
-function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, sentConnectionIds, investedProjectIds = new Set(), investors = [], onInvestmentSuccess, onViewProfile, onViewProject, index = 0, isReturning = false, isInvestorApproved = false, onRestrictedAction, myStartupProfileId = null }) {
+function StartupCard({
+  startup,
+  isPaidUser = false,
+  user,
+  followedProjectIds,
+  sentConnectionIds,
+  investedProjectIds = new Set(),
+  investors = [],
+  onInvestmentSuccess,
+  onConnectionRequestSuccess,
+  onViewProfile,
+  onViewProject,
+  index = 0,
+  isReturning = false,
+  isInvestorApproved = false,
+  onRestrictedAction,
+  myStartupProfileId = null,
+  /** Khi true (feed nhà đầu tư): chỉ mở đầu tư sau khi đã gửi yêu cầu thông tin (đồng bộ BE). */
+  requireConnectionBeforeInvest = false,
+}) {
   const [isLoading, setIsLoading] = useState(false);
   const [isInterested, setIsInterested] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
@@ -572,7 +591,7 @@ function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, se
             {/* Invest Button OR Investment Status Badge */}
             {investmentStatus ? (
               <div
-                title={`Trạng thái: ${investmentStatus.status}\nDeal #${investmentStatus.dealId}`}
+                title={`Trạng thái: ${investmentStatus.status}`}
                 className={styles.statusBadge}
               >
                 <span>
@@ -596,17 +615,34 @@ function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, se
               </div>
             ) : (
               <button
+                type="button"
+                title={
+                  requireConnectionBeforeInvest && !hasRequested
+                    ? 'Vui lòng bấm Yêu cầu thông tin và chờ startup duyệt trước khi đầu tư.'
+                    : undefined
+                }
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!isInvestorApproved) {
                     onRestrictedAction?.('Bạn cần được phê duyệt hồ sơ Nhà đầu tư để gửi yêu cầu đầu tư vào dự án.');
                     return;
                   }
+                  if (requireConnectionBeforeInvest && !hasRequested) {
+                    const msg =
+                      'Bạn cần bấm "Yêu cầu thông tin" trước và chờ startup duyệt yêu cầu, sau đó mới có thể đầu tư.';
+                    if (onRestrictedAction) onRestrictedAction(msg);
+                    else showToast(msg, 'error');
+                    return;
+                  }
                   setShowInvestmentModal(true);
                 }}
-                className={`${styles.pillButton} ${styles.btnInvest} ${!isInvestorApproved ? styles.btnDisabled : ''}`}
+                className={`${styles.pillButton} ${styles.btnInvest} ${!isInvestorApproved || (requireConnectionBeforeInvest && !hasRequested) ? styles.btnDisabled : ''}`}
               >
-                <CurrencyDollar size={18} weight="bold" />
+                {requireConnectionBeforeInvest && !hasRequested ? (
+                  <LockSimple size={18} weight="bold" />
+                ) : (
+                  <CurrencyDollar size={18} weight="bold" />
+                )}
                 Đầu tư
               </button>
             )}
@@ -629,6 +665,7 @@ function StartupCard({ startup, isPaidUser = false, user, followedProjectIds, se
             onSuccess={() => {
               setHasRequested(true);
               showToast('Đã gửi yêu cầu kết nối', 'success');
+              onConnectionRequestSuccess?.();
             }}
           />
 

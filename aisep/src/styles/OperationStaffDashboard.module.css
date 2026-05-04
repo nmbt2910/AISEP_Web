@@ -4023,3 +4023,271 @@ btnReject {
     font-weight: 700;
     color: var(--text-primary);
 }
+
+/* —— Staff: Quản lý đầu tư — full width trong khung nội dung, cỡ cũ dễ đọc —— */
+.invList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.invListRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 14px 20px;
+    padding: 14px 18px;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #94a3b8;
+    border-radius: 12px;
+    background: var(--bg-primary);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.invListRow:hover {
+    border-color: rgba(100, 116, 139, 0.35);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+}
+
+.invListMain {
+    min-width: 0;
+}
+
+.invListTitle {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow: hidden;
+}
+
+.invListSub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.invListTail {
+    display: contents;
+}
+
+.invListMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.invStatusMini {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    max-width: min(220px, 28vw);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.invListDate {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.invListActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.invActionBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, filter 0.15s;
+    white-space: nowrap;
+}
+
+.invActionBtn svg {
+    flex-shrink: 0;
+}
+
+.invActionBtnPrimary {
+    background: var(--primary-blue);
+    color: #fff;
+}
+
+.invActionBtnPrimary:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
+
+/* Quản lý đầu tư: Duyệt (nổi bật) vs Xem (trung tính) */
+.invActionBtnApprove {
+    background: #059669;
+    color: #fff;
+    border-color: transparent;
+}
+
+.invActionBtnApprove:hover:not(:disabled) {
+    filter: brightness(1.07);
+}
+
+.invActionBtnView {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.invActionBtnView:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--text-secondary);
+}
+
+/* On-chain / xác thực blockchain — tím khác biệt với Duyệt (xanh) và Xem (trung tính) */
+.invActionBtnOnchain {
+    background: #6d28d9;
+    color: #fff;
+    border-color: transparent;
+}
+
+.invActionBtnOnchain:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.invActionBtnGhost {
+    background: transparent;
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.invActionBtnGhost:hover:not(:disabled) {
+    background: var(--bg-secondary);
+}
+
+.invActionBtn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+    .invListRow {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .invListTail {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .invListMeta {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .invListActions {
+        justify-content: flex-start;
+    }
+}
+
+.bcolHead.invHeadOrange {
+    border-bottom-color: #f97316;
+}
+
+.bcolHead.invHeadPurple {
+    border-bottom-color: #8b5cf6;
+}
+
+.bctDot.invOrange {
+    background: #f97316;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.35);
+}
+
+.bctDot.invPurple {
+    background: #8b5cf6;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.35);
+}
+
+.bcolN.invOrange {
+    color: #f97316;
+    background: rgba(249, 115, 22, 0.12);
+}
+
+.bcolN.invPurple {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.12);
+}
+
+.invDealMiniCard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 14px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    min-width: 0;
+}
+
+.invDealMiniTitle {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow: hidden;
+}
+
+.invDealMiniSub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.35;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+}
+
+.invDealMiniDate {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.invDealMiniActions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}

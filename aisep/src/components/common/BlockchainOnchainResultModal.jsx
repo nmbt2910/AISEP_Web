@@ -140,21 +140,6 @@ export default function BlockchainOnchainResultModal({
                 </div>
               </div>
 
-              <div className={styles.metaRow}>
-                <div className={styles.metaChip}>
-                  <div className={styles.metaChipLabel}>Deal ID</div>
-                  <div className={styles.metaChipValue}>
-                    {result.dealId != null ? `#${result.dealId}` : '—'}
-                  </div>
-                </div>
-                {result.startupId != null && (
-                  <div className={styles.metaChip}>
-                    <div className={styles.metaChipLabel}>Startup ID</div>
-                    <div className={styles.metaChipValue}>{result.startupId}</div>
-                  </div>
-                )}
-              </div>
-
               {result.message ? (
                 <div className={styles.messageBox}>
                   <div className={styles.messageLabel}>Thông điệp từ hệ thống</div>

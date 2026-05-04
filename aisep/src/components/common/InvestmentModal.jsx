@@ -174,8 +174,18 @@ const InvestmentModal = ({
                 <p className={styles.successText}>{successMessage}</p>
                 {dealStatus && (
                   <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '12px', color: '#a0aec0', marginBottom: '4px' }}>Mã giao dịch</div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '8px' }}>#{dealStatus.dealId}</div>
+                    {(dealStatus.projectName || projectName) && (
+                      <>
+                        <div style={{ fontSize: '12px', color: '#a0aec0', marginBottom: '4px' }}>Dự án</div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '8px' }}>{dealStatus.projectName || projectName}</div>
+                      </>
+                    )}
+                    {dealStatus.startupName && (
+                      <>
+                        <div style={{ fontSize: '12px', color: '#a0aec0', marginBottom: '4px' }}>Startup</div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'white', marginBottom: '8px' }}>{dealStatus.startupName}</div>
+                      </>
+                    )}
                     <div style={{ fontSize: '12px', color: '#a0aec0', marginBottom: '4px' }}>Trạng thái</div>
                     <div style={{
                       display: 'flex',

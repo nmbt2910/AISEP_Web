@@ -1961,7 +1961,7 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                         )}
                                                     </h4>
                                                     <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                        Deal #{deal.dealId} {deal.startupName ? `• ${deal.startupName}` : ''}
+                                                        {deal.startupName || 'Startup'}
                                                     </p>
                                                 </div>
                                                 <div style={{
@@ -2953,7 +2953,11 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                         href={contractDealData.contractPdfUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        download={`DEAL-${contractDealData.dealId}.pdf`}
+                                        download={`${(contractDealData.projectName || contractDealData.startupName || 'hop-dong')
+                                            .replace(/[/\\?%*:|"<>]/g, '')
+                                            .trim()
+                                            .slice(0, 80)
+                                            .replace(/\s+/g, '-') || 'hop-dong'}.pdf`}
                                         className={styles.primaryBtn}
                                         style={{ padding: '10px 24px', backgroundColor: '#3b82f6' }}
                                     >
