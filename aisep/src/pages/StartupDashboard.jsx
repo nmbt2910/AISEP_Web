@@ -3609,6 +3609,8 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                         // For create (detailProject is null), don't close form so success modal can show
                     }}
                     user={user}
+                    isApproved={isApproved}
+                    onRestrictedAction={showRestrictedActionModal}
                 />
             )}
 
