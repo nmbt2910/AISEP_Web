@@ -195,16 +195,26 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
     if (!validationRules) return true;
     
     const { isValid, errors: validationErrors } = validationService.validateForm(
-      formData,
+      {
+        ...formData,
+        // Treat 0 as empty for validation
+        industry: (formData.industry === 0 || formData.industry === '0') ? '' : formData.industry,
+        // Include files so validationService.validateForm can see them
+        logoFile,
+        businessLicenseFile: licenseFile
+      },
       validationRules,
       fieldMapping
     );
 
-    // Also validate files
+    // Also validate files (Manual check to complement service validation)
     if (logoFile) {
       const logoRule = validationRules?.logofile;
       const logoError = validationService.validateFile(logoFile, logoRule);
       if (logoError) validationErrors.logoFile = logoError;
+      else delete validationErrors.logoFile; // Clear any 'required' error from service since file is present
+    } else if (formData.logoUrl) {
+      delete validationErrors.logoFile; // Clear error if we already have an existing logo URL
     } else if (validationRules?.logofile?.required && !formData.logoUrl) {
       validationErrors.logoFile = 'Vui lòng tải lên logo công ty';
     }
@@ -213,10 +223,14 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
       const licenseRule = validationRules?.businesslicensefile;
       const licenseError = validationService.validateFile(licenseFile, licenseRule);
       if (licenseError) validationErrors.businessLicenseFile = licenseError;
+      else delete validationErrors.businessLicenseFile; // Clear any 'required' error from service
+    } else if (formData.businessLicenseUrl) {
+      delete validationErrors.businessLicenseFile; // Clear error if we already have an existing license URL
     } else if (validationRules?.businesslicensefile?.required && !formData.businessLicenseUrl) {
       validationErrors.businessLicenseFile = 'Vui lòng tải lên giấy phép kinh doanh';
     }
 
+    console.log('[DEBUG] Startup Validation Errors:', validationErrors);
     setErrors(validationErrors);
     return Object.keys(validationErrors).length === 0;
   };
@@ -225,7 +239,15 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
     e.preventDefault();
     setSuccessMessage('');
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setErrors(prev => ({ ...prev, submit: 'Vui lòng kiểm tra và sửa các lỗi đỏ trong biểu mẫu.' }));
+      // Scroll to the first error if possible
+      const firstError = document.querySelector(`.${styles.inputError}`);
+      if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
     // Block update while profile is pending review
     const statusStr = String(initialData?.status || initialData?.approvalStatus || '').toUpperCase();
@@ -515,11 +537,13 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   }))}
                   placeholder="Chọn lĩnh vực..."
                   disabled={!!(formData.industry && !industries.find(opt => String(opt.value) === String(formData.industry)))}
+                  className={errors.industry ? styles.inputError : ''}
                 />
               </div>
+              {errors.industry && <span className={styles.errorText}>{errors.industry}</span>}
               
               {/* Inactive Industry Warning */}
-              {formData.industry && !industries.find(opt => String(opt.value) === String(formData.industry)) && (
+              {!!formData.industry && !industries.find(opt => String(opt.value) === String(formData.industry)) && (
                 <div style={{ 
                   marginTop: '10px', 
                   padding: '8px 12px', 

@@ -66,7 +66,7 @@ const adminService = {
    * @param {object} params - page, pageSize, filters, sorts
    */
   getIndustryOptions: async (params = {}) => {
-    const queryParams = { page: 1, pageSize: 10, ...params };
+    const queryParams = { page: 1, pageSize: 100, ...params };
     return await apiClient.get('/api/industry-options', { params: queryParams });
   },
 
@@ -100,7 +100,7 @@ const adminService = {
    * GET /api/stage-options
    */
   getStageOptions: async (params = {}) => {
-    const queryParams = { page: 1, pageSize: 10, ...params };
+    const queryParams = { page: 1, pageSize: 100, ...params };
     return await apiClient.get('/api/stage-options', { params: queryParams });
   },
 
