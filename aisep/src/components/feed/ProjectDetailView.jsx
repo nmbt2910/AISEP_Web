@@ -39,6 +39,7 @@ import UnlockConfirmationModal from '../common/UnlockConfirmationModal';
 import AIAnalyzeConfirmationModal from '../common/AIAnalyzeConfirmationModal';
 import AIEvaluationModal from '../common/AIEvaluationModal';
 import { translateAIResults } from '../../utils/translateAIResults.js';
+import { normalizeAIAnalysisPayload } from '../../utils/normalizeAIAnalysisPayload.js';
 import { getStageLabel } from '../../constants/ProjectStatus';
 import optionService from '../../services/optionService';
 import { getScorecardRowsForDisplay, getScorecardQuickStats } from '../../constants/projectScorecard';
@@ -474,7 +475,9 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
         }
 
         let projectData = pRes.data;
-        const isStartupOwner = projectData.startupId && myStartupProfile && projectData.startupId === myStartupProfile.id;
+        const pStartupId = projectData.startupId || projectData.StartupId;
+        const myProfileId = myStartupProfile?.id || myStartupProfile?.Id;
+        const isStartupOwner = pStartupId && myProfileId && String(pStartupId) === String(myProfileId);
         const shouldFetchFull = isFullView || isBypassRole || projectData.isUnlockedByCurrentUser || isStartupOwner;
 
         if (shouldFetchFull) {
@@ -652,9 +655,21 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
 
   const mainTag = industryTags[0] || '';
   const approved = ['approved', 'Approved'].includes(project.status);
-  const latestAI = aiHistory.length > 0
-    ? (aiHistory[0].potentialScore ?? aiHistory[0].startupScore ?? null)
-    : (project.startupPotentialScore ?? null);
+
+  // Robust AI Potential Score extraction
+  const latestAI = (() => {
+    if (aiHistory && aiHistory.length > 0) {
+      const { finalPotentialScore } = normalizeAIAnalysisPayload(aiHistory[0]);
+      if (finalPotentialScore > 0) return finalPotentialScore;
+    }
+    // Fallback to project fields (supporting various casings)
+    return project.startupPotentialScore ?? 
+           project.potentialScore ?? 
+           project.StartupPotentialScore ?? 
+           project.PotentialScore ?? 
+           project.finalPotentialScore ?? 
+           null;
+  })();
 
   const scQuick = getScorecardQuickStats(project);
   const scRowsAll = getScorecardRowsForDisplay(project);
@@ -672,7 +687,9 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
     const isBypassRole = ['staff', 'operationstaff', 'operation_staff', 'advisor'].includes(roleStr) || [2, 3, 4, 5].includes(roleNum);
 
     // Also bypass if current user is the owner of this project
-    const isOwner = project?.startupId && myStartupProfile && project.startupId === myStartupProfile.id;
+    const pId = project?.startupId || project?.StartupId;
+    const mId = myStartupProfile?.id || myStartupProfile?.Id;
+    const isOwner = pId && mId && String(pId) === String(mId);
 
     if (isBypassRole || isOwner) return null;
 
