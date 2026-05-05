@@ -63,6 +63,20 @@ const startupProfileService = {
   },
 
   /**
+   * Search startups
+   * @param {string} query 
+   * @returns {Promise<any>}
+   */
+  searchStartups: async (query) => {
+    try {
+      return await apiClient.get('/api/Startups/search', { params: { query } });
+    } catch (error) {
+      console.error('Error searching startups:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Create a new startup profile
    * @param {Object|FormData} startupData - The data payload matching CreateStartupRequest or a FormData object
    * @returns {Promise<Object>} The created startup object

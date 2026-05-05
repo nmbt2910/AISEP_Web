@@ -30,6 +30,29 @@ const investorService = {
   },
 
   /**
+   * Fetch matching investors for the current startup
+   * @param {Object} queryParams - e.g., { page, pageSize, filters }
+   * @returns {Promise<Object>} Object containing data.items and pagination info
+   */
+  getMatchingInvestorsForStartup: async (queryParams = {}) => {
+    try {
+      const response = await apiClient.get('/api/Investor/matching/startup', { params: queryParams });
+      
+      // Handle the success response where items might be empty
+      if (response && response.data) {
+        return response.data;
+      }
+      return { items: [], totalCount: 0 };
+    } catch (error) {
+       if (error?.statusCode === 404 || error?.response?.status === 404) {
+          return { items: [], totalCount: 0 };
+       }
+       console.error('Error fetching matching investors:', error);
+       throw error;
+    }
+  },
+
+  /**
    * Fetch investor details by ID
    * @param {number|string} investorId 
    * @returns {Promise<Object>} Investor details

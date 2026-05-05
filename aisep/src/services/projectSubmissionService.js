@@ -241,11 +241,21 @@ export const projectSubmissionService = {
 
   /**
    * Get All Projects (for the public feed)
-   * Uses GET /api/Projects/non-premium endpoint with pagination
+   * Uses GET /api/Projects/matching/non-premium endpoint with pagination
    * @returns {Promise<any>}
    */
   getAllProjects: async () => {
-    const response = await apiClient.get('/api/Projects/non-premium?pageSize=100');
+    const response = await apiClient.get('/api/Projects/matching/non-premium?pageSize=100&filters=Status==Approved');
+    return response;
+  },
+
+  /**
+   * Search projects
+   * @param {string} query 
+   * @returns {Promise<any>}
+   */
+  searchProjects: async (query) => {
+    const response = await apiClient.get('/api/Projects/search', { params: { query } });
     return response;
   },
 

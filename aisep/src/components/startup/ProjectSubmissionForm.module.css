@@ -15,8 +15,13 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modalContent {
@@ -30,7 +35,8 @@
   animation: slideUp 0.3s ease-out;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Ensures child elements don't break the rounded corners */
+  overflow: hidden;
+  /* Ensures child elements don't break the rounded corners */
 }
 
 /* Bước scorecard: form rộng hơn cho nhóm radio + mô tả */
@@ -453,7 +459,7 @@
 
 /* —— Project scorecard (radio + helper từng lựa chọn) —— */
 .scorecardIntro {
-  margin: 0 0 20px;
+  margin: 0 0 4px;
   padding: 12px 14px;
   border-radius: 10px;
   background: var(--bg-secondary);
@@ -621,7 +627,7 @@
   transition: background 0.2s, color 0.2s;
 }
 
-.boolToggleBtn + .boolToggleBtn {
+.boolToggleBtn+.boolToggleBtn {
   border-left: 1px solid var(--border-color);
 }
 

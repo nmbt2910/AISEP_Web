@@ -45,6 +45,7 @@ function RightPanel({
   className,
   searchQuery = '',
   onSearchChange,
+  isSearching = false,
   showSearch = true,
   onFilterChange,
   onShowHome,
@@ -78,11 +79,19 @@ function RightPanel({
             <Search size={18} className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Tìm kiếm dự án..."
+              placeholder="Tìm kiếm dự án, startup, lĩnh vực..."
               className={styles.searchInput}
               value={searchQuery}
               onChange={onSearchChange}
             />
+            {isSearching && (
+              <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center' }}>
+                  <style>{`
+                      @keyframes spinSearch { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                  `}</style>
+                  <div style={{ width: '16px', height: '16px', border: '2px solid transparent', borderTop: '2px solid var(--primary-color, #007bff)', borderRadius: '50%', animation: 'spinSearch 1s linear infinite' }} />
+              </div>
+            )}
           </div>
         </div>
       )}

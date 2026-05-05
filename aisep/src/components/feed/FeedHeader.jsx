@@ -1,6 +1,8 @@
-import React from 'react';
-import { Plus, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Plus, Search, X } from 'lucide-react';
 import styles from './FeedHeader.module.css';
+import feedFilterStyles from './FeedFilter.module.css';
 import FeedFilter from './FeedFilter';
 import NotificationCenter from '../common/NotificationCenter';
 
@@ -29,8 +31,26 @@ function FeedHeader({
   onOpenChat,
   customAction = null,
   showNotification = false,
-  onNotificationNavigate
+  onNotificationNavigate,
+  isSearching = false,
+  showInlineSearch = false,
+  showSearchButton = false
 }) {
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const [isClosingSearch, setIsClosingSearch] = useState(false);
+
+  const toggleSearchPopup = () => {
+    if (showSearchPopup) {
+      setIsClosingSearch(true);
+      setTimeout(() => {
+        setShowSearchPopup(false);
+        setIsClosingSearch(false);
+      }, 200); // Wait for exit animation
+    } else {
+      setShowSearchPopup(true);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.feedHeader}>
@@ -44,7 +64,7 @@ function FeedHeader({
             </div>
 
             <div className={styles.actionsSection}>
-              {onSearchChange && (
+              {onSearchChange && showInlineSearch && (
                 <div className={styles.searchWrapper}>
                   <Search className={styles.searchIcon} size={18} />
                   <input
@@ -59,6 +79,55 @@ function FeedHeader({
             </div>
 
             <div className={styles.headerRightActions}>
+              <style>{`
+                @media (min-width: 1024px) {
+                  .mobile-search-btn-custom { display: none !important; }
+                }
+              `}</style>
+              {showSearchButton && (
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <button 
+                    className={`mobile-search-btn-custom ${styles.iconButton}`}
+                    onClick={toggleSearchPopup}
+                    title="Tìm kiếm"
+                  >
+                    <Search size={22} />
+                  </button>
+
+                  {(showSearchPopup || isClosingSearch) && (
+                    <div className={`mobile-search-btn-custom ${styles.searchPopupPanel} ${isClosingSearch ? styles.closing : ''}`}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Tìm kiếm</h3>
+                        <button onClick={toggleSearchPopup} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: 'var(--text-secondary)', borderRadius: '50%' }}>
+                          <X size={20} />
+                        </button>
+                      </div>
+                      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px 16px' }}>
+                          <Search size={20} color="var(--text-secondary)" />
+                          <input
+                            type="text"
+                            placeholder={searchPlaceholder}
+                            value={searchTerm}
+                            onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+                            style={{ border: 'none', background: 'none', outline: 'none', marginLeft: '12px', width: '100%', fontSize: '14px', color: 'var(--text-primary)' }}
+                            autoFocus
+                          />
+                          {isSearching && (
+                            <div style={{ marginLeft: '8px', display: 'flex', alignItems: 'center' }}>
+                                <style>{`
+                                    @keyframes spinSearchPopupInline { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                                `}</style>
+                                <div style={{ width: '16px', height: '16px', border: '2px solid transparent', borderTop: '2px solid var(--primary-blue, #007bff)', borderRadius: '50%', animation: 'spinSearchPopupInline 1s linear infinite' }} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* "Đăng Dự Án" button for startups - moved here to sit next to the notification bell */}
               {((user?.role?.toString().toLowerCase() === 'startup') || user?.role === 0 || user?.role === '0') && onShowProjectForm && (
                 <button
@@ -94,6 +163,7 @@ function FeedHeader({
         {/* Stats Strip is hidden */}
         {/* Removed: showStats mode hidden per user request */}
       </header>
+
     </div>
   );
 }

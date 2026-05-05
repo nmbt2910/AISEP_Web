@@ -233,7 +233,11 @@ function MainLayout({
   const [allStartups, setAllStartups] = useState([]);
   const [topRatedStartups, setTopRatedStartups] = useState([]);
   const [trendingSectors, setTrendingSectors] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [allStartupsMap, setAllStartupsMap] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [feedError, setFeedError] = useState(null);
   const [investorCount, setInvestorCount] = useState(0);
@@ -446,6 +450,95 @@ function MainLayout({
   }, [refetchInvestedProjects]);
 
   useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearchQuery(inputValue);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [inputValue]);
+
+  useEffect(() => {
+      const performSearch = async () => {
+          if (!debouncedSearchQuery.trim()) {
+              setSearchResults(null);
+              return;
+          }
+          setIsSearching(true);
+          try {
+              const [pRes, sRes] = await Promise.all([
+                  projectSubmissionService.searchProjects(debouncedSearchQuery),
+                  startupProfileService.searchStartups(debouncedSearchQuery)
+              ]);
+
+              const projItems = pRes?.data?.items || pRes?.data || pRes?.items || pRes || [];
+              const startItems = sRes?.data?.items || sRes?.data || sRes?.items || sRes || [];
+
+              const matchedStartupIds = new Set(Array.isArray(startItems) ? startItems.map(s => s.startupId || s.StartupId || s.id || s.userId || s.UserId) : []);
+
+              const apiProjects = Array.isArray(projItems) ? projItems.map(p => {
+                  const sid = p.startupId || p.StartupId || p.userId || p.UserId || p.ownerId || p.authorId;
+                  const info = allStartupsMap[sid] || {};
+                  
+                  let industryDisp = 'Chưa cập nhật';
+                  const inds = p.industries || p.Industries;
+                  if (Array.isArray(inds) && inds.length > 0) industryDisp = inds[0];
+                  else {
+                      const ind = p.industry || p.Industry;
+                      if (Array.isArray(ind) && ind.length > 0) industryDisp = ind[0];
+                      else if (ind) industryDisp = ind;
+                  }
+
+                  return {
+                      ...p,
+                      id: p.projectId || p.ProjectId,
+                      startupId: sid,
+                      startupName: info?.name || p.startupName || p.organizationName || 'Chưa cập nhật',
+                      logoUrl: info?.logo || p.logoUrl || p.logo,
+                      logo: info?.logo || p.logoUrl || p.logo,
+                      name: p.projectName || p.ProjectName,
+                      description: p.shortDescription || p.ShortDescription,
+                      industry: industryDisp,
+                      industries: Array.isArray(inds) ? inds : (Array.isArray(p.industry) ? p.industry : (p.industry ? [p.industry] : [])),
+                      stage: getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages),
+                      imageUrl: p.projectImageUrl,
+                      tags: Array.isArray(inds) ? inds : (Array.isArray(p.industry) ? p.industry : (p.industry ? [p.industry] : [])),
+                      score: p.startupPotentialScore,
+                      aiScore: p.startupPotentialScore,
+                      timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+                      createdAt: p.createdAt,
+                      problemStatement: p.problemStatement,
+                      solutionDescription: p.solutionDescription,
+                      targetCustomers: p.targetCustomers,
+                      uniqueValueProposition: p.uniqueValueProposition,
+                      businessModel: p.businessModel,
+                      competitors: p.competitors,
+                      projectScorecard: p.projectScorecard || p.ProjectScorecard,
+                      status: p.status,
+                      viewCount: p.viewCount,
+                      followerCount: p.followerCount || 0,
+                  };
+              }) : [];
+
+              const startupProjects = allStartups.filter(p => {
+                  const sid = p.startupId || p.StartupId || p.userId || p.UserId || p.ownerId || p.authorId;
+                  return matchedStartupIds.has(sid);
+              });
+
+              const combinedMap = new Map();
+              apiProjects.forEach(p => combinedMap.set(p.id, p));
+              startupProjects.forEach(p => combinedMap.set(p.id, p));
+
+              setSearchResults(Array.from(combinedMap.values()));
+          } catch (err) {
+              console.error("Search API failed", err);
+              setSearchResults([]);
+          } finally {
+              setIsSearching(false);
+          }
+      };
+      performSearch();
+  }, [debouncedSearchQuery, allStartups, allStartupsMap, stages]);
+
+  useEffect(() => {
     fetchInvestorDealsForGrid();
   }, [fetchInvestorDealsForGrid]);
 
@@ -496,6 +589,7 @@ function MainLayout({
             if (s.id) startupMap[s.id] = info;
           });
         }
+        setAllStartupsMap(startupMap);
 
         if (projectsRes.statusCode === 200 && projectsRes.data && projectsRes.data.items) {
           const approvedOnly = filterProjectsForPublicDiscovery(projectsRes.data.items);
@@ -645,21 +739,12 @@ function MainLayout({
 
   /** Derived list: one render per tab/filter change (no useEffect + setState delay). */
   const filteredStartups = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-
-    let filtered = allStartups.filter((startup) => {
+    const baseList = searchResults !== null ? searchResults : allStartups;
+    let filtered = baseList.filter((startup) => {
       if (activeFilters.industry && startup.industry !== activeFilters.industry) return false;
       if (activeFilters.stage && startup.stage !== activeFilters.stage && !activeFilters.stage.includes(startup.stage)) return false;
       if (activeFilters.minScore && (startup.aiScore || 0) < activeFilters.minScore) return false;
       if (activeFilters.fundingStage && startup.fundingStage !== activeFilters.fundingStage) return false;
-
-      if (query) {
-        const matchesName = (startup.name || '').toLowerCase().includes(query);
-        const matchesDesc = (startup.description || '').toLowerCase().includes(query);
-        const matchesTags = (startup.tags || []).some((tag) => tag.toLowerCase().includes(query));
-
-        if (!matchesName && !matchesDesc && !matchesTags) return false;
-      }
 
       return true;
     });
@@ -695,7 +780,7 @@ function MainLayout({
     }
 
     return filtered;
-  }, [allStartups, activeFilters, searchQuery]);
+  }, [allStartups, activeFilters, searchResults]);
 
   const handleProjectUnlock = useCallback((projectId) => {
     console.log('[MainLayout] Syncing unlock state for project:', projectId);
@@ -948,6 +1033,10 @@ function MainLayout({
                 stats={feedHeaderStats}
                 industryCounts={feedIndustryCounts}
                 onNotificationNavigate={onNotificationNavigate}
+                searchTerm={inputValue}
+                onSearchChange={(val) => setInputValue(val)}
+                isSearching={isSearching}
+                showSearchButton={true}
               />
 
               {/* Status Alert Banner (Discovery Tab) */}
@@ -1067,8 +1156,9 @@ function MainLayout({
       {/* 3. Right Panel (Fixed) */}
       <div className={styles.rightPanel}>
         <RightPanel
-          searchQuery={searchQuery}
-          onSearchChange={(e) => setSearchQuery(e.target.value)}
+          searchQuery={inputValue}
+          onSearchChange={(e) => setInputValue(e.target.value)}
+          isSearching={isSearching}
           showSearch={activeView === 'main' && !selectedProjectId && !selectedStartupProfileId && !selectedAdvisor}
           onFilterChange={handleFilterChange}
           onShowHome={onShowHome}

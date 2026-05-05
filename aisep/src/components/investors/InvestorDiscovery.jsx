@@ -28,8 +28,24 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
         const fetchInvestors = async () => {
             setIsLoading(true);
             try {
-                const response = await investorService.getAllInvestors();
-                const items = response?.items ?? response?.data?.items ?? [];
+                let response;
+                const roleStr = user?.role?.toString().toLowerCase() || '';
+                const roleNum = Number(user?.role);
+                if (roleStr === 'startup' || roleNum === 0) {
+                    try {
+                        response = await investorService.getMatchingInvestorsForStartup();
+                    } catch (err) {
+                        if (err?.statusCode === 409 || err?.response?.status === 409) {
+                            // Fallback if startup is not approved yet
+                            response = await investorService.getAllInvestors();
+                        } else {
+                            throw err;
+                        }
+                    }
+                } else {
+                    response = await investorService.getAllInvestors();
+                }
+                const items = response?.items ?? response?.data?.items ?? response?.data ?? [];
                 const formatted = items.map((inv) => {
                     const industriesFromApi = Array.isArray(inv.industries) && inv.industries.length
                         ? inv.industries
@@ -102,7 +118,11 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <h1 className={styles.headerTitle}>Tìm nhà đầu tư</h1>
-                        <p className={styles.headerSubtitle}>Khám phá quỹ đầu tư và nhà đầu tư phù hợp với tiêu chí của bạn</p>
+                        <p className={styles.headerSubtitle}>
+                            {(user?.role?.toString().toLowerCase() === 'startup' || Number(user?.role) === 0) 
+                                ? "Danh sách nhà đầu tư được hệ thống đề xuất phù hợp nhất với hồ sơ dự án của bạn"
+                                : "Khám phá quỹ đầu tư và nhà đầu tư phù hợp với tiêu chí của bạn"}
+                        </p>
                     </div>
                     <div style={{ padding: '4px' }}>
                         {user && (

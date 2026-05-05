@@ -87,9 +87,7 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
         languagesSpoken: 'languagesSpoken',
         location: 'location',
         hourlyRate: 'hourlyRate',
-        industryOptionIds: 'industryOptionIds',
-        profileImageFile: 'profileImageFile',
-        certificationFile: 'certificationFile'
+        industryOptionIds: 'industryOptionIds'
     };
 
     const renderLabel = (label, fieldKey) => {
@@ -382,19 +380,30 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                 }
             });
 
-            if (validationRules.profileImageFile) {
-                const fileErr = validationService.validateFile(files.profileImage, validationRules.profileImageFile);
-                if (fileErr) newErrors.profileImageFile = fileErr;
-                else if (validationRules.profileImageFile.isRequired && !files.profileImage && !previews.profileImage) {
-                    newErrors.profileImageFile = 'Vui lòng tải lên ảnh đại diện';
+            // Manual validation for files (since they are in 'files' state, not 'formData')
+            const profileImageRule = validationRules.profileimagefile;
+            if (profileImageRule) {
+                const fileErr = validationService.validateFile(files.profileImage, profileImageRule);
+                // If there's no new file but an existing preview exists, it's NOT an error for 'required'
+                if (fileErr) {
+                    if (profileImageRule.required && !files.profileImage && previews.profileImage) {
+                        // Keep existing image - no error
+                    } else {
+                        newErrors.profileImageFile = fileErr;
+                    }
                 }
             }
 
-            if (validationRules.certificationFile) {
-                const fileErr = validationService.validateFile(files.certification, validationRules.certificationFile);
-                if (fileErr) newErrors.certificationFile = fileErr;
-                else if (validationRules.certificationFile.isRequired && !files.certification && !previews.certificationUrl) {
-                    newErrors.certificationFile = 'Vui lòng tải lên chứng chỉ';
+            const certificationRule = validationRules.certificationfile;
+            if (certificationRule) {
+                const fileErr = validationService.validateFile(files.certification, certificationRule);
+                // If there's no new file but an existing preview/URL exists, it's NOT an error for 'required'
+                if (fileErr) {
+                    if (certificationRule.required && !files.certification && previews.certificationUrl) {
+                        // Keep existing cert - no error
+                    } else {
+                        newErrors.certificationFile = fileErr;
+                    }
                 }
             }
         }

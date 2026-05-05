@@ -9,6 +9,7 @@
   flex-direction: column;
   padding: 20px 0 0 0;
   position: relative;
+  z-index: 100;
   border-bottom: 1px solid var(--border-color);
   transition: background-color var(--transition-base), border-color var(--transition-base);
   gap: 0;
@@ -16,6 +17,8 @@
 
 .headerInner {
   padding: 0 20px 16px 20px;
+  position: relative;
+  z-index: 1000;
 }
 
 .headerContent {
@@ -270,5 +273,71 @@
 
   .statLabel {
     font-size: 11px;
+  }
+}
+
+.iconButton {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+}
+
+.iconButton:hover {
+  color: var(--primary-blue);
+  background-color: var(--bg-hover);
+}
+
+.iconButton:active {
+  transform: scale(0.92);
+}
+
+.searchPopupPanel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  zIndex: 1000;
+  width: 320px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform-origin: top right;
+  animation: panelEntry 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.searchPopupPanel.closing {
+  animation: panelExit 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes panelEntry {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes panelExit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-5px);
   }
 }

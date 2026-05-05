@@ -127,7 +127,6 @@ function Sidebar({
       return [
         baseItems.find(i => i.label === 'Home'),
         baseItems.find(i => i.label === 'Dashboard'),
-        { icon: Calendar, label: 'Bookings', displayLabel: 'Lịch Tư Vấn', href: '#', showWhenLoggedIn: true },
         { icon: User, label: 'InvestorProfile', displayLabel: 'Hồ sơ nhà đầu tư', href: '#', showWhenLoggedIn: true },
         baseItems.find(i => i.label === 'PRNews'),
         baseItems.find(i => i.label === 'Advisors'),

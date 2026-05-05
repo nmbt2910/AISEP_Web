@@ -176,8 +176,19 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
   const [submitError, setSubmitError] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
 
+  const formContentRef = React.useRef(null);
   const isFirstRender = React.useRef(true);
   const prevStageRef = React.useRef(formData.developmentStage);
+  
+  // Reset scroll position to top and clear errors when switching steps
+  useEffect(() => {
+    if (formContentRef.current) {
+      formContentRef.current.scrollTop = 0;
+    }
+    // Clear validation states for a clean start on the new step
+    setErrors({});
+    setSubmitError('');
+  }, [currentStep]);
   // Reset fields in Step 2 and 3 when Stage changes in Step 1
   useEffect(() => {
     // Only reset if it's NOT the first render, we are on Step 1,
@@ -302,17 +313,27 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
   };
 
   const handleNext = () => {
+    setSubmitError('');
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
     }
   };
 
   const handlePrevious = () => {
+    setSubmitError('');
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Defensive check: If Enter is pressed or submit is triggered on an early step, 
+    // just treat it as clicking "Next" instead of trying to submit the whole form.
+    if (currentStep < totalSteps) {
+      handleNext();
+      return;
+    }
+
     setSubmitError('');
 
     if (!validateStep()) return;
@@ -412,7 +433,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
       {/* Form Modal - Show when not submitted successfully yet */}
       {!isSuccessModalOpen && (
         <div className={styles.modalOverlay}>
-          <div className={`${styles.modalContent} ${currentStep === 3 ? styles.modalContentWide : ''}`}>
+          <div className={styles.modalContent}>
             {/* Header */}
             <div className={styles.modalHeader}>
               <div>
@@ -434,15 +455,19 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
           />
         </div>
 
-        {/* Form Content */}
-        <div 
-          className={styles.formContent} 
-          style={{ 
-            position: 'relative', 
-            minHeight: '350px',
-            overflow: (isConfigLoading || configError) ? 'hidden' : 'auto'
-          }}
-        >
+        {/* Form Container */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          {/* Form Content (Scrollable) */}
+          <div 
+            ref={formContentRef}
+            className={styles.formContent} 
+            style={{ 
+              position: 'relative', 
+              minHeight: '350px',
+              overflow: (isConfigLoading || configError) ? 'hidden' : 'auto',
+              flex: 1
+            }}
+          >
           {isConfigLoading ? (
             <div style={{ 
               position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', 
@@ -493,7 +518,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
             </div>
           ) : null}
 
-          <form onSubmit={handleSubmit} className={styles.formElement} style={{ 
+          <div className={styles.formElement} style={{ 
             opacity: isConfigLoading || configError ? 0.2 : 1, 
             pointerEvents: isConfigLoading || configError ? 'none' : 'auto',
             transition: 'opacity 0.3s ease'
@@ -931,38 +956,41 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
               );
             })()}
 
-            {/* Footer nút nằm trong <form> để submit/Enter hoạt động đúng */}
-            <div className={styles.actions}>
-              {currentStep > 1 && (
-                <button
-                  type="button"
-                  onClick={handlePrevious}
-                  className={styles.secondaryBtn}
-                >
-                  Quay lại
-                </button>
-              )}
-
-              {currentStep < totalSteps ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className={styles.primaryBtn}
-                >
-                  Tiếp theo
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={isSubmitting || isConfigLoading || !!configError}
-                  className={styles.successBtn}
-                >
-                  {isSubmitting ? '⏳ Đang gửi...' : 'Gửi Dự Án'}
-                </button>
-              )}
-            </div>
-          </form>
+          </div>
         </div>
+
+        {/* Footer Actions (Pinned) */}
+        <div className={styles.actions}>
+          {currentStep > 1 && (
+            <button
+              type="button"
+              onClick={handlePrevious}
+              className={styles.secondaryBtn}
+            >
+              Quay lại
+            </button>
+          )}
+
+          {currentStep < totalSteps ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              className={styles.primaryBtn}
+            >
+              Tiếp theo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || isConfigLoading || !!configError}
+              className={styles.successBtn}
+            >
+              {isSubmitting ? '⏳ Đang gửi...' : 'Gửi Dự Án'}
+            </button>
+          )}
+        </div>
+      </div>
           </div>
         </div>
       )}

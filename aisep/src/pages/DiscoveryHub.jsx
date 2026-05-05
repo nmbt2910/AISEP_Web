@@ -34,7 +34,81 @@ import styles from './DiscoveryHub.module.css';
 const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, isInvestorApproved = false, onRestrictedAction }) => {
     const [startups, setStartups] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [inputValue, setInputValue] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState(null);
+    const [allStartupsMap, setAllStartupsMap] = useState({});
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(inputValue);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [inputValue]);
+
+    useEffect(() => {
+        const performSearch = async () => {
+            if (!debouncedSearchQuery.trim()) {
+                setSearchResults(null);
+                return;
+            }
+            setIsSearching(true);
+            try {
+                const [pRes, sRes] = await Promise.all([
+                    projectSubmissionService.searchProjects(debouncedSearchQuery),
+                    startupProfileService.searchStartups(debouncedSearchQuery)
+                ]);
+
+                const projItems = pRes?.data?.items || pRes?.data || pRes?.items || pRes || [];
+                const startItems = sRes?.data?.items || sRes?.data || sRes?.items || sRes || [];
+
+                const matchedStartupIds = new Set(Array.isArray(startItems) ? startItems.map(s => s.startupId || s.StartupId || s.id || s.userId || s.UserId) : []);
+
+                const apiProjects = Array.isArray(projItems) ? projItems.map(p => {
+                    const sid = p.startupId || p.StartupId || p.userId || p.UserId;
+                    const info = allStartupsMap[sid] || {};
+                    let industryDisp = 'Chưa cập nhật';
+                    const ind = p.industry || p.Industry;
+                    if (ind) industryDisp = ind;
+                    else {
+                        const inds = p.industries || p.Industries;
+                        if (Array.isArray(inds) && inds.length > 0) industryDisp = inds[0];
+                    }
+
+                    return {
+                        ...p,
+                        id: p.projectId || p.ProjectId,
+                        startupName: info?.name || p.startupName || p.organizationName || 'Chưa cập nhật',
+                        logoUrl: info?.logo || p.logoUrl || p.logo,
+                        name: p.projectName || p.ProjectName,
+                        description: p.shortDescription || p.ShortDescription,
+                        industry: industryDisp,
+                        stage: getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages),
+                        score: p.startupPotentialScore,
+                        timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : ''
+                    };
+                }) : [];
+
+                const startupProjects = startups.filter(p => {
+                    const sid = p.startupId || p.StartupId || p.userId || p.UserId;
+                    return matchedStartupIds.has(sid);
+                });
+
+                const combinedMap = new Map();
+                apiProjects.forEach(p => combinedMap.set(p.id, p));
+                startupProjects.forEach(p => combinedMap.set(p.id, p));
+
+                setSearchResults(Array.from(combinedMap.values()));
+            } catch (err) {
+                console.error("Search API failed", err);
+                setSearchResults([]);
+            } finally {
+                setIsSearching(false);
+            }
+        };
+        performSearch();
+    }, [debouncedSearchQuery, startups, allStartupsMap, stages]);
     const [activeIndustry, setActiveIndustry] = useState('Tất cả');
     const [investmentModal, setInvestmentModal] = useState(null); // { projectId, projectName, startupName }
     const [investmentStatusMap, setInvestmentStatusMap] = useState({}); // Map projectId -> {dealId, status}
@@ -102,6 +176,7 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
                 if (p.id) startupMap[p.id] = info;
                 if (p.userId) startupMap[p.userId] = info;
             });
+            setAllStartupsMap(startupMap);
 
             const raw = projectsRes?.data?.items || projectsRes?.items || [];
             const approved = filterProjectsForPublicDiscovery(raw);
@@ -209,12 +284,11 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
         fetchPRs();
     }, []);
 
-    const filteredStartups = startups.filter(startup => {
-        const matchesSearch = (startup.projectName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-            (startup.shortDescription?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+    const baseList = searchResults !== null ? searchResults : startups;
+    const filteredStartups = baseList.filter(startup => {
         const matchesIndustry = activeIndustry === 'Tất cả' || startup.industry === activeIndustry;
         const matchesStage = activeStage === 'Tất cả' || startup.stage === activeStage;
-        return matchesSearch && matchesIndustry && matchesStage;
+        return matchesIndustry && matchesStage;
     });
 
     return (
@@ -248,11 +322,19 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
                             <MagnifyingGlass size={18} weight="bold" className={styles.searchIcon} />
                             <input
                                 type="text"
-                                placeholder="Tìm tên dự án, lĩnh vực hoặc từ khóa..."
+                                placeholder="Tìm kiếm dự án, startup, lĩnh vực..."
                                 className={styles.searchInput}
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
                             />
+                            {isSearching && (
+                                <div style={{ marginRight: '16px', display: 'flex', alignItems: 'center' }}>
+                                    <style>{`
+                                        @keyframes spinSearch { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                                    `}</style>
+                                    <div style={{ width: '16px', height: '16px', border: '2px solid #ccc', borderTop: '2px solid var(--primary-blue, #007bff)', borderRadius: '50%', animation: 'spinSearch 1s linear infinite' }} />
+                                </div>
+                            )}
                         </div>
                         
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
