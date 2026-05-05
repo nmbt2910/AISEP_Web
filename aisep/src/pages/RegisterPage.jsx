@@ -44,7 +44,8 @@ function RegisterPage({ selectedRole, onBack, onComplete }) {
   };
 
   useEffect(() => {
-    // We no longer fetch terms automatically on load
+    // Fetch terms on mount so we have the correct version string even if user doesn't open the modal
+    fetchTerms();
   }, []);
 
   const roleMap = {

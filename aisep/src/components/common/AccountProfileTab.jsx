@@ -242,7 +242,7 @@ export default function AccountProfileTab({ user, onLogout, banner }) {
             </div>
             <div>
               <h3 className={styles.cardTitle}>Thông tin tài khoản</h3>
-              <p className={styles.cardSubtitle}>Họ tên, tên đăng nhập, ngày sinh.</p>
+              <p className={styles.cardSubtitle}>Họ tên, tên người dùng, ngày sinh.</p>
             </div>
           </div>
 
@@ -283,7 +283,7 @@ export default function AccountProfileTab({ user, onLogout, banner }) {
               {/* Username */}
               <div className={styles.fieldGroup}>
                 <label className={styles.label} htmlFor="ap-username">
-                  <AtSign size={14} /> Tên đăng nhập
+                  <AtSign size={14} /> Tên người dùng
                 </label>
                 <input
                   id="ap-username"
@@ -291,7 +291,7 @@ export default function AccountProfileTab({ user, onLogout, banner }) {
                   className={styles.input}
                   value={accountInfo.userName}
                   onChange={(e) => setAccountInfo(prev => ({ ...prev, userName: e.target.value }))}
-                  placeholder="Tên đăng nhập"
+                  placeholder="Tên người dùng"
                 />
               </div>
 

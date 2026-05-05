@@ -29,11 +29,11 @@ function InvestorRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
     const newErrors = {};
     if (!formData.fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ và tên.';
     if (!formData.username.trim()) {
-      newErrors.username = 'Vui lòng nhập tên đăng nhập.';
+      newErrors.username = 'Vui lòng nhập tên người dùng.';
     } else if (formData.username.length < 3) {
-      newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự.';
+      newErrors.username = 'Tên người dùng phải có ít nhất 3 ký tự.';
     } else if (!/^[a-zA-Z0-9]+$/.test(formData.username)) {
-      newErrors.username = 'Tên đăng nhập chỉ được chứa chữ cái và số.';
+      newErrors.username = 'Tên người dùng chỉ được chứa chữ cái và số.';
     }
     if (!formData.email.trim()) {
       newErrors.email = 'Vui lòng nhập địa chỉ email.';
@@ -74,7 +74,7 @@ function InvestorRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
         username: formData.username,
         role: 1, // UserRole.Investor = 1
         isTermsAccepted: formData.isTermsAccepted,
-        termsVersion: termsData?.version || 'v1.0'
+        termsVersion: termsData?.version
       });
 
       if (response.success) {
@@ -134,7 +134,7 @@ function InvestorRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
 
             <div className={styles.reg_formGroup} style={{ marginBottom: '16px' }}>
               <label htmlFor="username" className={styles.reg_label}>
-                Tên đăng nhập (Username) <span className={styles.reg_required}>*</span>
+                Tên người dùng (Username) <span className={styles.reg_required}>*</span>
               </label>
               <input
                 id="username"
@@ -143,7 +143,7 @@ function InvestorRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
                 value={formData.username}
                 onChange={handleInputChange}
                 className={`${styles.reg_input} ${errors.username ? styles.reg_inputError : ''}`}
-                placeholder="Nhập tên đăng nhập của bạn"
+                placeholder="Nhập tên người dùng của bạn"
                 disabled={isLoading}
               />
               {errors.username && <p className={styles.reg_errorText}>{errors.username}</p>}
