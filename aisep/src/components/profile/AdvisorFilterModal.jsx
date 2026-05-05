@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import styles from './AdvisorFilterModal.module.css';
+import CustomSelect from '../common/CustomSelect';
 
-export default function AdvisorFilterModal({ filters, onApply, onClose, isOpen }) {
+export default function AdvisorFilterModal({ filters, onApply, onClose, isOpen, expertiseOptions = [] }) {
     const [localFilters, setLocalFilters] = useState(filters);
 
     useEffect(() => {
@@ -23,7 +24,6 @@ export default function AdvisorFilterModal({ filters, onApply, onClose, isOpen }
     const handleReset = () => {
         const resetFilters = {
             expertise: 'Tất cả chuyên môn',
-            location: 'Tất cả khu vực',
             minRating: 0,
             maxRate: 5000000 // 5M VNĐ
         };
@@ -36,9 +36,13 @@ export default function AdvisorFilterModal({ filters, onApply, onClose, isOpen }
 
     const hasActiveFilters = 
         localFilters.expertise !== 'Tất cả chuyên môn' ||
-        localFilters.location !== 'Tất cả khu vực' ||
         localFilters.minRating > 0 ||
         localFilters.maxRate < 5000000;
+
+    const expertiseSelectOptions = [
+        { label: 'Tất cả chuyên môn', value: 'Tất cả chuyên môn' },
+        ...expertiseOptions.map(opt => ({ label: opt, value: opt }))
+    ];
 
     return (
         <div className={styles.filterPanel}>
@@ -56,33 +60,13 @@ export default function AdvisorFilterModal({ filters, onApply, onClose, isOpen }
                 {/* Expertise Filter */}
                 <div className={styles.filterGroup}>
                     <label>Chuyên môn</label>
-                    <select
+                    <CustomSelect
+                        name="expertise"
                         value={localFilters.expertise}
                         onChange={(e) => handleChange('expertise', e.target.value)}
-                    >
-                        <option>Tất cả chuyên môn</option>
-                        <option>Chiến lược kinh doanh</option>
-                        <option>Marketing & Sales</option>
-                        <option>Công nghệ & Kỹ thuật</option>
-                        <option>Tài chính & Gọi vốn</option>
-                        <option>Pháp lý & Quản trị</option>
-                        <option>Product Management</option>
-                    </select>
-                </div>
-
-                {/* Location Filter */}
-                <div className={styles.filterGroup}>
-                    <label>Khu vực</label>
-                    <select
-                        value={localFilters.location}
-                        onChange={(e) => handleChange('location', e.target.value)}
-                    >
-                        <option>Tất cả khu vực</option>
-                        <option>Hà Nội</option>
-                        <option>TP. Hồ Chí Minh</option>
-                        <option>Đà Nẵng</option>
-                        <option>Online / Từ xa</option>
-                    </select>
+                        options={expertiseSelectOptions}
+                        placeholder="Tất cả chuyên môn"
+                    />
                 </div>
 
                 {/* Rating Filter */}

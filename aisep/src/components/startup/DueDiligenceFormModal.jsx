@@ -34,6 +34,7 @@ export default function DueDiligenceFormModal({
   const [errors, setErrors] = React.useState({});
   const [submitError, setSubmitError] = React.useState('');
   const [isPreparingPdf, setIsPreparingPdf] = React.useState(false);
+  const [isClosing, setIsClosing] = React.useState(false);
   const answerRefs = React.useRef({});
 
   const sections = React.useMemo(() => (Array.isArray(template?.sections) ? template.sections : []), [template]);
@@ -50,10 +51,13 @@ export default function DueDiligenceFormModal({
   );
 
   React.useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      setIsClosing(false);
+      return;
+    }
     const seeded = {};
-    allItems.forEach((item) => {
-      const k = item.key || `${item.sectionKey}-${item.title}`;
+    allItems.forEach((item, idx) => {
+      const k = item.key || `${item.sectionKey}-${idx}`;
       seeded[k] = answers[k] || '';
     });
     setAnswers(seeded);
@@ -62,7 +66,15 @@ export default function DueDiligenceFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, template]);
 
-  if (!isOpen) return null;
+  const handleClose = React.useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 300);
+  }, [onClose]);
+
+  if (!isOpen && !isClosing) return null;
 
   const validate = () => {
     const hasAnyAnswer = Object.values(answers).some((value) => String(value || '').trim().length > 0);
@@ -126,8 +138,8 @@ export default function DueDiligenceFormModal({
 
       sections.forEach((section) => {
         write(section.title || '', { size: 13, style: 'bold', spaceAfter: 6 });
-        (Array.isArray(section.items) ? section.items : []).forEach((item) => {
-          const key = item.key || `${section.key}-${item.title}`;
+        (Array.isArray(section.items) ? section.items : []).forEach((item, idx) => {
+          const key = item.key || `${section.key}-${idx}`;
           const ans = String(answers[key] || '').trim();
           write(item.title || '', { size: 11.5, style: 'bold', spaceAfter: 4 });
           (Array.isArray(item.bullets) ? item.bullets : []).forEach((bullet) => {
@@ -152,31 +164,31 @@ export default function DueDiligenceFormModal({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={`${styles.overlay} ${isClosing ? styles.overlayClosing : ''}`} onClick={handleClose}>
       <div
-        className={styles.panel}
+        className={`${styles.panel} ${isClosing ? styles.panelClosing : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(29,155,240,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileText size={18} color="var(--primary-blue)" />
+        <div className={styles.header}>
+          <div className={styles.headerLeft}>
+            <div className={styles.headerIcon}>
+              <FileText size={22} />
             </div>
             <div>
-              <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 16 }}>Điền hồ sơ Due Diligence</div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>Hoàn tất biểu mẫu rồi xuất PDF để nộp tự động</div>
+              <div className={styles.headerTitle}>Điền hồ sơ Due Diligence</div>
+              <div className={styles.headerSubtitle}>Hoàn tất biểu mẫu rồi xuất PDF để nộp tự động</div>
             </div>
           </div>
-          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+          <button type="button" onClick={handleClose} className={styles.closeBtn}>
             <X size={20} />
           </button>
         </div>
 
         <div className={styles.scroll}>
           {template?.note ? (
-            <div style={{ background: 'rgba(29,155,240,0.08)', borderLeft: '3px solid var(--primary-blue)', padding: '10px 12px', borderRadius: 6, color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5 }}>
-              <Sparkles size={14} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />
-              {template.note}
+            <div className={styles.noteBox}>
+              <Sparkles size={18} style={{ marginTop: 2, flexShrink: 0 }} />
+              <span>{template.note}</span>
             </div>
           ) : null}
 
@@ -227,35 +239,26 @@ export default function DueDiligenceFormModal({
           ))}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: 14, borderTop: '1px solid var(--border-color)' }}>
+        <div className={styles.footer}>
           {submitError ? <span className={styles.errorText}>{submitError}</span> : null}
-          <button type="button" onClick={onClose} style={{ border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', borderRadius: 999, padding: '10px 18px', fontWeight: 700, cursor: 'pointer' }}>
+          <button type="button" onClick={handleClose} className={styles.secondaryBtn}>
             Đóng
           </button>
           <button
             type="button"
             onClick={handleGenerate}
             disabled={isGenerating || isPreparingPdf}
-            style={{
-              border: 'none',
-              background: 'var(--primary-blue)',
-              color: '#fff',
-              borderRadius: 999,
-              padding: '10px 18px',
-              fontWeight: 700,
-              cursor: isGenerating || isPreparingPdf ? 'not-allowed' : 'pointer',
-              opacity: isGenerating || isPreparingPdf ? 0.7 : 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
+            className={styles.primaryBtn}
           >
             {isGenerating || isPreparingPdf ? (
               <>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Đang xuất PDF & tải lên...
+                <Loader2 size={18} className="animate-spin" /> Đang xử lý...
               </>
             ) : (
-              'Xuất PDF & tải lên'
+              <>
+                <Sparkles size={18} />
+                <span>Xuất PDF & tải lên</span>
+              </>
             )}
           </button>
         </div>
@@ -263,3 +266,4 @@ export default function DueDiligenceFormModal({
     </div>
   );
 }
+

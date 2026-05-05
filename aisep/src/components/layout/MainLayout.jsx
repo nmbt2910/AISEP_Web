@@ -878,8 +878,47 @@ function MainLayout({
         className={`${styles.mainContent} ${showAI ? styles.noScroll : ''} ${isFullWidthContent ? styles.fullWidthContent : ''} ${isFullWidthContent ? styles.hideHeaderOnMobile : ''}`}
       >
 
-        {/* Feed Content or Profile Page */}
-        {(activeView === 'profile' || activeView === 'subscription' || activeView.startsWith('dashboard')) && children ? (
+        {/* ── DETAIL VIEWS (Highest Priority) ── */}
+        {selectedProjectId ? (
+          <ProjectDetailView
+            projectId={selectedProjectId}
+            user={user}
+            isPaidUser={isPaidUser}
+            onShowLogin={onShowLogin}
+            isInvestorApproved={isInvestorApproved}
+            isStartupApproved={isStartupApproved}
+            isAdvisorApproved={isAdvisorApproved}
+            onRestrictedAction={showRestrictedActionModal}
+            isFullView={(() => {
+              const roleStr = user?.role?.toString().toLowerCase() || '';
+              const roleNum = Number(user?.role);
+              const isStaff = roleStr === 'staff' || roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleNum === 3;
+              const isApprovedAdvisor = (roleStr === 'advisor' || roleNum === 2) && isAdvisorApproved;
+              return isStaff || isApprovedAdvisor;
+            })()}
+            onUnlock={handleProjectUnlock}
+            onBack={() => {
+              setSelectedProjectId(null);
+              if (window.location.pathname.startsWith('/projects/')) {
+                window.history.pushState({}, '', '/');
+              }
+            }}
+          />
+        ) : selectedStartupProfileId ? (
+          <StartupDetail
+            startupId={selectedStartupProfileId}
+            onBack={() => setSelectedStartupProfileId(null)}
+            user={user}
+            onShowLogin={onShowLogin}
+          />
+        ) : selectedInvestorProfileId ? (
+          <InvestorDetail
+            investorId={selectedInvestorProfileId}
+            onBack={() => setSelectedInvestorProfileId(null)}
+            user={user}
+            onShowLogin={onShowLogin}
+          />
+        ) : (activeView === 'profile' || activeView === 'subscription' || activeView.startsWith('dashboard')) && children ? (
           children
         ) : showAdvisors ? (
           selectedAdvisor ? (
@@ -980,45 +1019,6 @@ function MainLayout({
           />
         ) : showAI ? (
           <AIChatAssistant />
-        ) : selectedStartupProfileId ? (
-          <StartupDetail
-            startupId={selectedStartupProfileId}
-            onBack={() => setSelectedStartupProfileId(null)}
-            user={user}
-            onShowLogin={onShowLogin}
-          />
-        ) : selectedInvestorProfileId ? (
-          <InvestorDetail
-            investorId={selectedInvestorProfileId}
-            onBack={() => setSelectedInvestorProfileId(null)}
-            user={user}
-            onShowLogin={onShowLogin}
-          />
-        ) : selectedProjectId ? (
-          <ProjectDetailView
-            projectId={selectedProjectId}
-            user={user}
-            isPaidUser={isPaidUser}
-            onShowLogin={onShowLogin}
-            isInvestorApproved={isInvestorApproved}
-            isStartupApproved={isStartupApproved}
-            isAdvisorApproved={isAdvisorApproved}
-            onRestrictedAction={showRestrictedActionModal}
-            isFullView={(() => {
-              const roleStr = user?.role?.toString().toLowerCase() || '';
-              const roleNum = Number(user?.role);
-              const isStaff = roleStr === 'staff' || roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleNum === 3;
-              const isApprovedAdvisor = (roleStr === 'advisor' || roleNum === 2) && isAdvisorApproved;
-              return isStaff || isApprovedAdvisor;
-            })()}
-            onUnlock={handleProjectUnlock}
-            onBack={() => {
-              setSelectedProjectId(null);
-              if (window.location.pathname.startsWith('/projects/')) {
-                window.history.pushState({}, '', '/');
-              }
-            }}
-          />
         ) : (
           <>
             {/* WRAPPER FOR CONSTRAINED STREAM */}

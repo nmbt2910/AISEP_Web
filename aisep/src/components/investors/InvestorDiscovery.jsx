@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { MagnifyingGlass, CheckCircle, TrendUp, MapPin, Buildings, Faders, Fire, Wallet, Medal, Briefcase, ChartBar } from '@phosphor-icons/react';
+import { MagnifyingGlass, CheckCircle, TrendUp, MapPin, Faders, Briefcase } from '@phosphor-icons/react';
 import FilterModal from './FilterModal';
 import InvestorDetail from './InvestorDetail';
 import investorService from '../../services/investorService';
@@ -15,9 +15,7 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
     const [selectedInvestorId, setSelectedInvestorId] = useState(null);
     const [filters, setFilters] = useState({
         industry: 'Tất cả ngành nghề',
-        stage: 'Tất cả giai đoạn',
-        fundingStatus: 'Tất cả trạng thái',
-        minAiScore: 0
+        stage: 'Tất cả giai đoạn'
     });
     const [activeChatSession, setActiveChatSession] = useState(null);
 
@@ -58,15 +56,10 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                         name: inv.organizationName || inv.userName,
                         userName: inv.userName,
                         thesis: inv.investmentTaste || 'Chưa cập nhật khẩu vị đầu tư.',
-                        type: 'Quỹ đầu tư',
                         industries: industriesFromApi,
                         stages: [`Giai đoạn ${inv.preferredStage || 'sớm'}`],
-                        fundingStatus: 'Đang hoạt động',
-                        aiScore: 0,
-                        matchScore: Math.floor(Math.random() * 20) + 75,
                         profileImageUrl: profileUrl || null,
                         location: inv.investmentRegion || 'Hồ Chí Minh, VN',
-                        portfolioSize: '25 portfolio',
                         ticketSize: inv.investmentAmount ? `${(inv.investmentAmount / 1000000).toFixed(0)}tr - ${(inv.investmentAmount / 500000).toFixed(0)}tr USD` : '50K - 500K USD',
                         verified: inv.status === 'Approved',
                     };
@@ -91,8 +84,7 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
     const filteredInvestors = investors.filter(investor => {
         const matchesSearch =
             investor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            investor.thesis.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            investor.type.toLowerCase().includes(searchQuery.toLowerCase());
+            investor.thesis.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesIndustry =
             filters.industry === 'Tất cả ngành nghề' ||
@@ -105,7 +97,33 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
         return matchesSearch && matchesIndustry && matchesStage;
     });
 
-    const activeFilterCount = Object.values(filters).filter(v => v !== 'Tất cả ngành nghề' && v !== 'Tất cả giai đoạn' && v !== 'Tất cả trạng thái' && v !== 0).length;
+    const industryOptions = useMemo(() => {
+        const options = new Set();
+        investors.forEach(inv => {
+            if (Array.isArray(inv.industries)) {
+                inv.industries.forEach(ind => {
+                    const trimmed = String(ind).trim();
+                    if (trimmed) options.add(trimmed);
+                });
+            }
+        });
+        return Array.from(options).sort();
+    }, [investors]);
+
+    const stageOptions = useMemo(() => {
+        const options = new Set();
+        investors.forEach(inv => {
+            if (Array.isArray(inv.stages)) {
+                inv.stages.forEach(st => {
+                    const trimmed = String(st).trim();
+                    if (trimmed) options.add(trimmed);
+                });
+            }
+        });
+        return Array.from(options).sort();
+    }, [investors]);
+
+    const activeFilterCount = Object.values(filters).filter(v => v !== 'Tất cả ngành nghề' && v !== 'Tất cả giai đoạn').length;
 
     if (selectedInvestorId) {
         return <InvestorDetail investorId={selectedInvestorId} onBack={() => setSelectedInvestorId(null)} user={user} />;
@@ -167,6 +185,8 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                                     filters={filters}
                                     onApply={handleApplyFilters}
                                     onClose={() => setIsFilterOpen(false)}
+                                    industryOptions={industryOptions}
+                                    stageOptions={stageOptions}
                                 />
                             </div>
                         )}
@@ -195,6 +215,8 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                         filters={filters}
                         onApply={handleApplyFilters}
                         onClose={() => setIsFilterOpen(false)}
+                        industryOptions={industryOptions}
+                        stageOptions={stageOptions}
                     />
                 </div>,
                 document.body
@@ -245,7 +267,6 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                                         {investor.verified && (
                                             <CheckCircle size={15} className={styles.verifiedBadge} />
                                         )}
-                                        <span className={styles.investorType}>· {investor.type}</span>
                                     </div>
                                 </div>
 
@@ -258,9 +279,6 @@ export default function InvestorDiscovery({ user, onShowLogin, onNotificationNav
                                     </div>
                                     <div className={styles.metaItem}>
                                         <Briefcase size={14} weight="duotone" /> <span>{investor.ticketSize}</span>
-                                    </div>
-                                    <div className={styles.metaItem}>
-                                        <ChartBar size={14} weight="duotone" /> <span>{investor.portfolioSize}</span>
                                     </div>
                                 </div>
 

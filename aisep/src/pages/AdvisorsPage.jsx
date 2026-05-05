@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { MagnifyingGlass, MapPin, Star, Users, CurrencyCircleDollar, CheckCircle, Faders, TrendUp } from '@phosphor-icons/react';
 import AdvisorFilterModal from '../components/profile/AdvisorFilterModal';
@@ -17,7 +17,6 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState({
         expertise: 'Tất cả chuyên môn',
-        location: 'Tất cả khu vực',
         minRating: 0,
         maxRate: 5000000
     });
@@ -58,7 +57,6 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
     const getActiveFiltersCount = () => {
         let count = 0;
         if (filters.expertise !== 'Tất cả chuyên môn') count++;
-        if (filters.location !== 'Tất cả khu vực') count++;
         if (filters.minRating > 0) count++;
         if (filters.maxRate < 5000000) count++;
         return count;
@@ -69,22 +67,32 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
     const filteredAdvisors = advisors.filter(advisor => {
         const matchesSearch =
             (advisor.userName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-            (advisor.expertise?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+            (advisor.expertise?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (Array.isArray(advisor.industries) && advisor.industries.some(i => i.toLowerCase().includes(searchQuery.toLowerCase())));
 
         const matchesExpertise =
             filters.expertise === 'Tất cả chuyên môn' ||
-            (advisor.expertise || '').includes(filters.expertise);
-
-        const matchesLocation =
-            filters.location === 'Tất cả khu vực' ||
-            (advisor.location || '').includes(filters.location);
+            (Array.isArray(advisor.industries) && advisor.industries.includes(filters.expertise));
 
         const matchesRating = (advisor.rating || 0) >= filters.minRating;
         const matchesRate = (advisor.hourlyRate || 0) <= filters.maxRate;
         const isApprovedAdvisor = advisor.approvalStatus === 'Approved' || advisor.approvalStatus === 1;
 
-        return matchesSearch && matchesExpertise && matchesLocation && matchesRating && matchesRate && isApprovedAdvisor;
+        return matchesSearch && matchesExpertise && matchesRating && matchesRate && isApprovedAdvisor;
     });
+
+    const expertiseOptions = useMemo(() => {
+        const options = new Set();
+        advisors.forEach(advisor => {
+            if (Array.isArray(advisor.industries)) {
+                advisor.industries.forEach(ind => {
+                    const trimmed = String(ind).trim();
+                    if (trimmed) options.add(trimmed);
+                });
+            }
+        });
+        return Array.from(options).sort();
+    }, [advisors]);
 
     const handleOpenBookingWizard = (advisor) => {
         if (!user) { onShowLogin?.(); return; }
@@ -151,6 +159,7 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                                     filters={filters}
                                     onApply={handleApplyFilters}
                                     onClose={() => setIsFilterOpen(false)}
+                                    expertiseOptions={expertiseOptions}
                                 />
                             </div>
                         )}
@@ -179,6 +188,7 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                         filters={filters}
                         onApply={handleApplyFilters}
                         onClose={() => setIsFilterOpen(false)}
+                        expertiseOptions={expertiseOptions}
                     />
                 </div>,
                 document.body
@@ -202,8 +212,8 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                     </div>
                 ) : (
                     filteredAdvisors.map(advisor => {
-                        const expertises = advisor.expertise
-                            ? advisor.expertise.split(',').map(s => s.trim()).filter(Boolean)
+                        const industries = Array.isArray(advisor.industries)
+                            ? advisor.industries.map(s => String(s).trim()).filter(Boolean)
                             : [];
 
                         return (
@@ -228,10 +238,10 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                                             )}
                                             <span className={styles.advisorType}>· Cố vấn</span>
                                         </div>
-                                        {expertises.length > 0 && (
+                                        {industries.length > 0 && (
                                             <div className={styles.expertiseTags}>
-                                                {expertises.slice(0, 2).map((exp, idx) => (
-                                                    <span key={idx} className={styles.expertiseTag}>{exp}</span>
+                                                {industries.slice(0, 4).map((industry, idx) => (
+                                                    <span key={idx} className={styles.expertiseTag}>#{industry}</span>
                                                 ))}
                                             </div>
                                         )}

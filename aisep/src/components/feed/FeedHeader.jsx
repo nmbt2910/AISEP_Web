@@ -84,6 +84,18 @@ function FeedHeader({
                   .mobile-search-btn-custom { display: none !important; }
                 }
               `}</style>
+              {/* "Đăng Dự Án" button for startups - moved here to sit next to the search/notification */}
+              {((user?.role?.toString().toLowerCase() === 'startup') || user?.role === 0 || user?.role === '0') && onShowProjectForm && (
+                <button
+                  onClick={onShowProjectForm}
+                  className={styles.primaryBtn}
+                >
+                  <Plus size={18} />
+                  <span className={styles.btnTextFull}>Đăng Dự Án</span>
+                  <span className={styles.btnTextShort}>Dự Án</span>
+                </button>
+              )}
+
               {showSearchButton && (
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <button 
@@ -128,16 +140,6 @@ function FeedHeader({
                 </div>
               )}
 
-              {/* "Đăng Dự Án" button for startups - moved here to sit next to the notification bell */}
-              {((user?.role?.toString().toLowerCase() === 'startup') || user?.role === 0 || user?.role === '0') && onShowProjectForm && (
-                <button
-                  onClick={onShowProjectForm}
-                  className={styles.primaryBtn}
-                >
-                  <Plus size={18} />
-                  Đăng Dự Án
-                </button>
-              )}
               {customAction}
               {user && (onOpenChat || showNotification) && (
                 <NotificationCenter

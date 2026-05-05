@@ -180,19 +180,19 @@ export default function AIEvaluationModal({
                                     <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: isEligible ? '#10b981' : '#ef4444' }}>
                                         {isEligible ? 'ĐỦ ĐIỀU KIỆN' : 'KHÔNG ĐỦ ĐIỀU KIỆN'}
                                     </h3>
-                                    <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '600' }}>
+                                    <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '16px', fontWeight: '600' }}>
                                         Kết luận từ Hệ thống AI Phân tích eligibility
                                     </p>
                                 </div>
                             </div>
                             
                             <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '16px' }}>
-                                <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <Sparkles size={16} color="var(--primary-blue)" /> Lý do chi tiết:
                                 </h4>
                                 <p style={{ 
                                     margin: 0, 
-                                    fontSize: '15px', 
+                                    fontSize: '17px', 
                                     lineHeight: '1.7', 
                                     color: 'var(--text-primary)',
                                     whiteSpace: 'pre-wrap'
@@ -228,7 +228,7 @@ export default function AIEvaluationModal({
             !hasAuditedTable &&
             chaosScore != null &&
             Number(chaosScore) !== Number(aiAdjustmentScore) ? (
-                <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <p style={{ margin: '10px 0 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
                     Điểm rối loạn (định dạng cũ): {chaosScore}
                 </p>
             ) : null;
@@ -309,7 +309,7 @@ export default function AIEvaluationModal({
                                             size={16}
                                             className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}
                                         />
-                                        <h5 style={{ margin: 0, fontSize: '15px', fontWeight: '800' }}>
+                                        <h5 style={{ margin: 0, fontSize: '17px', fontWeight: '800' }}>
                                             {translateKey(crit)}
                                         </h5>
                                     </div>
@@ -319,7 +319,7 @@ export default function AIEvaluationModal({
                                     </span>
                                 </div>
                                 <div className={`${styles.analysisDetailsContent} ${isExpanded ? styles.show : ''}`}>
-                                    <div className={styles.detailSection} style={{ fontSize: '13px' }}>
+                                    <div className={styles.detailSection} style={{ fontSize: '15px' }}>
                                         <div className={styles.detailLabel}>Điểm & điều chỉnh</div>
                                         <p style={{ margin: '4px 0 0 0' }}>
                                             Gốc: <strong>{baseS ?? '—'}</strong>
@@ -410,7 +410,7 @@ export default function AIEvaluationModal({
                                                     size={16}
                                                     className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}
                                                 />
-                                                <h5 style={{ margin: 0, textTransform: 'capitalize', fontSize: '15px', fontWeight: '800' }}>
+                                                <h5 style={{ margin: 0, textTransform: 'capitalize', fontSize: '17px', fontWeight: '800' }}>
                                                     {translateKey(key)}
                                                 </h5>
                                             </div>
@@ -566,7 +566,7 @@ export default function AIEvaluationModal({
                         <div className={styles.section}>
                             <div className={styles.investorAdvicePanel}>
                                 <h3 className={styles.panelTitleInvestorAdvice}>Bộ câu hỏi chất vấn đề xuất</h3>
-                                <p style={{ margin: '0 0 12px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                <p style={{ margin: '0 0 12px', fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                                     AI gợi ý các hướng hỏi sâu để làm rõ lỗ hổng khi đối thoại / pitching với startup.
                                 </p>
                                 <div className={styles.adviceList}>

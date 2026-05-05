@@ -42,6 +42,7 @@ import subscriptionService from '../services/subscriptionService';
 import paymentService from '../services/paymentService';
 import AIAnalyzeConfirmationModal from '../components/common/AIAnalyzeConfirmationModal';
 import RestrictedActionModal from '../components/common/RestrictedActionModal';
+import CustomSelect from '../components/common/CustomSelect';
 import { useProfile } from '../context/ProfileContext';
 
 
@@ -50,7 +51,8 @@ import { useProfile } from '../context/ProfileContext';
  * Features: Overview stats, Profile completion, Documents, AI Score, Advisor requests
  */
 export default function StartupDashboard({ user, initialSection = 'my-projects', targetId, onLogout, onNotificationNavigate }) {
-    const [activeSection, setActiveSection] = React.useState(initialSection);
+    const [activeSection, setActiveSection] = useState(initialSection);
+    const [modalRefreshKey, setModalRefreshKey] = useState(Date.now());
     const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 1024);
     const [showLeftTabIndicator, setShowLeftTabIndicator] = React.useState(false);
     const [showRightTabIndicator, setShowRightTabIndicator] = React.useState(false);
@@ -1498,14 +1500,26 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
     /**
      * Enhanced opener for project detail modal
      */
-    const handleOpenProjectDetail = (p) => {
+    const handleOpenProjectDetail = async (p) => {
         const pId = p.id || p.projectId;
+        // Set basic info immediately for quick UI response
         setDetailProject(p);
+        setModalRefreshKey(Date.now());
         setShowDetailModal(true);
-        fetchAnalysisHistory(pId);
 
-        // Fetch advisor and booking info for all statuses (as requested)
+        // Refresh analysis history and booking eligibility (which includes assigned advisors)
+        fetchAnalysisHistory(pId);
         fetchBookingEligibility(pId, p.status);
+
+        // Fetch full fresh project data to ensure all metadata is current
+        try {
+            const freshProject = await projectSubmissionService.getProjectById(pId);
+            if (freshProject && (freshProject.success || freshProject.data)) {
+                setDetailProject(freshProject.data || freshProject);
+            }
+        } catch (err) {
+            console.error("Error refreshing project detail:", err);
+        }
     };
 
     // BR-15: Submit Project for Staff Review (WITHOUT AI - Direct submission)
@@ -2643,7 +2657,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                     className={styles.modalOverlay}
                     onClick={(e) => e.target === e.currentTarget && setShowDetailModal(false)}
                 >
-                    <div className={styles.modalContent}>
+                    <div key={modalRefreshKey} className={styles.modalContent}>
                         {/* --- Fixed Headers (Top Pinned) --- */}
 
                         {/* Mobile Header (When NO image exists) */}
@@ -2905,9 +2919,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                         </div>
                                                     ) : filteredHistory.length > 0 ? (
                                                         filteredHistory.map((item, idx) => (
-                                                          <div key={idx} onClick={() => { setSelectedHistoryResult({ data: item }); setShowHistoryView(true); }} className={styles.scoreCard}>
+                                                            <div key={idx} onClick={() => { setSelectedHistoryResult({ data: item }); setShowHistoryView(true); }} className={styles.scoreCard}>
                                                                 <div className={styles.scoreHeader}>
-                                                                  <span className={styles.scoreMainValue}>{item._displayScore}</span>
+                                                                    <span className={styles.scoreMainValue}>{item._displayScore}</span>
                                                                     <span className={styles.scoreMaxLabel}>/100</span>
                                                                 </div>
                                                                 <span className={styles.scoreDate}>
@@ -3107,7 +3121,97 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '0.02em' }}>4. TÀI LIỆU DỰ ÁN</h3>
                                         </div>
 
-                                        {/* Upload Section */}
+                                        {/* PROMINENT DUE-DILIGENCE CTA */}
+                                        {detailProject.status === 'Draft' && (
+                                            <div style={{
+                                                background: 'linear-gradient(135deg, rgba(29, 155, 240, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+                                                border: '1px solid rgba(29, 155, 240, 0.25)',
+                                                borderRadius: '20px',
+                                                padding: '20px',
+                                                marginBottom: '24px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '20px',
+                                                flexWrap: 'wrap'
+                                            }}>
+                                                <div style={{ display: 'flex', gap: '16px', flex: 1, minWidth: '280px' }}>
+                                                    <div style={{
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        borderRadius: '14px',
+                                                        background: 'var(--primary-blue)',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        boxShadow: '0 4px 12px rgba(29, 155, 240, 0.3)',
+                                                        flexShrink: 0
+                                                    }}>
+                                                        <Sparkles size={24} color="#fff" fill="#fff" />
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                                                Hồ sơ Thẩm định (Due Diligence)
+                                                            </h4>
+                                                            {lastDueDiligenceDocUrl && (
+                                                                <span style={{
+                                                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                                                    color: '#10b981',
+                                                                    fontSize: '10px',
+                                                                    fontWeight: 800,
+                                                                    padding: '2px 8px',
+                                                                    borderRadius: '99px',
+                                                                    textTransform: 'uppercase'
+                                                                }}>Đã có bản nộp</span>
+                                                            )}
+                                                        </div>
+                                                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                            Cung cấp dữ liệu đối chứng để <strong>AI Analyst</strong> đánh giá dự án chính xác hơn.
+                                                            Giảm thiểu rủi ro bị trừ điểm do thiếu bằng chứng trong Pitch Deck.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                    {lastDueDiligenceDocUrl && (
+                                                        <button
+                                                            className={styles.secondaryBtn}
+                                                            style={{ padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                window.open(lastDueDiligenceDocUrl, '_blank');
+                                                            }}
+                                                        >
+                                                            Xem bản cũ
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className={styles.primaryBtn}
+                                                        style={{
+                                                            padding: '10px 20px',
+                                                            borderRadius: '12px',
+                                                            fontSize: '13px',
+                                                            fontWeight: 800,
+                                                            background: 'var(--primary-blue)',
+                                                            boxShadow: '0 4px 10px rgba(29, 155, 240, 0.2)'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handleOpenDueDiligenceFormModal();
+                                                        }}
+                                                        disabled={isLoadingDueDiligenceTemplate || isUploadingDueDiligencePdf}
+                                                    >
+                                                        {isLoadingDueDiligenceTemplate ? (
+                                                            <><Loader2 size={16} className={styles.spinner} /> Đang tải...</>
+                                                        ) : (
+                                                            <>Bắt đầu điền ngay</>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Standard Upload Dropzone */}
                                         <div
                                             className={`${styles.dropzone} ${dragActive ? styles.dragActive : ''} ${(detailProject.status !== 'Draft') ? styles.disabledDropzone : ''}`}
                                             onDragEnter={(e) => {
@@ -3134,7 +3238,10 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                             style={{
                                                 opacity: (detailProject.status !== 'Draft') ? 0.6 : 1,
                                                 cursor: (detailProject.status !== 'Draft') ? 'not-allowed' : 'pointer',
-                                                position: 'relative'
+                                                position: 'relative',
+                                                border: '2px dashed rgba(148, 163, 184, 0.2)',
+                                                borderRadius: '20px',
+                                                padding: '30px'
                                             }}
                                             title={detailProject.status !== 'Draft' ? 'Bạn chỉ có thể tải lên tài liệu khi dự án ở trạng thái Nháp' : ''}
                                         >
@@ -3149,74 +3256,33 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                     backgroundColor: 'rgba(255,255,255,0.05)'
                                                 }} />
                                             )}
-                                            <div className={styles.uploadControls}>
-                                                <div className={styles.uploadInfo}>
-                                                    <Upload size={24} className={styles.uploadIcon} />
+                                            <div className={styles.uploadControls} style={{ flexDirection: 'column', gap: '16px', alignItems: 'center', textAlign: 'center' }}>
+                                                <div className={styles.uploadInfo} style={{ flexDirection: 'column', gap: '8px' }}>
+                                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(148, 163, 184, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                                                        <Upload size={20} color="var(--text-secondary)" />
+                                                    </div>
                                                     <div>
-                                                        <p className={styles.uploadTitle}>Tải lên tài liệu mới</p>
-                                                        <p className={styles.uploadSubtitle}>Điền trực tiếp biểu mẫu Due Diligence, xuất PDF và nộp lại ngay tại đây.</p>
+                                                        <p className={styles.uploadTitle} style={{ fontSize: '14px', marginBottom: '2px' }}>Tải lên tài liệu bổ sung</p>
+                                                        <p className={styles.uploadSubtitle} style={{ fontSize: '12px' }}>Kéo thả hoặc chọn file Pitch Deck, Business Plan...</p>
                                                     </div>
                                                 </div>
-                                                <div className={styles.uploadActions}>
-                                                    <button
-                                                        className={styles.primaryBtn}
-                                                        style={{
-                                                            padding: '8px 12px',
-                                                            borderRadius: '10px',
-                                                            fontSize: '12px',
-                                                            whiteSpace: 'nowrap',
-                                                        }}
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            handleOpenDueDiligenceFormModal();
-                                                        }}
-                                                        disabled={
-                                                            detailProject.status !== 'Draft' ||
-                                                            isLoadingDueDiligenceTemplate ||
-                                                            isUploadingDueDiligencePdf
-                                                        }
-                                                        title="Điền mẫu Due Diligence trực tiếp và hệ thống tự xuất PDF"
-                                                    >
-                                                        {isLoadingDueDiligenceTemplate ? (
-                                                            <><Loader2 size={14} className={styles.spinner} /> Đang mở biểu mẫu...</>
-                                                        ) : (
-                                                            <><FileText size={14} /> Điền & xuất PDF</>
-                                                        )}
-                                                    </button>
-                                                    {lastDueDiligenceDocUrl && (
-                                                        <button
-                                                            className={styles.secondaryBtn}
-                                                            style={{
-                                                                padding: '8px 12px',
-                                                                borderRadius: '10px',
-                                                                fontSize: '12px',
-                                                                whiteSpace: 'nowrap',
-                                                            }}
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                window.open(lastDueDiligenceDocUrl, '_blank');
-                                                            }}
-                                                            title="Xem lại tài liệu Due Diligence vừa gửi"
-                                                        >
-                                                            <><ExternalLink size={14} /> Xem PDF vừa gửi</>
-                                                        </button>
-                                                    )}
-                                                    <select
-                                                        className={styles.selectSmall}
+                                                <div className={styles.uploadActions} style={{ width: '100%', justifyContent: 'center', gap: '12px' }}>
+                                                    <CustomSelect
                                                         value={documentType}
                                                         onChange={(e) => setDocumentType(e.target.value)}
+                                                        options={[
+                                                            { value: 'PitchDeck', label: 'Pitch Deck' },
+                                                            { value: 'BusinessPlan', label: 'Kế hoạch kinh doanh' },
+                                                            { value: 'Other', label: 'Khác' }
+                                                        ]}
                                                         disabled={detailProject.status !== 'Draft'}
-                                                    >
-                                                        <option value="PitchDeck">Pitch Deck</option>
-                                                        <option value="BusinessPlan">Kế hoạch kinh doanh</option>
-                                                        <option value="Other">Khác</option>
-                                                    </select>
+                                                        className={styles.uploadDocSelect}
+                                                    />
                                                     <button
                                                         className={styles.uploadBtn}
                                                         onClick={() => hiddenFileInput.current.click()}
                                                         disabled={isUploading || detailProject.status !== 'Draft'}
+                                                        style={{ borderRadius: '10px', padding: '6px 16px' }}
                                                     >
                                                         {isUploading ? 'Đang tải...' : 'Chọn file'}
                                                     </button>

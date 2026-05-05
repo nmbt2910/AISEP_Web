@@ -627,6 +627,8 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const isFirstLoad = useRef(true);
 
+    const [modalRefreshKey, setModalRefreshKey] = useState(Date.now());
+
     // Deep LINK State
     const [hasAttemptedDeepLink, setHasAttemptedDeepLink] = useState(false);
 
@@ -1277,10 +1279,25 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         }
     };
 
-    const openDetailModal = (project) => {
+    const openDetailModal = async (project) => {
+        const pId = project.projectId || project.id;
+        // Set basic info immediately for quick UI response
         setDetailProject(project);
+        setModalRefreshKey(Date.now());
         setShowDetailModal(true);
-        fetchAnalysisHistory(project.projectId);
+        
+        // Refresh analysis history
+        fetchAnalysisHistory(pId);
+
+        // Fetch full fresh project data to ensure all metadata is current
+        try {
+            const freshProject = await projectSubmissionService.getProjectById(pId);
+            if (freshProject && (freshProject.success || freshProject.data)) {
+                setDetailProject(freshProject.data || freshProject);
+            }
+        } catch (err) {
+            console.error("Error refreshing project detail:", err);
+        }
     };
 
 
@@ -3951,7 +3968,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                     className={styles.modalOverlay}
                     onClick={(e) => e.target === e.currentTarget && setShowDetailModal(false)}
                 >
-                    <div className={styles.modalContent} style={{ maxWidth: '1100px', width: '95%', height: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                    <div key={modalRefreshKey} className={styles.modalContent} style={{ maxWidth: '1100px', width: '95%', height: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', position: 'relative' }}>
                         {/* Global Close button */}
                         <button
                             onClick={() => setShowDetailModal(false)}
@@ -4161,8 +4178,8 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         <div key={doc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
                                                                 <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(29, 155, 240, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', flexShrink: 0 }}><FileText size={20} /></div>
-                                                                <div style={{ overflow: 'hidden' }}>
-                                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
+                                                                <div style={{ overflow: 'hidden', maxWidth: isMobile ? '160px' : '450px' }}>
+                                                                    <div title={doc.name} style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
                                                                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{doc.type.toUpperCase()} • {doc.uploadDate}</div>
                                                                 </div>
                                                             </div>

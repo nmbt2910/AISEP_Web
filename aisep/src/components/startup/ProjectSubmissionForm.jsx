@@ -7,6 +7,7 @@ import CustomSelect from '../common/CustomSelect';
 import SuccessModal from '../common/SuccessModal';
 import validationService from '../../services/validationService';
 import optionService from '../../services/optionService';
+import startupProfileService from '../../services/startupProfileService';
 import ScorecardRadioGroup from './ScorecardRadioGroup';
 import {
   SCORECARD_SECTIONS,
@@ -353,11 +354,35 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
 
     if (!validateStep()) return;
 
-    if (!isEdit && !isApproved) {
-      const msg = 'Bạn cần được phê duyệt hồ sơ Startup để tạo dự án mới.';
-      setSubmitError(msg);
-      onRestrictedAction?.(msg);
-      return;
+    if (!isEdit) {
+      // Re-check approval from backend before blocking submit.
+      // This prevents stale FE state from falsely showing "chưa được duyệt".
+      const isApprovedStatus = (rawStatus) => {
+        if (rawStatus === null || rawStatus === undefined) return false;
+        if (typeof rawStatus === 'number') return rawStatus === 1;
+        const normalized = String(rawStatus).trim().toLowerCase();
+        return normalized === '1' || normalized === 'approved';
+      };
+
+      let canCreateProject = isApproved;
+      try {
+        const latestStartupProfile = await startupProfileService.getStartupMe();
+        const latestStatus = latestStartupProfile?.approvalStatus ?? latestStartupProfile?.status;
+        if (latestStartupProfile) {
+          canCreateProject = isApprovedStatus(latestStatus);
+        }
+      } catch (approvalCheckError) {
+        // If approval re-check fails due transient network/API issue,
+        // don't hard-block here; let backend be the source of truth on create API.
+        console.warn('Startup approval re-check failed before submit:', approvalCheckError);
+      }
+
+      if (!canCreateProject) {
+        const msg = 'Bạn cần được phê duyệt hồ sơ Startup để tạo dự án mới.';
+        setSubmitError(msg);
+        onRestrictedAction?.(msg);
+        return;
+      }
     }
 
     setIsSubmitting(true);

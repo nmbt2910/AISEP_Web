@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import styles from './FilterModal.module.css';
+import CustomSelect from '../common/CustomSelect';
 
-export default function FilterModal({ filters, onApply, onClose, isOpen }) {
+export default function FilterModal({ filters, onApply, onClose, isOpen, industryOptions = [], stageOptions = [] }) {
     const [localFilters, setLocalFilters] = useState(filters);
 
     useEffect(() => {
@@ -23,9 +24,7 @@ export default function FilterModal({ filters, onApply, onClose, isOpen }) {
     const handleReset = () => {
         const resetFilters = {
             industry: 'Tất cả ngành nghề',
-            stage: 'Tất cả giai đoạn',
-            fundingStatus: 'Tất cả trạng thái',
-            minAiScore: 0
+            stage: 'Tất cả giai đoạn'
         };
         setLocalFilters(resetFilters);
         onApply(resetFilters);
@@ -36,9 +35,17 @@ export default function FilterModal({ filters, onApply, onClose, isOpen }) {
 
     const hasActiveFilters =
         localFilters.industry !== 'Tất cả ngành nghề' ||
-        localFilters.stage !== 'Tất cả giai đoạn' ||
-        localFilters.fundingStatus !== 'Tất cả trạng thái' ||
-        localFilters.minAiScore > 0;
+        localFilters.stage !== 'Tất cả giai đoạn';
+
+    const industrySelectOptions = [
+        { label: 'Tất cả ngành nghề', value: 'Tất cả ngành nghề' },
+        ...industryOptions.map(opt => ({ label: opt, value: opt }))
+    ];
+
+    const stageSelectOptions = [
+        { label: 'Tất cả giai đoạn', value: 'Tất cả giai đoạn' },
+        ...stageOptions.map(opt => ({ label: opt, value: opt }))
+    ];
 
     return (
         <div className={styles.filterPanel}>
@@ -52,56 +59,26 @@ export default function FilterModal({ filters, onApply, onClose, isOpen }) {
             <div className={styles.filterContent}>
                 <div className={styles.filterGroup}>
                     <label>Ngành nghề</label>
-                    <select value={localFilters.industry} onChange={(e) => handleChange('industry', e.target.value)}>
-                        <option>Tất cả ngành nghề</option>
-                        <option>AI/ML</option>
-                        <option>Blockchain</option>
-                        <option>Fintech</option>
-                        <option>Healthtech</option>
-                        <option>SaaS</option>
-                        <option>Thương mại điện tử</option>
-                        <option>EdTech</option>
-                    </select>
+                    <CustomSelect
+                        name="industry"
+                        value={localFilters.industry}
+                        onChange={(e) => handleChange('industry', e.target.value)}
+                        options={industrySelectOptions}
+                        placeholder="Tất cả ngành nghề"
+                    />
                 </div>
 
                 <div className={styles.filterGroup}>
                     <label>Giai đoạn</label>
-                    <select value={localFilters.stage} onChange={(e) => handleChange('stage', e.target.value)}>
-                        <option>Tất cả giai đoạn</option>
-                        <option>Pre-Seed</option>
-                        <option>Seed</option>
-                        <option>Series A</option>
-                        <option>Series B</option>
-                        <option>Series C</option>
-                    </select>
-                </div>
-
-                <div className={styles.filterGroup}>
-                    <label>Trạng thái gọi vốn</label>
-                    <select value={localFilters.fundingStatus} onChange={(e) => handleChange('fundingStatus', e.target.value)}>
-                        <option>Tất cả trạng thái</option>
-                        <option>Đã được rót vốn</option>
-                        <option>Đang tìm kiếm đầu tư</option>
-                        <option>Không tìm kiếm</option>
-                    </select>
-                </div>
-
-                <div className={styles.filterGroup}>
-                    <label>Điểm Match tối thiểu: {localFilters.minAiScore}%</label>
-                    <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={localFilters.minAiScore}
-                        onChange={(e) => handleChange('minAiScore', parseInt(e.target.value))}
-                        className={styles.rangeSlider}
+                    <CustomSelect
+                        name="stage"
+                        value={localFilters.stage}
+                        onChange={(e) => handleChange('stage', e.target.value)}
+                        options={stageSelectOptions}
+                        placeholder="Tất cả giai đoạn"
                     />
-                    <div className={styles.scoreLabels}>
-                        <span>0</span>
-                        <span>50</span>
-                        <span>100</span>
-                    </div>
                 </div>
+
             </div>
 
             <div className={styles.filterActions}>

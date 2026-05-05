@@ -180,8 +180,11 @@ const startupProfileService = {
       const response = await apiClient.get('/api/Startups/me');
       return response?.data ?? null;
     } catch (error) {
+      if (error?.statusCode === 404 || error?.response?.status === 404) {
+        return null;
+      }
       console.error('Error fetching current startup profile:', error);
-      return null;
+      throw error;
     }
   }
 };

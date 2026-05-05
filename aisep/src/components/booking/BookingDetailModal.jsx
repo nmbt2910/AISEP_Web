@@ -398,18 +398,18 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
         {/* Modal Footer — Standardized Actions */}
         <div className={styles.footer}>
           {['Startup', 'Investor'].includes(userRole) && (booking.status === 1 || booking.status === 'ApprovedAwaitingPayment') && (
-            <button className={`${styles.primaryBtn} ${styles.successBtn}`} onClick={() => { onAction('pay', booking); }}>
-              <CreditCard size={16} /> <span>Thanh toán phí</span>
+            <button className={`${styles.primaryBtn} ${styles.successBtn} ${styles.iconOnlyBtn}`} onClick={() => { onAction('pay', booking); }} title="Thanh toán phí">
+              <CreditCard size={20} />
             </button>
           )}
           {(booking.status === 2 || booking.status === 'Confirmed') && userRole !== 'Staff' && (
-            <button className={styles.primaryBtn} onClick={() => { onAction('chat', booking); }}>
-              <ChatCircleText size={16} /> <span>Vào phòng chat</span>
+            <button className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`} onClick={() => { onAction('chat', booking); }} title="Vào phòng chat">
+              <ChatCircleText size={20} />
             </button>
           )}
-          {['Startup', 'Investor'].includes(userRole) && [6, 7, 8, 'Cancel', 'NoResponse', 'ConsultingReportOverdue'].includes(booking.status) && (
-            <button className={styles.primaryBtn} onClick={() => { onAction('rebook', booking); }}>
-              <ArrowsClockwise size={16} /> <span>Tìm cố vấn thay thế</span>
+          {['Startup', 'Investor'].includes(userRole) && [4, 6, 7, 8, 'ComplaintAccepted', 'Cancel', 'NoResponse', 'ConsultingReportOverdue'].includes(booking.status) && (
+            <button className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`} onClick={() => { onAction('rebook', booking); }} title="Tìm cố vấn thay thế">
+              <ArrowsClockwise size={20} />
             </button>
           )}
 
@@ -418,38 +418,40 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
             <div className={styles.actionSlot}>
               <div className={`${styles.loadingSmall} ${styles.fadeIn}`}>
                 <ArrowsClockwise size={16} className={styles.spinner} />
-                <span className={styles.loadingText}>Đang kiểm tra dữ liệu...</span>
               </div>
             </div>
           ) : (
-            (existingReport || (userRole === 'Staff' && consultationReport)) && (
+            (existingReport || (userRole === 'Staff' && consultationReport) || (['Startup', 'Investor'].includes(userRole) && [2, 3, 'Confirmed', 'Completed'].includes(booking.status))) && (
               <div className={styles.dynamicActions}>
                 {existingReport ? (
                   <button
-                    className={`${styles.secondaryBtn} ${styles.animateIn}`}
+                    className={`${styles.secondaryBtn} ${styles.animateIn} ${styles.iconOnlyBtn}`}
                     onClick={() => { onAction('viewComplaint', existingReport); }}
                     style={{ backgroundColor: 'rgba(29, 155, 240, 0.05)', color: 'var(--primary-blue)', border: '1px solid rgba(29, 155, 240, 0.2)' }}
+                    title="Xem khiếu nại"
                   >
-                    <MagnifyingGlass size={16} /> <span>Xem khiếu nại</span>
+                    <MagnifyingGlass size={20} />
                   </button>
                 ) : (
-                  ['Startup', 'Investor'].includes(userRole) && [2, 'Confirmed'].includes(booking.status) && (
+                  ['Startup', 'Investor'].includes(userRole) && [2, 3, 'Confirmed', 'Completed'].includes(booking.status) && (
                     <button
-                      className={`${styles.secondaryBtn} ${styles.dangerBtn} ${styles.animateIn}`}
+                      className={`${styles.secondaryBtn} ${styles.dangerBtn} ${styles.animateIn} ${styles.iconOnlyBtn}`}
                       onClick={() => { onAction('complain', booking); }}
+                      title="Khiếu nại"
                     >
-                      <WarningCircle size={16} /> <span>Khiếu nại</span>
+                      <WarningCircle size={20} />
                     </button>
                   )
                 )}
 
                 {userRole === 'Staff' && consultationReport && (
                   <button
-                    className={`${styles.primaryBtn} ${styles.animateIn}`}
+                    className={`${styles.primaryBtn} ${styles.animateIn} ${styles.iconOnlyBtn}`}
                     onClick={() => { onAction('viewConsultationReport', booking); }}
                     style={{ background: 'var(--primary-blue)' }}
+                    title="Xem báo cáo tư vấn"
                   >
-                    <FileText size={16} /> <span>Xem báo cáo tư vấn</span>
+                    <FileText size={20} />
                   </button>
                 )}
               </div>
@@ -459,51 +461,60 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
           {/* View Project Button - Available for all roles if projectId exists */}
           {booking.projectId && (
             <button
-              className={styles.primaryBtn}
+              className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`}
               onClick={() => { onAction('viewProject', booking); }}
               style={{ background: '#10b981' }}
+              title="Xem dự án"
             >
-              <Briefcase size={16} /> <span>Xem dự án</span>
+              <Briefcase size={20} />
             </button>
           )}
 
-          {userRole === 'Advisor' && (booking.status === 2 || booking.status === 'Confirmed') && (
+          {userRole === 'Advisor' && [2, 8, 'Confirmed', 'ConsultingReportOverdue'].includes(booking.status) && (
             <button
-              className={styles.primaryBtn}
+              className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`}
               onClick={() => { onAction('report', booking); }}
               style={{ background: '#1d9bf0' }}
+              title="Viết báo cáo"
             >
-              <FileText size={16} /> <span>Viết báo cáo</span>
+              <FileText size={20} />
             </button>
           )}
 
-          {/* New Actions for Completed Bookings */}
-          {['Startup', 'Investor'].includes(userRole) && (booking.status === 3 || booking.status === 'Completed') && (
+          {/* New Actions for Completed Bookings or when report exists */}
+          {['Startup', 'Investor'].includes(userRole) && (booking.status === 3 || booking.status === 'Completed' || consultationReport) && (
             <>
-              <button
-                className={styles.primaryBtn}
-                onClick={() => { onAction('viewConsultationReport', booking); }}
-                style={{ background: 'var(--primary-blue)' }}
-              >
-                <FileText size={16} /> <span>Xem báo cáo</span>
-              </button>
+              {consultationReport && (
+                <button
+                  className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`}
+                  onClick={() => { onAction('viewConsultationReport', booking); }}
+                  style={{ background: 'var(--primary-blue)' }}
+                  title="Xem báo cáo"
+                >
+                  <FileText size={20} />
+                </button>
+              )}
               
-              {!existingReview ? (
-                <button
-                  className={styles.primaryBtn}
-                  onClick={() => { onAction('rate', booking); }}
-                  style={{ background: '#f59e0b' }}
-                >
-                  <Star size={16} weight="fill" /> <span>Viết đánh giá</span>
-                </button>
-              ) : (
-                <button
-                  className={styles.secondaryBtn}
-                  onClick={() => { onAction('viewReview', { ...booking, existingReview }); }}
-                  style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
-                >
-                  <Star size={16} weight="fill" /> <span>Xem đánh giá</span>
-                </button>
+              {(booking.status === 3 || booking.status === 'Completed') && (
+                !existingReview ? (
+                  <button
+                    className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`}
+                    onClick={() => { onAction('rate', booking); }}
+                    style={{ background: '#f59e0b' }}
+                    title="Viết đánh giá"
+                  >
+                    <Star size={20} weight="fill" />
+                  </button>
+                ) : (
+                  <button
+                    className={`${styles.secondaryBtn} ${styles.iconOnlyBtn}`}
+                    onClick={() => { onAction('viewReview', { ...booking, existingReview }); }}
+                    style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
+                    title="Xem đánh giá"
+                  >
+                    <Star size={20} weight="fill" />
+                  </button>
+                )
               )}
             </>
           )}
@@ -511,11 +522,12 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
           {/* View Review for Advisor/Staff if already reviewed */}
           {['Advisor', 'Staff'].includes(userRole) && existingReview && (
             <button
-              className={styles.secondaryBtn}
+              className={`${styles.secondaryBtn} ${styles.iconOnlyBtn}`}
               onClick={() => { onAction('viewReview', { ...booking, existingReview }); }}
               style={{ borderColor: '#f59e0b', color: '#f59e0b' }}
+              title="Xem đánh giá"
             >
-              <Star size={16} weight="fill" /> <span>Xem đánh giá</span>
+              <Star size={20} weight="fill" />
             </button>
           )}
 
@@ -523,23 +535,25 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
           {userRole === 'Advisor' && (booking.status === 0 || booking.status === 'Pending') && (
             <>
               <button
-                className={`${styles.secondaryBtn} ${styles.dangerBtn}`}
+                className={`${styles.secondaryBtn} ${styles.dangerBtn} ${styles.iconOnlyBtn}`}
                 onClick={() => { onAction('reject', booking); }}
                 style={{ color: '#f4212e', borderColor: 'rgba(244, 33, 46, 0.2)' }}
+                title="Từ chối"
               >
-                <span>Từ chối</span>
+                <X size={20} />
               </button>
               <button
-                className={styles.primaryBtn}
+                className={`${styles.primaryBtn} ${styles.iconOnlyBtn}`}
                 onClick={() => { onAction('approve', booking); }}
                 style={{ background: '#1d9bf0' }}
+                title="Phê duyệt"
               >
-                <span>Phê duyệt</span>
+                <ShieldCheck size={20} />
               </button>
             </>
           )}
-          <button onClick={onClose} className={styles.secondaryBtn}>
-            <X size={20} /> <span>Đóng</span>
+          <button onClick={onClose} className={`${styles.secondaryBtn} ${styles.iconOnlyBtn}`} title="Đóng">
+            <X size={20} />
           </button>
         </div>
         </>

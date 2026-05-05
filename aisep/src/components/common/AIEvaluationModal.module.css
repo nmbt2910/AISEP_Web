@@ -206,7 +206,7 @@
     border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 20px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--text-primary);
     line-height: 1.6;
 }
@@ -232,13 +232,13 @@
 }
 
 .listItem {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-secondary);
     padding: 12px 16px;
     background-color: var(--bg-secondary);
     border-left: 4px solid var(--border-color);
     border-radius: 8px;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .strengthIcon { color: #17bf63; }
@@ -294,10 +294,10 @@
 }
 
 .analysisReason {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-secondary);
     margin-bottom: 6px;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .evidenceText { color: #17bf63; font-size: 11px; font-weight: 600; opacity: 0.9; }
@@ -346,7 +346,7 @@
 }
 
 .summaryText {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--text-secondary);
     line-height: 1.6;
     margin: 0;
@@ -389,9 +389,9 @@
 }
 
 .highlightItem {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.5;
     display: flex;
     gap: 8px;
 }
@@ -406,8 +406,8 @@
     padding: 16px;
 }
 
-.warningTitle { font-size: 14px; font-weight: 800; color: #f59e0b; margin-bottom: 2px; }
-.warningText { font-size: 13px; color: rgba(245, 158, 11, 0.8); line-height: 1.4; }
+.warningTitle { font-size: 15px; font-weight: 800; color: #f59e0b; margin-bottom: 4px; }
+.warningText { font-size: 14px; color: rgba(245, 158, 11, 0.8); line-height: 1.5; }
 
 /* —— Gọn cho API mới (auditedItems) —— */
 .compactScoreCard {
@@ -489,9 +489,9 @@
 
 .scoreInlineNote {
     margin: 0;
-    padding: 10px 14px;
-    font-size: 13px;
-    line-height: 1.5;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.6;
     color: var(--text-secondary);
     background: rgba(245, 158, 11, 0.07);
     border-left: 3px solid #f59e0b;
@@ -500,7 +500,7 @@
 
 .sectionTitleMinimal {
     margin: 0 0 12px 0;
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 800;
     color: var(--text-primary);
     letter-spacing: -0.02em;
@@ -518,7 +518,7 @@
     width: 100%;
     min-width: 520px;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .auditTable th {
@@ -579,12 +579,12 @@
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    padding: 12px 14px;
+    padding: 14px 16px;
     background: var(--bg-secondary);
     border-radius: 10px;
     border: 1px solid var(--border-color);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
     color: var(--text-secondary);
 }
 
@@ -642,7 +642,7 @@
 }
 
 .scoreboardLabel {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -697,7 +697,7 @@
 
 .panelTitleInvestorRisk {
     margin: 0 0 12px 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 900;
     color: #b91c1c;
     letter-spacing: -0.02em;
@@ -705,14 +705,14 @@
 
 .panelTitleInvestorStrength {
     margin: 0 0 12px 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 900;
     color: #047857;
 }
 
 .panelTitleInvestorAdvice {
     margin: 0 0 12px 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 900;
     color: #1d4ed8;
 }
@@ -726,19 +726,19 @@
 
 .panelTitleStartupAction {
     margin: 0 0 12px 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 900;
     color: var(--primary-blue);
 }
 
 .feedbackBox {
     margin-top: 10px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border-radius: 10px;
     background: var(--bg-primary);
     border: 1px dashed var(--border-color);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.6;
     color: var(--text-secondary);
 }
 
@@ -867,16 +867,18 @@
         bottom: 0;
         left: 0;
         right: 0;
-        flex-direction: column-reverse;
+        flex-direction: row;
         padding: 20px;
+        gap: 12px;
         background: var(--bg-primary);
-        border-top: 1px solid var(--border-light);
+        border-top: 1px solid var(--border-color);
         box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
         z-index: 1002;
     }
 
     .primaryBtn, .secondaryBtn {
-        width: 100%;
+        flex: 1;
+        width: auto;
         padding: 14px 20px;
     }
 }

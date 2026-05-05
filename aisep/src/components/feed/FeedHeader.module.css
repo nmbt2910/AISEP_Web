@@ -9,7 +9,7 @@
   flex-direction: column;
   padding: 20px 0 0 0;
   position: relative;
-  z-index: 100;
+  z-index: 200;
   border-bottom: 1px solid var(--border-color);
   transition: background-color var(--transition-base), border-color var(--transition-base);
   gap: 0;
@@ -160,6 +160,14 @@
   box-shadow: 0 6px 16px rgba(29, 155, 240, 0.3);
 }
 
+.btnTextFull {
+  display: inline;
+}
+
+.btnTextShort {
+  display: none;
+}
+
 .statsStrip {
   display: flex;
   align-items: stretch;
@@ -265,7 +273,16 @@
 
   .primaryBtn {
     width: auto;
-    padding: 10px 20px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .btnTextFull {
+    display: none;
+  }
+
+  .btnTextShort {
+    display: inline;
   }
 
   .statValue {

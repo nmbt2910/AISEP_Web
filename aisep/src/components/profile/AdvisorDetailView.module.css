@@ -291,7 +291,7 @@
 /* ─── Stats Strip ─── */
 .statsStrip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     border-top: 1px solid var(--border-color);
     margin-top: 16px;
     padding-top: 16px;
@@ -324,6 +324,12 @@
     margin-top: 2px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.statInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 /* ─── 4. Tabs Navigation ─── */
@@ -482,8 +488,34 @@
     .profileCard { margin: 0 12px; margin-top: -48px; padding: 16px; }
     .avatar { width: 64px; height: 64px; font-size: 22px; }
     .name { font-size: 20px; }
-    .statsStrip { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .statItem + .statItem { border-left: none; }
+    .statsStrip { grid-template-columns: 1fr; gap: 0; }
+    .statItem { 
+        display: flex; 
+        align-items: center; 
+        gap: 20px; 
+        text-align: left; 
+        padding: 16px 8px;
+    }
+    .statItem + .statItem { 
+        border-left: none; 
+        border-top: 1px solid var(--border-color);
+    }
+    .statIcon { 
+        margin-bottom: 0;
+        width: 40px;
+        height: 40px;
+        background: var(--bg-hover);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .statInfo {
+        text-align: left;
+        gap: 0;
+    }
+    .statValue { font-size: 16px; }
+    .statLabel { margin-top: 0; font-size: 10px; }
     .tab { font-size: 13px; }
     .feedRow { padding: 16px; }
 }

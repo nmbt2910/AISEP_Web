@@ -1566,6 +1566,12 @@
     font-size: 14px;
 }
 
+.uploadDocSelect {
+    flex: 1 1 220px;
+    min-width: 180px;
+    max-width: 260px;
+}
+
 .uploadBtn {
     background-color: var(--primary-blue);
     color: white;

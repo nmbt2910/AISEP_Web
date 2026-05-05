@@ -74,12 +74,9 @@ export default function InvestorDetail({ investorId, onBack, user, onShowLogin }
         );
     }
 
-    // Generate @handle from userName or email
-    const handle = investor.email ? `@${investor.email.split('@')[0]}` : `@${(investor.userName || 'investor').toLowerCase().replace(/\s+/g, '')}`;
-    
     // Formatting date safely
     const formatJoinDate = (dateString) => {
-        if (!dateString) return 'Tháng 1 2024'; // Fallback
+        if (!dateString) return null;
         const d = new Date(dateString);
         return `Tháng ${d.getMonth() + 1} ${d.getFullYear()}`;
     };
@@ -133,8 +130,6 @@ export default function InvestorDetail({ investorId, onBack, user, onShowLogin }
                         </span>
                     </div>
 
-                    <div className={styles.handle}>{handle}</div>
-
                     {Array.isArray(investor.industries) && investor.industries.length > 0 && (
                         <div className={styles.industryChips} style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '10px' }}>
                             {investor.industries.map((ind, idx) => (
@@ -160,7 +155,11 @@ export default function InvestorDetail({ investorId, onBack, user, onShowLogin }
                         </div>
                         <div className={styles.metaItem}>
                             <CalendarBlank size={15} weight="duotone" style={{ color: 'var(--primary-blue)' }} />
-                            <span>Tham gia {formatJoinDate(investor.investmentDate)}</span>
+                            <span>
+                                {formatJoinDate(investor.investmentDate)
+                                    ? `Tham gia ${formatJoinDate(investor.investmentDate)}`
+                                    : 'Chưa cập nhật ngày tham gia'}
+                            </span>
                         </div>
                     </div>
                 </div>

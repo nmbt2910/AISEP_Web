@@ -2281,7 +2281,7 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             {/* Report Header */}
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                 <div style={{ flex: 1 }}>
-                                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '800', color: '#e7e9ea', letterSpacing: '-0.01em' }}>
+                                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                                                         {project.projectName || `Dự án #${report.projectId}`}
                                                     </h4>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -2293,40 +2293,46 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
                                                     <div style={{
-                                                        backgroundColor: '#1d9bf020',
-                                                        color: '#1d9bf0',
-                                                        padding: '2px 10px',
+                                                        backgroundColor: 'rgba(29, 155, 240, 0.1)',
+                                                        color: 'var(--primary-blue)',
+                                                        padding: '4px 10px',
                                                         borderRadius: '6px',
                                                         fontSize: '11px',
                                                         fontWeight: '800',
-                                                        border: '1px solid #1d9bf030'
+                                                        border: '1px solid rgba(29, 155, 240, 0.2)'
                                                     }}>
-                                                        DIỂM: {report.potentialScore || 0}
+                                                        DIỂM: {report.finalPotentialScore ?? report.potentialScore ?? 0}
                                                     </div>
                                                     {(() => {
-                                                        const verdict = (report.investmentVerdict || '').toLowerCase();
-                                                        let colors = { bg: '#2f3336', text: '#e7e9ea', border: '#3e4144' };
-                                                        let label = report.investmentVerdict || 'Unknown';
+                                                        const score = report.finalPotentialScore ?? report.potentialScore ?? 0;
+                                                        let label = report.investmentVerdict;
+                                                        
+                                                        // Derive verdict if missing
+                                                        if (!label) {
+                                                            if (score >= 80) label = 'STRONG';
+                                                            else if (score >= 65) label = 'PASS';
+                                                            else if (score >= 50) label = 'WATCHLIST';
+                                                            else label = 'REJECT';
+                                                        }
+
+                                                        const verdict = label.toLowerCase();
+                                                        let colors = { bg: 'var(--bg-secondary)', text: 'var(--text-primary)', border: 'var(--border-color)' };
 
                                                         if (verdict.includes('strong')) {
-                                                            colors = { bg: '#00ba7c20', text: '#00ba7c', border: '#00ba7c40' };
-                                                            label = 'STRONG';
+                                                            colors = { bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', border: 'rgba(16, 185, 129, 0.2)' };
                                                         } else if (verdict.includes('watchlist')) {
-                                                            colors = { bg: '#ffd40020', text: '#ffd400', border: '#ffd40040' };
-                                                            label = 'WATCHLIST';
+                                                            colors = { bg: 'rgba(245, 158, 11, 0.1)', text: '#f59e0b', border: 'rgba(245, 158, 11, 0.2)' };
                                                         } else if (verdict.includes('pass')) {
-                                                            colors = { bg: '#1d9bf020', text: '#1d9bf0', border: '#1d9bf030' };
-                                                            label = 'PASS';
+                                                            colors = { bg: 'rgba(29, 155, 240, 0.1)', text: 'var(--primary-blue)', border: 'rgba(29, 155, 240, 0.2)' };
                                                         } else if (verdict.includes('reject') || verdict.includes('fail')) {
-                                                            colors = { bg: '#f4212e20', text: '#f4212e', border: '#f4212e40' };
-                                                            label = 'REJECT';
+                                                            colors = { bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.2)' };
                                                         }
 
                                                         return (
                                                             <div style={{
                                                                 backgroundColor: colors.bg,
                                                                 color: colors.text,
-                                                                padding: '2px 10px',
+                                                                padding: '4px 10px',
                                                                 borderRadius: '6px',
                                                                 fontSize: '10px',
                                                                 fontWeight: '900',

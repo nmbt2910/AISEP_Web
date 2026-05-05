@@ -147,7 +147,7 @@ function RightPanel({
               <Loader size={20} className={styles.spinIcon} />
             </div>
           ) : trendingSectors.length > 0 ? (
-            trendingSectors.map(sector => (
+            trendingSectors.slice(0, 3).map(sector => (
               <button
                 key={sector.name}
                 className={styles.sectorRow}

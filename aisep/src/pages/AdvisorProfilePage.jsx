@@ -570,7 +570,7 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                             {fieldErrors.profileImageFile && <p style={{ color: 'red', fontSize: '12px', marginTop: '4px', textAlign: 'center' }}>{fieldErrors.profileImageFile}</p>}
                             <h2 className={styles.userName}>{profile?.userName || user?.name || user?.fullName}</h2>
                             <p className={styles.userEmail}>{profile?.email || user?.email}</p>
-                            <div className={styles.roleBadge}>{profile ? 'Advisor Specialist' : 'New Advisor Onboarding'}</div>
+                            <div className={styles.roleBadge}>{profile ? 'Chuyên gia cố vấn' : 'Thiết lập hồ sơ'}</div>
                         </div>
 
                         <div className={styles.menuItems}>

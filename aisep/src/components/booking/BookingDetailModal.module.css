@@ -339,23 +339,28 @@
   }
 
   .primaryBtn, .secondaryBtn {
-    width: 64px;
-    height: 42px;
+    width: auto;
     min-width: 64px;
+    height: 42px;
     justify-content: center;
-    padding: 0;
+    padding: 0 16px;
     border-radius: 9999px;
     font-size: 14px;
   }
 
   .primaryBtn svg, .secondaryBtn svg {
-    width: 22px !important;
-    height: 22px !important;
+    width: 20px !important;
+    height: 20px !important;
   }
+}
 
-  .primaryBtn span, .secondaryBtn span {
-    display: none;
-  }
+.iconOnlyBtn {
+  width: auto !important;
+  min-width: 64px !important;
+  height: 44px !important;
+  padding: 0 20px !important;
+  justify-content: center !important;
+  border-radius: 9999px !important;
 }
 
 .dangerBtn {

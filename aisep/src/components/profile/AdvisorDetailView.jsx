@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft, MapPin, Star, CurrencyCircleDollar, Globe, Briefcase,
-  Medal, EnvelopeSimple, Phone, CalendarBlank, CheckCircle, Timer, TrendUp, ClipboardText, Trophy
+  Medal, EnvelopeSimple, CalendarBlank, CheckCircle, TrendUp, ClipboardText, Trophy
 } from '@phosphor-icons/react';
 import BookingWizard from '../booking/BookingWizard';
 import styles from './AdvisorDetailView.module.css';
@@ -153,39 +153,35 @@ const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onR
           ))}
         </div>
 
-        {/* Meta row: location + join date */}
+        {/* Meta row: location only (join date not provided by API) */}
         <div className={styles.metaRow}>
           <span className={styles.metaItem}>
             <MapPin size={16} weight="duotone" style={{ color: 'var(--primary-blue)' }} />
             {advisor.location || 'Nghề nghiệp tự do'}
           </span>
-          <span className={styles.metaItem}>
-            <CalendarBlank size={16} weight="duotone" style={{ color: 'var(--primary-blue)' }} />
-            Tham gia Tháng 3 2024
-          </span>
         </div>
 
-        {/* Stats strip */}
         <div className={styles.statsStrip}>
           <div className={styles.statItem}>
             <div className={styles.statIcon}><CurrencyCircleDollar size={24} weight="duotone" color="#10b981" /></div>
-            <div className={styles.statValue}>{formatSalary(advisor.hourlyRate)}</div>
-            <div className={styles.statLabel}>VNĐ/giờ</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statValue}>{formatSalary(advisor.hourlyRate)}</div>
+              <div className={styles.statLabel}>VNĐ/giờ</div>
+            </div>
           </div>
           <div className={styles.statItem}>
             <div className={styles.statIcon}><Star size={24} weight="fill" color="#ffad1f" /></div>
-            <div className={styles.statValue}>{advisor.rating || '4.8'}</div>
-            <div className={styles.statLabel}>Đánh giá</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statValue}>{advisor.rating || '4.8'}</div>
+              <div className={styles.statLabel}>Đánh giá</div>
+            </div>
           </div>
           <div className={styles.statItem}>
             <div className={styles.statIcon}><Globe size={24} weight="duotone" color="var(--primary-blue)" /></div>
-            <div className={styles.statValue}>{advisor.languagesSpoken || 'VI · EN'}</div>
-            <div className={styles.statLabel}>Ngôn ngữ</div>
-          </div>
-          <div className={styles.statItem}>
-            <div className={styles.statIcon}><Timer size={24} weight="duotone" color="#8b5cf6" /></div>
-            <div className={styles.statValue}>24h</div>
-            <div className={styles.statLabel}>Phản hồi</div>
+            <div className={styles.statInfo}>
+              <div className={styles.statValue}>{advisor.languagesSpoken || 'VI · EN'}</div>
+              <div className={styles.statLabel}>Ngôn ngữ</div>
+            </div>
           </div>
         </div>
       </div>
@@ -236,17 +232,6 @@ const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onR
               </div>
             </div>
 
-            <div className={styles.feedRow}>
-              <div className={`${styles.iconBox} ${styles.greenBox}`}>
-                <CalendarBlank size={22} weight="duotone" />
-              </div>
-              <div className={styles.rowContent}>
-                <div className={styles.rowTitle}>Lịch đặt tư vấn</div>
-                <div className={styles.rowText}>
-                  {advisor.schedule || 'Đang cập nhật'}
-                </div>
-              </div>
-            </div>
           </>
         )}
 
@@ -272,13 +257,24 @@ const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onR
               <div className={styles.rowContent}>
                 <div className={styles.rowTitle}>Chứng chỉ & Bằng cấp</div>
                 <div className={styles.certGrid}>
-                  {advisor.certifications ? (
-                    advisor.certifications.split('|').map((cert, i) => (
-                      <div key={i} className={styles.certCard}>
-                        <Medal size={16} weight="duotone" className={styles.certIcon} />
-                        <span className={styles.certName}>{cert.trim()}</span>
-                      </div>
-                    ))
+                  {advisor.certifications && String(advisor.certifications).trim() ? (
+                    String(advisor.certifications)
+                      .split('|')
+                      .map((cert) => cert.trim())
+                      .filter(Boolean)
+                      .map((certLink, i) => (
+                        <a
+                          key={i}
+                          className={styles.certCard}
+                          href={certLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Mở chứng chỉ trong tab mới"
+                        >
+                          <Medal size={16} weight="duotone" className={styles.certIcon} />
+                          <span className={styles.certName}>Mở chứng chỉ</span>
+                        </a>
+                      ))
                   ) : (
                     <div className={styles.rowText}>Đang cập nhật</div>
                   )}
@@ -297,9 +293,6 @@ const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onR
               <div className={styles.rowTitle}>Thông tin liên hệ</div>
               <div className={styles.rowText}>
                 Email: {advisor.email || 'Đang cập nhật'}
-              </div>
-              <div className={styles.rowText}>
-                Số điện thoại: {advisor.phoneNumber || advisor.phone || 'Đang cập nhật'}
               </div>
               <div className={styles.rowText}>
                 Vị trí: {advisor.location || 'Đang cập nhật'}
