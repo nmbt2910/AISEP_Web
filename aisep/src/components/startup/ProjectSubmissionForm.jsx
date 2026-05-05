@@ -228,6 +228,12 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
    * Validate a single field against fetched rules
    */
   const validateField = (name, value) => {
+    // Skip dynamic validation for scorecard enum fields as they use strings/enums
+    // which may conflict with numeric rules from the backend (validated manually in validateStep)
+    if (SCORECARD_FORM_ENUM_KEYS.includes(name)) {
+      return '';
+    }
+
     if (!validationRules) return '';
 
     const fieldKey = name.toLowerCase();
@@ -240,6 +246,15 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
 
     // Delegate to validationService which already handles StageOptionIds logic
     return validationService.validateField(value, rule, formData.developmentStage);
+  };
+
+  const getStep3InlineError = (fieldKey) => {
+    const message = errors[fieldKey] || '';
+    // Ẩn cảnh báo kỹ thuật từ rule minValue (=1) ở step scorecard, tránh gây rối UX.
+    if (currentStep === 3 && typeof message === 'string' && message.toLowerCase().includes('giá trị tối thiểu là 1')) {
+      return '';
+    }
+    return message;
   };
 
   const handleImageChange = (e) => {
@@ -915,7 +930,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
                               value={formData[field.key]}
                               onChange={handleInputChange}
                               options={field.options}
-                              error={errors[field.key]}
+                              error={getStep3InlineError(field.key)}
                             />
                           ))}
 

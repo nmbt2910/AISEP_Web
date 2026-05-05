@@ -35,6 +35,7 @@ import NewsPRSection from '../components/common/NewsPRSection';
 import BookingDetailModal from '../components/booking/BookingDetailModal';
 import ConsultingReportModal from '../components/booking/ConsultingReportModal';
 import ReviewModal from '../components/booking/ReviewModal';
+import { translateAIResults } from '../utils/translateAIResults';
 
 /** Trạng thái thỏa thuận staff/investor deal (GET /api/Deals) — khác map numeric trong dealsService.js */
 const STAFF_DEAL_WORKFLOW_BY_LABEL = {
@@ -1195,10 +1196,25 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         try {
             const response = await AIEvaluationService.getProjectAnalysisHistory(projectId);
             if (response.success) {
-                // Filter: Only include Startup-initiated analyses (those with potentialScore)
-                const startupReports = (response.data || []).filter(h =>
-                    h.potentialScore !== undefined && h.potentialScore !== null
-                );
+                const startupReports = (response.data || [])
+                    .map((item) => {
+                        try {
+                            const { analysisResult } = translateAIResults({ success: true, data: item }, null);
+                            return analysisResult?.data ?? item;
+                        } catch {
+                            return item;
+                        }
+                    })
+                    .map((h) => {
+                        const score =
+                            h.potentialScore ??
+                            h.finalPotentialScore ??
+                            h.finalScore ??
+                            h.totalFinalScore ??
+                            (h.data && (h.data.potentialScore || h.data.finalPotentialScore || h.data.finalScore));
+                        return { ...h, _displayScore: score };
+                    })
+                    .filter(h => h._displayScore !== undefined && h._displayScore !== null);
                 setAnalysisHistory(startupReports);
             } else {
                 setAnalysisHistory([]);
@@ -4051,7 +4067,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                     {analysisHistory.length > 0 ? analysisHistory.map((h, i) => (
                                                         <button key={i} onClick={() => { setSelectedHistoryResult({ data: h, _type: 'startup' }); setShowHistoryView(true); }} className={styles.scoreCard} style={{ minWidth: '100px' }}>
                                                             <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{new Date(h.createdAt || h.evaluatedAt).toLocaleDateString('vi-VN')}</div>
-                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: 'var(--primary-blue)' }}>{h.potentialScore || 0}<small style={{ fontSize: '10px' }}>/100</small></div>
+                                                            <div style={{ fontSize: '18px', fontWeight: '900', color: 'var(--primary-blue)' }}>{h._displayScore ?? 0}<small style={{ fontSize: '10px' }}>/100</small></div>
                                                         </button>
                                                     )) : <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Chưa có bản phân tích nào</p>}
                                                 </div>

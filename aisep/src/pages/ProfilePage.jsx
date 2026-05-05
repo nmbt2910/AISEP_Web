@@ -313,7 +313,7 @@ function ProfileTab({ user }) {
                         {/* User Info - Read Only */}
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
-                                <label>Tên Đăng Nhập</label>
+                                <label>Tên người dùng</label>
                                 <input
                                     type="text"
                                     value={formData.userName || ''}

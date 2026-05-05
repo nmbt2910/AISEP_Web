@@ -37,9 +37,12 @@ const POLL_INTERVAL = 30_000;
 function resolveStatus(profile) {
   if (!profile) return 'Missing';
   const raw = profile.approvalStatus ?? profile.status;
-  if (raw === 1 || raw === 'Approved' || raw === 'approved') return 'Approved';
-  if (raw === 2 || raw === 'Rejected' || raw === 'rejected') return 'Rejected';
-  if (raw === 0 || raw === 'Pending' || raw === 'pending') return 'Pending';
+  const normalized = typeof raw === 'string' ? raw.toLowerCase() : raw;
+  
+  if (normalized === 1 || normalized === '1' || normalized === 'approved') return 'Approved';
+  if (normalized === 2 || normalized === '2' || normalized === 'rejected') return 'Rejected';
+  if (normalized === 0 || normalized === '0' || normalized === 'pending') return 'Pending';
+  
   // Default to Pending when the profile exists but status is unknown
   return 'Pending';
 }
