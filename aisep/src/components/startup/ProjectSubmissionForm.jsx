@@ -242,6 +242,15 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
     return validationService.validateField(value, rule, formData.developmentStage);
   };
 
+  const getStep3InlineError = (fieldKey) => {
+    const message = errors[fieldKey] || '';
+    // Ẩn cảnh báo kỹ thuật từ rule minValue (=1) ở step scorecard, tránh gây rối UX.
+    if (currentStep === 3 && typeof message === 'string' && message.toLowerCase().includes('giá trị tối thiểu là 1')) {
+      return '';
+    }
+    return message;
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -915,7 +924,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
                               value={formData[field.key]}
                               onChange={handleInputChange}
                               options={field.options}
-                              error={errors[field.key]}
+                              error={getStep3InlineError(field.key)}
                             />
                           ))}
 

@@ -565,7 +565,16 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         try {
             const response = await AIEvaluationService.getProjectAnalysisHistory(projectId);
             if (response.success) {
-                setAnalysisHistory(response.data || []);
+                const raw = response.data || [];
+                const mapped = raw.map((item) => {
+                    try {
+                        const { analysisResult } = translateAIResults({ success: true, data: item }, null);
+                        return analysisResult?.data ?? item;
+                    } catch {
+                        return item;
+                    }
+                });
+                setAnalysisHistory(mapped);
             } else {
                 setAnalysisHistory([]);
             }
@@ -2879,7 +2888,16 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
 
                                             <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', padding: '4px 0' }}>
                                                 {(() => {
-                                                    const filteredHistory = analysisHistory.filter(item => (item.potentialScore !== undefined && item.potentialScore !== null) || (item.data && item.data.potentialScore !== undefined));
+                                                    const filteredHistory = analysisHistory
+                                                        .map((item) => {
+                                                            const score =
+                                                                item.potentialScore ??
+                                                                item.finalPotentialScore ??
+                                                                item.finalScore ??
+                                                                (item.data && (item.data.potentialScore || item.data.finalPotentialScore || item.data.finalScore));
+                                                            return { ...item, _displayScore: score };
+                                                        })
+                                                        .filter(item => item._displayScore !== undefined && item._displayScore !== null);
 
                                                     return isLoadingHistory ? (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '14px' }}>
@@ -2887,9 +2905,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                         </div>
                                                     ) : filteredHistory.length > 0 ? (
                                                         filteredHistory.map((item, idx) => (
-                                                            <div key={idx} onClick={() => { setSelectedHistoryResult({ data: item }); setShowHistoryView(true); }} className={styles.scoreCard}>
+                                                          <div key={idx} onClick={() => { setSelectedHistoryResult({ data: item }); setShowHistoryView(true); }} className={styles.scoreCard}>
                                                                 <div className={styles.scoreHeader}>
-                                                                    <span className={styles.scoreMainValue}>{item.potentialScore}</span>
+                                                                  <span className={styles.scoreMainValue}>{item._displayScore}</span>
                                                                     <span className={styles.scoreMaxLabel}>/100</span>
                                                                 </div>
                                                                 <span className={styles.scoreDate}>
