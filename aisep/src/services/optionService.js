@@ -11,7 +11,7 @@ export const optionService = {
    */
   getIndustries: async () => {
     try {
-      const response = await apiClient.get('/api/industry-options');
+      const response = await apiClient.get('/api/industry-options', { params: { pageSize: 100 } });
       const data = response?.data || response;
       const items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
       // Based on IndustryOptionResponse.cs: Id, Value, IsActive
@@ -32,7 +32,7 @@ export const optionService = {
    */
   getStages: async () => {
     try {
-      const response = await apiClient.get('/api/stage-options');
+      const response = await apiClient.get('/api/stage-options', { params: { pageSize: 100 } });
       const data = response?.data || response;
       const items = Array.isArray(data) ? data : (data.items || data.results || data.data || []);
       // Based on StageOptionResponse.cs: Id, Value, IsActive
