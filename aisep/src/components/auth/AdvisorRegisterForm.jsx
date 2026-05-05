@@ -111,7 +111,7 @@ function AdvisorRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
             </div>
 
             <div className={styles.reg_formGroup} style={{ marginBottom: '16px' }}>
-              <label htmlFor="username" className={styles.reg_label}>Tên người dùng (Username) <span className={styles.reg_required}>*</span></label>
+              <label htmlFor="username" className={styles.reg_label}>Tên người dùng <span className={styles.reg_required}>*</span></label>
               <input id="username" name="username" type="text" value={formData.username} onChange={handleInputChange} className={`${styles.reg_input} ${errors.username ? styles.reg_inputError : ''}`} placeholder="Nhập tên người dùng của bạn" disabled={isLoading} />
               {errors.username && <p className={styles.reg_errorText}>{errors.username}</p>}
             </div>

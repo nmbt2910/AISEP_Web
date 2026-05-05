@@ -151,7 +151,7 @@ function StartupRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
             {/* Username */}
             <div className={styles.reg_formGroup} style={{ marginBottom: '16px' }}>
               <label htmlFor="username" className={styles.reg_label}>
-                Tên người dùng (Username) <span className={styles.reg_required}>*</span>
+                Tên người dùng <span className={styles.reg_required}>*</span>
               </label>
               <input
                 id="username"

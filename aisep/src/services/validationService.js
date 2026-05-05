@@ -124,7 +124,8 @@ export const validationService = {
     // Min value check
     if (rule.minValue !== undefined && rule.minValue !== null) {
         const numVal = Number(val);
-        if (isNaN(numVal) || numVal < rule.minValue) {
+        // Only perform numeric check if the value is actually numeric and not empty
+        if (val !== '' && !isNaN(numVal) && numVal < rule.minValue) {
             return `Giá trị tối thiểu là ${rule.minValue}`;
         }
     }
@@ -132,7 +133,8 @@ export const validationService = {
     // Max value check
     if (rule.maxValue !== undefined && rule.maxValue !== null) {
         const numVal = Number(val);
-        if (isNaN(numVal) || numVal > rule.maxValue) {
+        // Only perform numeric check if the value is actually numeric and not empty
+        if (val !== '' && !isNaN(numVal) && numVal > rule.maxValue) {
             return `Giá trị tối đa là ${rule.maxValue}`;
         }
     }

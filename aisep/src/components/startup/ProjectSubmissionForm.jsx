@@ -228,6 +228,12 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
    * Validate a single field against fetched rules
    */
   const validateField = (name, value) => {
+    // Skip dynamic validation for scorecard enum fields as they use strings/enums
+    // which may conflict with numeric rules from the backend (validated manually in validateStep)
+    if (SCORECARD_FORM_ENUM_KEYS.includes(name)) {
+      return '';
+    }
+
     if (!validationRules) return '';
 
     const fieldKey = name.toLowerCase();
