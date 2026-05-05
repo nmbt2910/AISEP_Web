@@ -408,12 +408,26 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
             }
         }
 
+        // Extra hardening: Ensure file errors are only present if files are truly missing
+        // This is a safety net against any unexpected validation behavior
+        if (files.profileImage || previews.profileImage) {
+            delete newErrors.profileImageFile;
+            delete newErrors.profileimagefile;
+        }
+        if (files.certification || previews.certificationUrl) {
+            delete newErrors.certificationFile;
+            delete newErrors.certificationfile;
+        }
+
+        console.log('[ADVISOR_PROFILE] Final validation errors:', newErrors);
+
         if (Object.keys(newErrors).length > 0) {
             setFieldErrors(newErrors);
             setError('Vui lòng kiểm tra lại thông tin và cung cấp đủ giấy tờ.');
             return;
         }
-
+        
+        console.log('[ADVISOR_PROFILE] Validation passed, showing confirmation');
         setFieldErrors({});
         setShowConfirmModal(true);
     };
