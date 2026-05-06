@@ -3126,20 +3126,20 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                             <div style={{
                                                 background: 'linear-gradient(135deg, rgba(29, 155, 240, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
                                                 border: '1px solid rgba(29, 155, 240, 0.25)',
-                                                borderRadius: '20px',
-                                                padding: '20px',
-                                                marginBottom: '24px',
+                                                borderRadius: isMobile ? '16px' : '20px',
+                                                padding: isMobile ? '14px' : '20px',
+                                                marginBottom: isMobile ? '16px' : '24px',
                                                 display: 'flex',
-                                                alignItems: 'center',
+                                                alignItems: isMobile ? 'stretch' : 'center',
                                                 justifyContent: 'space-between',
-                                                gap: '20px',
+                                                gap: isMobile ? '12px' : '20px',
                                                 flexWrap: 'wrap'
                                             }}>
-                                                <div style={{ display: 'flex', gap: '16px', flex: 1, minWidth: '280px' }}>
+                                                <div style={{ display: 'flex', gap: isMobile ? '10px' : '16px', flex: 1, minWidth: isMobile ? '100%' : '280px' }}>
                                                     <div style={{
-                                                        width: '48px',
-                                                        height: '48px',
-                                                        borderRadius: '14px',
+                                                        width: isMobile ? '40px' : '48px',
+                                                        height: isMobile ? '40px' : '48px',
+                                                        borderRadius: isMobile ? '12px' : '14px',
                                                         background: 'var(--primary-blue)',
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -3147,36 +3147,36 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                         boxShadow: '0 4px 12px rgba(29, 155, 240, 0.3)',
                                                         flexShrink: 0
                                                     }}>
-                                                        <Sparkles size={24} color="#fff" fill="#fff" />
+                                                        <Sparkles size={isMobile ? 20 : 24} color="#fff" fill="#fff" />
                                                     </div>
                                                     <div>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                                                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'var(--text-primary)' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isMobile ? '6px' : '4px', flexWrap: 'wrap' }}>
+                                                            <h4 style={{ margin: 0, fontSize: isMobile ? '13px' : '15px', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.35 }}>
                                                                 Hồ sơ Thẩm định (Due Diligence)
                                                             </h4>
                                                             {lastDueDiligenceDocUrl && (
                                                                 <span style={{
                                                                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                                                                     color: '#10b981',
-                                                                    fontSize: '10px',
+                                                                    fontSize: isMobile ? '9px' : '10px',
                                                                     fontWeight: 800,
-                                                                    padding: '2px 8px',
+                                                                    padding: isMobile ? '2px 7px' : '2px 8px',
                                                                     borderRadius: '99px',
                                                                     textTransform: 'uppercase'
                                                                 }}>Đã có bản nộp</span>
                                                             )}
                                                         </div>
-                                                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                        <p style={{ margin: 0, fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', lineHeight: isMobile ? 1.45 : 1.5 }}>
                                                             Cung cấp dữ liệu đối chứng để <strong>AI Analyst</strong> đánh giá dự án chính xác hơn.
                                                             Giảm thiểu rủi ro bị trừ điểm do thiếu bằng chứng trong Pitch Deck.
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '10px' }}>
+                                                <div style={{ display: 'flex', gap: '10px', width: isMobile ? '100%' : 'auto' }}>
                                                     {lastDueDiligenceDocUrl && (
                                                         <button
                                                             className={styles.secondaryBtn}
-                                                            style={{ padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
+                                                            style={{ padding: isMobile ? '10px 12px' : '10px 16px', borderRadius: '12px', fontSize: isMobile ? '12px' : '13px', fontWeight: 700, flex: isMobile ? 1 : 'none' }}
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 window.open(lastDueDiligenceDocUrl, '_blank');
@@ -3188,12 +3188,13 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                     <button
                                                         className={styles.primaryBtn}
                                                         style={{
-                                                            padding: '10px 20px',
+                                                            padding: isMobile ? '10px 14px' : '10px 20px',
                                                             borderRadius: '12px',
-                                                            fontSize: '13px',
+                                                            fontSize: isMobile ? '12px' : '13px',
                                                             fontWeight: 800,
                                                             background: 'var(--primary-blue)',
-                                                            boxShadow: '0 4px 10px rgba(29, 155, 240, 0.2)'
+                                                            boxShadow: '0 4px 10px rgba(29, 155, 240, 0.2)',
+                                                            flex: isMobile ? 1.35 : 'none'
                                                         }}
                                                         onClick={(e) => {
                                                             e.preventDefault();
