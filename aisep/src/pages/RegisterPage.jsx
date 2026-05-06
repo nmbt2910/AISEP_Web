@@ -26,8 +26,8 @@ function RegisterPage({ selectedRole, onBack, onComplete }) {
       const data = response?.data || response;
       if (data) {
         setTermsData({
-          version: data.version || 'v1.0',
-          content: data.contentHtml || '',
+          version: data.version || data.Version || '',
+          content: data.contentHtml || data.ContentHtml || '',
           error: null,
           isLoading: false
         });

@@ -4,7 +4,7 @@ import {
     Users, Calendar, FileText, Star, Clock, CheckCircle, MessageSquare,
     PlusCircle, TrendingUp, Trash2, Edit2, X, AlertCircle, Loader, Loader2,
     ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CreditCard,
-    Eye, Check, ShieldCheck, ShieldAlert
+    Eye, Check, ShieldCheck, ShieldAlert, Sparkles
 } from 'lucide-react';
 import userReportService from '../services/userReportService';
 import styles from '../styles/SharedDashboard.module.css';
@@ -773,9 +773,12 @@ const AdvisorBookingKanbanCard = ({ booking, onDetail, onApprove, onReject, onCh
                     </div>
                     <div className={avStyles.bf}>
                         <div className={avStyles.bfKey}>GIÁ</div>
-                        <div className={avStyles.bfVal} style={{ color: '#f59e0b' }}>
-                            {Number(booking.price || 0).toLocaleString('vi-VN')}
-                            <span style={{ fontSize: '10px', marginLeft: '2px', color: 'var(--text-secondary)', fontWeight: '400' }}>VND</span>
+                        <div className={avStyles.bfVal} style={{ color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {(booking.isPaymentWaived || booking.IsPaymentWaived) ? (
+                                <><Sparkles size={12} weight="fill" color="#eab308" /> <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '11px' }}>{Number(booking.price || 0).toLocaleString('vi-VN')}</span> Miễn phí</>
+                            ) : (
+                                <>{Number(booking.price || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: '400' }}>VND</span></>
+                            )}
                         </div>
                     </div>
                 </div>

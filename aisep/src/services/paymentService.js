@@ -18,7 +18,7 @@ const paymentService = {
    */
   checkoutBooking: async (bookingId) => {
     const response = await apiClient.post(`/api/payments/bookings/${bookingId}/checkout`);
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 
   /**
@@ -29,7 +29,7 @@ const paymentService = {
    */
   getBookingPaymentStatus: async (bookingId) => {
     const response = await apiClient.get(`/api/payments/bookings/${bookingId}/status`);
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 
   /**
@@ -38,7 +38,7 @@ const paymentService = {
    */
   getInvestorPackages: async () => {
     const response = await apiClient.get('/api/payments/packages/investor');
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 
   /**
@@ -47,7 +47,7 @@ const paymentService = {
    */
   getStartupPackages: async () => {
     const response = await apiClient.get('/api/payments/packages/startup');
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 
   /**
@@ -57,7 +57,7 @@ const paymentService = {
    */
   checkoutSubscription: async (packageId) => {
     const response = await apiClient.post('/api/payments/subscriptions/checkout', { packageId });
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 
   /**
@@ -68,7 +68,7 @@ const paymentService = {
    */
   updatePackage: async (packageId, data) => {
     const response = await apiClient.put(`/api/payments/packages/${packageId}`, data);
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 
   /**
@@ -79,7 +79,7 @@ const paymentService = {
    */
   getTransactionStatus: async (transactionId) => {
     const response = await apiClient.get(`/api/payments/${transactionId}/status`);
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   },
 };
 

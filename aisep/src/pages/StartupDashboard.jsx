@@ -22,6 +22,7 @@ import connectionService from '../services/connectionService.js';
 import dealsService from '../services/dealsService.js';
 import investorService from '../services/investorService.js';
 import signalRService from '../services/signalRService.js';
+import userService from '../services/userService';
 import { PROJECT_STATUS, isUserEditable, STATUS_LABELS, STATUS_COLORS, getStageLabel } from '../constants/ProjectStatus.js';
 import { translateAIResults } from '../utils/translateAIResults.js';
 import kanban from '../styles/OperationStaffDashboard.module.css';
@@ -666,7 +667,24 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                 subscriptionService.getMySubscription(),
                 paymentService.getStartupPackages()
             ]);
-            setSubscription(subData);
+            
+            let finalSub = subData;
+            if (!finalSub) {
+                try {
+                    const bonusCount = await userService.getMyBonusBookings();
+                    if (bonusCount > 0) {
+                        finalSub = {
+                            remainingFreeBookings: 0,
+                            bonusFreeBookings: bonusCount,
+                            packageName: 'Miễn phí'
+                        };
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch bonus bookings for free user", err);
+                }
+            }
+            
+            setSubscription(finalSub);
             const pkgs = pkgData?.items || pkgData || [];
             const activePkg = pkgs.find(p => p.packageId === subData?.packageId);
             setActivePackage(activePkg);

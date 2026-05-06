@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChatCircleText, FileText, CheckCircle, Clock, WarningCircle, X, CreditCard, CaretRight, CircleNotch, Calendar, MagnifyingGlass, ArrowsClockwise, ShieldCheck, ShieldWarning, Gavel, Star } from '@phosphor-icons/react';
+import { ChatCircleText, FileText, CheckCircle, Clock, WarningCircle, X, CreditCard, CaretRight, CircleNotch, Calendar, MagnifyingGlass, ArrowsClockwise, ShieldCheck, ShieldWarning, Gavel, Star, Sparkle } from '@phosphor-icons/react';
 import styles from '../../styles/SharedDashboard.module.css';
 import bookingService from '../../services/bookingService';
 import chatService from '../../services/chatService';
@@ -393,7 +393,14 @@ export default function StartupBookings({ user, targetId, onViewProject, onOpenC
                                     <div className={styles.xContent}>
                                         <div className={styles.xHeader}>
                                             <h4 className={styles.xProjectName} style={{ fontSize: '16px' }}>{displayProjectName}</h4>
-                                            <span className={`${styles.xStatus} ${styles[statusInfo.cls]}`} style={{ background: 'transparent', border: `1px solid ${statusInfo.color}`, color: statusInfo.color }}>{statusInfo.label}</span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span className={`${styles.xStatus} ${styles[statusInfo.cls]}`} style={{ background: 'transparent', border: `1px solid ${statusInfo.color}`, color: statusInfo.color }}>{statusInfo.label}</span>
+                                                {(booking.isPaymentWaived || booking.IsPaymentWaived || booking.usedPremiumFreeQuota || booking.UsedPremiumFreeQuota) && (
+                                                    <span className={styles.xStatus} style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', color: '#eab308', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Sparkle size={12} weight="fill" /> Miễn phí
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div style={{ color: 'var(--primary-blue)', fontWeight: '600', fontSize: '14px', marginBottom: '8px' }}>{displayAdvisorName}</div>
                                         <div className={styles.xMetaRow}>
