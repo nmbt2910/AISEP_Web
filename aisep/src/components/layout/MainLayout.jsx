@@ -408,12 +408,13 @@ function MainLayout({
     'Mới nhất',
     'Đang nổi',
   ];
+  const isInvestorUser = user && (user.role === 'Investor' || user.role === 1 || String(user.role) === '1');
   const [activeFilters, setActiveFilters] = useState({
     industry: '',
     stage: '',
     minScore: 0,
     fundingStage: '',
-    sort: 'newest',
+    sort: isInvestorUser ? 'foryou' : 'newest',
   });
 
   // Sync hasStartupProfile and myStartupProfileId from context
@@ -620,9 +621,9 @@ function MainLayout({
                 })(),
                 industry: (() => {
                   const inds = p.industries || p.Industries;
-                  if (Array.isArray(inds) && inds.length > 0) return inds[0];
+                  if (Array.isArray(inds) && inds.length > 0) return inds.join(', ');
                   const ind = p.industry || p.Industry;
-                  if (Array.isArray(ind) && ind.length > 0) return ind[0];
+                  if (Array.isArray(ind) && ind.length > 0) return ind.join(', ');
                   if (ind) return ind;
                   return 'Chưa cập nhật';
                 })(),
@@ -751,6 +752,9 @@ function MainLayout({
 
     if (activeFilters.sort) {
       switch (activeFilters.sort) {
+        case 'foryou':
+          // Preserve original API order (which is by creation or as returned)
+          break;
         case 'newest':
           filtered.sort((a, b) => {
             if (a.createdAt && b.createdAt) return new Date(b.createdAt) - new Date(a.createdAt);
