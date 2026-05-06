@@ -69,14 +69,6 @@ function slugify(value) {
     .slice(0, 60);
 }
 
-function normalizePdfText(value) {
-  return String(value ?? '')
-    .replaceAll('Đ', 'D')
-    .replaceAll('đ', 'd')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-}
-
 export default function DueDiligenceFormModal({
   isOpen,
   template,
@@ -152,6 +144,7 @@ export default function DueDiligenceFormModal({
     setSubmitError('');
     setIsPreparingPdf(true);
     try {
+      await ensurePdfFonts();
       const dateStr = new Date().toLocaleString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
@@ -162,50 +155,103 @@ export default function DueDiligenceFormModal({
         hour12: false,
       });
 
-      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const margin = 36;
-      const maxWidth = pageWidth - margin * 2;
-      let y = margin;
-
-      const write = (text, options = {}) => {
-        const { size = 11, style = 'normal', spaceAfter = 7, indent = 0 } = options;
-        doc.setFont('helvetica', style);
-        doc.setFontSize(size);
-        doc.setTextColor(17, 24, 39);
-        const lines = doc.splitTextToSize(normalizePdfText(text || '—'), Math.max(40, maxWidth - indent));
-        lines.forEach((line) => {
-          if (y > pageHeight - margin) {
-            doc.addPage();
-            y = margin;
-          }
-          doc.text(line, margin + indent, y);
-          y += size * 1.35;
-        });
-        y += spaceAfter;
-      };
-
-      write(template?.documentTitle || 'TAI LIEU THAM DINH CHI TIET', { size: 16, style: 'bold', spaceAfter: 10 });
-      write(`Du an: ${projectName || template?.title || '[TEN DU AN]'}`, { size: 11, spaceAfter: 4 });
-      write(`Thoi gian tao: ${dateStr}`, { size: 10.5, spaceAfter: 10 });
-      if (template?.note) write(template.note, { size: 10.5, spaceAfter: 10 });
+      const content = [
+        {
+          table: {
+            widths: ['*'],
+            body: [[{ text: template?.documentTitle || 'TÀI LIỆU THẨM ĐỊNH CHI TIẾT', style: 'title' }]],
+          },
+          layout: {
+            hLineWidth: () => 0,
+            vLineWidth: () => 0,
+            paddingLeft: () => 14,
+            paddingRight: () => 14,
+            paddingTop: () => 12,
+            paddingBottom: () => 12,
+            fillColor: () => '#EAF3FF',
+          },
+          margin: [0, 0, 0, 14],
+        },
+        {
+          columns: [
+            { text: `Dự án: ${projectName || template?.title || '[Tên dự án]'}`, style: 'meta' },
+            { text: `Thời gian tạo: ${dateStr}`, style: 'meta', alignment: 'right' },
+          ],
+          columnGap: 12,
+          margin: [0, 0, 0, 14],
+        },
+      ];
 
       sections.forEach((section) => {
-        write(section.title || '', { size: 13, style: 'bold', spaceAfter: 6 });
-        (Array.isArray(section.items) ? section.items : []).forEach((item, idx) => {
+        const sectionItems = Array.isArray(section.items) ? section.items : [];
+        const questionBlocks = sectionItems.map((item, idx) => {
           const key = item.key || `${section.key}-${idx}`;
-          const ans = String(answers[key] || '').trim();
-          write(item.title || '', { size: 11.5, style: 'bold', spaceAfter: 4 });
-          (Array.isArray(item.bullets) ? item.bullets : []).forEach((bullet) => {
-            write(`- ${bullet}`, { size: 10.3, indent: 10, spaceAfter: 2 });
-          });
-          write('Noi dung startup cung cap:', { size: 10.5, style: 'bold', spaceAfter: 2 });
-          write(ans || '—', { size: 11, spaceAfter: 10 });
+          const answer = String(answers[key] || '').trim();
+          return {
+            unbreakable: false,
+            margin: [0, 0, 0, 10],
+            stack: [
+              { text: item.title || 'Câu hỏi', style: 'question' },
+              {
+                text: answer || 'Chưa có nội dung trả lời.',
+                style: answer ? 'answer' : 'answerEmpty',
+              },
+            ],
+          };
+        });
+
+        content.push({
+          stack: [
+            { text: section.title || 'Nội dung', style: 'sectionTitle', margin: [0, 0, 0, 10] },
+            ...questionBlocks,
+          ],
+          margin: [0, 0, 0, 12],
         });
       });
 
-      const blob = doc.output('blob');
+      const docDefinition = {
+        pageSize: 'A4',
+        pageMargins: [32, 32, 32, 32],
+        defaultStyle: {
+          font: 'Roboto',
+          fontSize: 10.8,
+          color: '#111827',
+          lineHeight: 1.35,
+        },
+        content,
+        styles: {
+          title: { fontSize: 17, bold: true, color: '#0F172A' },
+          meta: { fontSize: 10.2, color: '#334155' },
+          sectionTitle: { fontSize: 12.5, bold: true, color: '#1E3A8A' },
+          question: { fontSize: 11.2, bold: true, color: '#0F172A', margin: [0, 0, 0, 4] },
+          answer: {
+            fontSize: 10.8,
+            color: '#111827',
+            margin: [0, 0, 0, 2],
+            background: '#FFFFFF',
+          },
+          answerEmpty: {
+            fontSize: 10.8,
+            color: '#64748B',
+            italics: true,
+          },
+        },
+      };
+
+      const blob = await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Tạo PDF quá thời gian chờ. Vui lòng thử lại.'));
+        }, 20000);
+        try {
+          pdfMake.createPdf(docDefinition).getBlob((result) => {
+            clearTimeout(timeoutId);
+            resolve(result);
+          });
+        } catch (err) {
+          clearTimeout(timeoutId);
+          reject(err);
+        }
+      });
 
       const fileName = `due-diligence-${slugify(projectName || template?.title)}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
@@ -321,4 +367,3 @@ export default function DueDiligenceFormModal({
     </div>
   );
 }
-
