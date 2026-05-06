@@ -154,6 +154,38 @@ const adminService = {
    */
   updateScorecardConfig: async (id, payload) => {
     return await apiClient.put(`/api/admin/scorecard-configs/${id}`, payload);
+  },
+
+  /**
+   * Get platform overview statistics
+   * GET /api/admin/platform-overview
+   */
+  getPlatformOverview: async (from, to) => {
+    return await apiClient.get('/api/admin/platform-overview', { params: { from, to } });
+  },
+
+  /**
+   * Get project status breakdown
+   * GET /api/admin/project-status
+   */
+  getProjectStatusBreakdown: async () => {
+    return await apiClient.get('/api/admin/project-status');
+  },
+
+  /**
+   * Get investment trends statistics
+   * GET /api/admin/investment-trends
+   */
+  getInvestmentTrends: async (from, to) => {
+    return await apiClient.get('/api/admin/investment-trends', { params: { from, to } });
+  },
+
+  /**
+   * Get platform revenue statistics
+   * GET /api/admin/platform-revenue
+   */
+  getPlatformRevenue: async (params = {}) => {
+    return await apiClient.get('/api/admin/platform-revenue', { params });
   }
 };
 

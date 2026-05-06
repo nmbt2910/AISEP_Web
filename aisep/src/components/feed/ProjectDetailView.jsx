@@ -271,6 +271,7 @@ const DocumentCard = ({ doc }) => (
 export default function ProjectDetailView({ projectId, onBack, user, isPaidUser = false, onShowLogin, isFullView, isInvestorApproved = false, isStartupApproved = false, isAdvisorApproved = false, onUnlock, onRestrictedAction }) {
   const [project, setProject] = useState(null);
   const [documents, setDocuments] = useState([]);
+  const [docError, setDocError] = useState(null);
   const [aiHistory, setAiHistory] = useState([]);
   const [advisorBookings, setAdvisorBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -449,7 +450,7 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
 
   useEffect(() => {
     if (!projectId || !user) return;
-    setLoading(true); setError(null);
+    setLoading(true); setError(null); setDocError(null);
 
     // Scroll parent container to top on project change
     const container = document.querySelector('.scrollableSection') || document.querySelector('.mainContent');
@@ -491,7 +492,12 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
         });
 
         const [dRes, aRes, bRes] = await Promise.all([
-          projectSubmissionService.getDocuments(projectId).catch(() => null),
+          projectSubmissionService.getDocuments(projectId).catch(err => {
+            if (err?.response?.status === 403) {
+              setDocError(err.response.data?.errors?.[0] || err.response.data?.message || 'Bạn không có quyền xem tài liệu này.');
+            }
+            return null;
+          }),
           AIEvaluationService.getProjectAnalysisHistory(projectId).catch(() => null),
           bookingService.getAllBookings('', '-Id', 1, 1000).catch(() => null),
         ]);
@@ -508,7 +514,6 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
           name: truncateName(doc.fileName || doc.documentType),
           fullName: doc.fileName || doc.documentType,
           type: doc.documentType,
-          date: new Date(doc.verifiedAt || doc.uploadedAt || new Date()).toLocaleDateString('vi-VN'),
           url: doc.fileUrl,
         })));
 
@@ -984,7 +989,34 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
           <SectionCard>
             <SectionHeader><FolderOpen size={18} weight="duotone" /> Tài liệu dự án</SectionHeader>
             <SectionBody style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {documents.length > 0 ? documents.map((doc, i) => <DocumentCard key={i} doc={doc} />) : <div style={{ padding: 20, textAlign: 'center', color: T.textMuted }}>Không có tài liệu</div>}
+              {docError ? (
+                <div style={{
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  background: 'rgba(244, 33, 46, 0.03)',
+                  borderRadius: 16,
+                  border: `1px dashed ${T.red}40`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 10
+                }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: `${T.red}15`, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: T.red
+                  }}>
+                    <LockSimple size={22} weight="bold" />
+                  </div>
+                  <div style={{ color: T.red, fontWeight: 700, fontSize: 13, lineHeight: 1.5, maxWidth: 280 }}>
+                    {docError}
+                  </div>
+                </div>
+              ) : documents.length > 0 ? (
+                documents.map((doc, i) => <DocumentCard key={i} doc={doc} />)
+              ) : (
+                <div style={{ padding: 20, textAlign: 'center', color: T.textMuted }}>Không có tài liệu</div>
+              )}
             </SectionBody>
           </SectionCard>
         </div>

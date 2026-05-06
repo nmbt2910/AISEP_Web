@@ -71,6 +71,7 @@ function Sidebar({
 
     if (isAdmin) {
       const adminItems = [
+        { icon: Activity, label: 'AdminStatistics', displayLabel: 'Thống kê hệ thống', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminStaff', displayLabel: 'Quản lý Staff', href: '#', showWhenLoggedIn: true },
         { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
@@ -265,6 +266,9 @@ function Sidebar({
       onShowDashboard('complete-info');
     }
 
+    if (label === 'AdminStatistics' && onShowDashboard) {
+      onShowDashboard('statistics');
+    }
     if (label === 'AdminUsers' && onShowDashboard) {
       onShowDashboard('users');
     }
@@ -432,6 +436,7 @@ function Sidebar({
                       if (activeView === 'dashboard_investment_management') return 'StaffInvestmentManagement';
                       if (activeView === 'dashboard_preferences') return 'InvestorProfile';
                       if (activeView === 'complete-info' || activeView === 'dashboard_complete-info') return 'StartupProfile';
+                      if (activeView === 'dashboard_statistics' || (activeView === 'dashboard' && (user?.role?.toString().toLowerCase() === 'admin' || Number(user?.role) === 4))) return 'AdminStatistics';
                       if (activeView === 'dashboard_users') return 'AdminUsers';
                       if (activeView === 'dashboard_staff') return 'AdminStaff';
                       if (activeView === 'dashboard_transactions') return 'AdminTransactions';

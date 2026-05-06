@@ -1179,7 +1179,6 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                     id: doc.documentId,
                     name: doc.fileName || doc.documentType,
                     type: doc.documentType,
-                    uploadDate: new Date(doc.uploadedAt || doc.verifiedAt || new Date()).toLocaleDateString('vi-VN'),
                     url: doc.fileUrl
                 })));
             }

@@ -1143,15 +1143,6 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                     fullName: doc.fileName || doc.documentType, // Keep full name for title/tooltips
                     type: doc.documentType,
                     uploadedAtRaw: doc.uploadedAt || doc.verifiedAt || null,
-                    uploadDate: new Date(doc.uploadedAt || doc.verifiedAt || new Date()).toLocaleString('vi-VN', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    }),
                     status: doc.blockchainTxHash ? 'verified' : 'unverified', // Initial hint if hash exists
                     hash: doc.fileHash,
                     txHash: doc.blockchainTxHash, // Capture transaction hash
@@ -3566,7 +3557,6 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                                             </span>
                                                                         )}
 
-                                                                        <span className={styles.docCardDate}>{doc.uploadDate}</span>
                                                                     </div>
 
                                                                     <div className={styles.docCardActions}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Building, User, Mail, Calendar, FileText, ExternalLink, Shield, CheckCircle, XCircle, Loader2, Globe, MapPin, Phone } from 'lucide-react';
+import { X, Building, User, FileText, ExternalLink, Shield, CheckCircle, XCircle, Loader2, Globe, MapPin } from 'lucide-react';
 import styles from '../../styles/SharedDashboard.module.css';
 import local from '../../styles/OperationStaffDashboard.module.css';
 
@@ -81,9 +81,6 @@ const StartupDetailModal = ({
                                         const industries = startup?.industries || (startup?.industry ? [startup.industry] : []);
                                         return industries.join(', ') || 'Lĩnh vực khác';
                                     })()}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                                    <Calendar size={16} color="var(--primary-blue)" /> Đăng ký: {startup?.createdAt ? new Date(startup.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
                                 </div>
                             </div>
                         </div>
