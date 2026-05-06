@@ -131,9 +131,10 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
   const formattedDate = startTime.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const timeRange = `${formatTimeUTC(booking.startTime)} – ${formatTimeUTC(booking.endTime)}`;
 
-  const isFreeRebook = booking.isFreeRebookFromComplaint || booking.IsFreeRebookFromComplaint;
   const isPremiumFree = booking.usedPremiumFreeQuota || booking.UsedPremiumFreeQuota;
-  const isFree = isFreeRebook || isPremiumFree;
+  const isPaymentWaived = booking.isPaymentWaived || booking.IsPaymentWaived;
+  const isBonusFree = isPaymentWaived && !isPremiumFree;
+  const isFree = isPaymentWaived || isPremiumFree;
 
   // Detailed logic: Startups see 0 if free. Staff/Advisors always see the nominal amounts + free status badge
   const showAsFreeToUser = isFree && ['Startup', 'Investor'].includes(userRole);
@@ -199,9 +200,11 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
           const isAdvisor = userRole === 'Advisor';
           const isCustomer = ['Startup', 'Investor'].includes(userRole);
           const isStaff = userRole === 'Staff';
-          const isComplaintPending = status === 9 || status === 'ComplaintPending';
-          const isOverdue = status === 8 || status === 'ConsultingReportOverdue';
-          const isComplaintAccepted = status === 4 || status === 'ComplaintAccepted';
+          
+          const isComplaintPending = status === 4 || status === 'ComplaintPending';
+          const isOverdue = status === 3 || status === 'ConsultingReportOverdue';
+          const isComplaintAccepted = status === 6 || status === 'ComplaintAccepted';
+          const isFailedFreeBooking = (status === 8 || status === 9 || status === 'Cancel' || status === 'NoResponse') && isFree && isCustomer;
 
           // 8: ConsultingReportOverdue
           if (isOverdue) {
@@ -211,7 +214,7 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
                 <div className={styles.guidanceContent}>
                   <strong className={styles.guidanceTitle}>Advisor đã quá hạn nộp báo cáo (24h)</strong>
                   <p className={styles.guidanceDesc}>
-                    {isCustomer && "Hệ thống ghi nhận Advisor chưa nộp báo cáo kết quả đúng hạn."}
+                    {isCustomer && "Hệ thống ghi nhận Advisor chưa nộp báo cáo kết quả đúng hạn. Bạn sẽ được hệ thống hoàn lại 1 lượt booking miễn phí để đền bù."}
                     {isAdvisor && "Bạn đã bỏ lỡ thời hạn nộp báo cáo (24h sau khi kết thúc). Thanh toán cho booking này tạm thời bị giữ lại, vui lòng nộp báo cáo ngay."}
                     {isStaff && "Advisor này đã quá hạn nộp báo cáo. Hệ thống đã đánh dấu overdue. Staff cần kiểm tra nếu có khiếu nại từ khách hàng."}
                   </p>
@@ -254,15 +257,18 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
             );
           }
 
-          // 7: NoResponse + Free Booking (Any type)
-          if ((status === 7 || status === 'NoResponse') && isFree) {
+          // 8: Cancel / 9: NoResponse + Free Booking (Any type)
+          if (isFailedFreeBooking) {
             return (
               <div className={`${styles.guidanceBanner} ${styles.guidanceInfo}`}>
                 <Info size={20} weight="fill" className={styles.guidanceIcon} />
                 <div className={styles.guidanceContent}>
                   <strong className={styles.guidanceTitle}>Lượt đặt tư vấn miễn phí sẽ được hoàn trả</strong>
                   <p className={styles.guidanceDesc}>
-                    Hệ thống ghi nhận Advisor không phản hồi yêu cầu tư vấn. Lượt đặt tư vấn miễn phí của bạn sẽ được hoàn trả về tài khoản của khách hàng trong 24 tiếng.
+                    {status === 8 || status === 'Cancel' 
+                      ? "Advisor đã từ chối yêu cầu này. Lượt đặt tư vấn miễn phí của bạn sẽ được hệ thống hoàn trả lại."
+                      : "Hệ thống ghi nhận Advisor không phản hồi đúng hạn. Lượt đặt tư vấn miễn phí của bạn sẽ được hoàn trả lại."
+                    }
                   </p>
                 </div>
               </div>
@@ -337,16 +343,16 @@ export default function BookingDetailModal({ booking, onClose, onAction, userRol
                   </span>
                 </div>
 
-                {(isFreeRebook) && (
+                {(isBonusFree) && (
                   <div style={{ padding: '8px 12px', background: 'rgba(23, 191, 99, 0.05)', borderRadius: '8px', border: '1px solid rgba(23, 191, 99, 0.1)', display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                     <ShieldCheck size={16} weight="fill" color="#17bf63" />
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Đặt lịch lại miễn phí (Từ khiếu nại trước đó)</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Lượt đặt lại miễn phí (Từ hoàn trả/thưởng)</span>
                   </div>
                 )}
                 {(isPremiumFree) && (
                   <div style={{ padding: '8px 12px', background: 'rgba(234, 179, 8, 0.05)', borderRadius: '8px', border: '1px solid rgba(234, 179, 8, 0.1)', display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                    <Gavel size={16} weight="fill" color="#eab308" />
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Booking miễn phí (Từ gói đăng ký Premium)</span>
+                    <Sparkle size={16} weight="fill" color="#eab308" />
+                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Booking miễn phí (Từ gói Premium)</span>
                   </div>
                 )}
 

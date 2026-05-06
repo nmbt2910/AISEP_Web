@@ -96,7 +96,8 @@ function InvestorRegisterForm({ onBack, onComplete, termsData, onFetchTerms }) {
     formData.email.trim() &&
     formData.password.length >= 8 &&
     formData.password === formData.confirmPassword &&
-    formData.isTermsAccepted;
+    formData.isTermsAccepted &&
+    termsData?.version;
 
   return (
     <div className={styles.reg_formCard}>

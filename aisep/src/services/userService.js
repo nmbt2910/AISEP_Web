@@ -25,6 +25,14 @@ export const userService = {
     const response = await apiClient.put(`/api/Users/${id}`, data);
     return response;
   },
+  /**
+   * Get current user's bonus free bookings (refunded quotas)
+   * @returns {Promise<number>} bonus count
+   */
+  getMyBonusBookings: async () => {
+    const response = await apiClient.get('/api/Users/me/bonus');
+    return response?.data ?? response;
+  }
 };
 
 export default userService;

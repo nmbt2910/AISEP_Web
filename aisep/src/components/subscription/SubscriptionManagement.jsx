@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import styles from './SubscriptionManagement.module.css';
 import subscriptionService from '../../services/subscriptionService';
+import userService from '../../services/userService';
 import paymentService from '../../services/paymentService';
 import SubscriptionPaymentModal from './SubscriptionPaymentModal';
 
@@ -34,7 +35,24 @@ const SubscriptionManagement = ({ user }) => {
         subscriptionService.getMySubscription(),
         isInvestor ? paymentService.getInvestorPackages() : paymentService.getStartupPackages()
       ]);
-      setSubscription(subData);
+      
+      let finalSub = subData;
+      if (!finalSub) {
+        try {
+          const bonusCount = await userService.getMyBonusBookings();
+          if (bonusCount > 0) {
+            finalSub = {
+              remainingFreeBookings: 0,
+              bonusFreeBookings: bonusCount,
+              packageName: 'Miễn phí'
+            };
+          }
+        } catch (err) {
+          console.error("Failed to fetch bonus bookings for free user", err);
+        }
+      }
+      
+      setSubscription(finalSub);
       setPackages(pkgData?.items || pkgData || []);
     } catch (error) {
       console.error('Failed to fetch subscription data:', error);

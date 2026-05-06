@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileCheck, CheckCircle, AlertCircle, Search, Archive, Users, Activity, Settings, Trash2, Download, Eye, ArrowRight, X, XCircle, FileText, Loader2, TrendingUp, ExternalLink, Shield, History, Calendar, PieChart, Briefcase, Clock, DollarSign, Send, Newspaper, User, Edit2, PenTool, Image as ImageIcon, ImageOff, Maximize2 } from 'lucide-react';
+import { FileCheck, CheckCircle, AlertCircle, Search, Archive, Users, Activity, Settings, Trash2, Download, Eye, ArrowRight, X, XCircle, FileText, Loader2, TrendingUp, ExternalLink, Shield, History, Calendar, PieChart, Briefcase, Clock, DollarSign, Send, Newspaper, User, Edit2, PenTool, Image as ImageIcon, ImageOff, Maximize2, Sparkles } from 'lucide-react';
 import styles from '../styles/SharedDashboard.module.css';
 import local from '../styles/OperationStaffDashboard.module.css';
 import FeedHeader from '../components/feed/FeedHeader';
@@ -306,8 +306,12 @@ const BookingKanbanCard = ({ booking, status, onDetail, isHighlighted }) => {
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '12px', fontSize: '14px', fontWeight: '700', color: '#f59e0b' }}>
-                        {Number(booking?.price || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>VND</span>
+                    <div style={{ marginTop: '12px', fontSize: '14px', fontWeight: '700', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {(booking?.isPaymentWaived || booking?.IsPaymentWaived) ? (
+                            <><Sparkles size={14} weight="fill" color="#eab308" /> <span style={{ textDecoration: 'line-through', opacity: 0.6, fontSize: '12px' }}>{Number(booking?.price || 0).toLocaleString('vi-VN')}</span> Miễn phí</>
+                        ) : (
+                            <>{Number(booking?.price || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>VND</span></>
+                        )}
                     </div>
                 </div>
 

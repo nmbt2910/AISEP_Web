@@ -13,7 +13,7 @@ const subscriptionService = {
   getMySubscription: async () => {
     try {
       const response = await apiClient.get('/api/Subscriptions/me');
-      return response?.data ?? response;
+      return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
     } catch (error) {
       if (error.response?.status === 404) {
         return null;
@@ -36,7 +36,7 @@ const subscriptionService = {
     if (sieveModel.sorts) params.append('sorts', sieveModel.sorts);
 
     const response = await apiClient.get(`/api/Subscriptions?${params.toString()}`);
-    return response?.data ?? response;
+    return (response && typeof response === 'object' && 'data' in response) ? response.data : response;
   }
 };
 

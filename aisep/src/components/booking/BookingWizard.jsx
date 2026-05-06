@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CaretLeft, CaretRight, Check, WarningCircle, CircleNotch, Calendar, Clock, User, Briefcase, CreditCard, Sparkle, Info, ShieldCheck, Gavel, Crown, CurrencyCircleDollar } from '@phosphor-icons/react';
 import subscriptionService from '../../services/subscriptionService';
+import userService from '../../services/userService';
 import bookingService from '../../services/bookingService';
 import advisorAvailabilityService from '../../services/advisorAvailabilityService';
 import advisorService from '../../services/advisorService';
@@ -83,7 +84,30 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
       try {
         // Fetch subscription
         const sub = await subscriptionService.getMySubscription();
-        setSubscription(sub);
+        
+        // Explicitly check if sub exists and has a packageId (indicating an actual subscription)
+        if (sub && sub.packageId) {
+          setSubscription(sub);
+        } else {
+          // Fallback for non-premium users or users with null sub: 
+          // check for bonus free bookings (refunded quotas)
+          try {
+            const bonusCount = await userService.getMyBonusBookings();
+            if (bonusCount > 0) {
+              setSubscription({
+                remainingFreeBookings: 0,
+                bonusFreeBookings: bonusCount,
+                packageName: 'Miễn phí',
+                isVirtual: true // Mark as virtual for UI differentiation if needed
+              });
+            } else {
+              setSubscription(null);
+            }
+          } catch (err) {
+            console.error("Failed to fetch bonus bookings for free user", err);
+            setSubscription(null);
+          }
+        }
 
         if (initialProjectId || sourceBookingId) {
           if (sourceBookingId) {
