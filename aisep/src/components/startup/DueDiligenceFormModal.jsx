@@ -1,7 +1,62 @@
-import React from 'react';
-import { jsPDF } from 'jspdf';
+import React, { useState, useEffect } from 'react';
+import pdfMakeModule from 'pdfmake/build/pdfmake';
 import { X, Loader2, FileText, Sparkles } from 'lucide-react';
 import styles from './DueDiligenceFormModal.module.css';
+
+const pdfMake = pdfMakeModule?.default || pdfMakeModule;
+
+let isPdfFontsReady = false;
+
+async function ensurePdfFonts() {
+  if (isPdfFontsReady && pdfMake?.vfs) return;
+
+  // If already loaded globally by a previous script injection
+  if (window?.pdfMake?.vfs) {
+    pdfMake.vfs = window.pdfMake.vfs;
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      }
+    };
+    isPdfFontsReady = true;
+    return;
+  }
+
+  // Load from CDN to bypass Vite/Rollup ESM 'this' context issues with UMD modules
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js';
+    script.async = true;
+    
+    script.onload = () => {
+      if (window?.pdfMake?.vfs) {
+        pdfMake.vfs = window.pdfMake.vfs;
+        pdfMake.fonts = {
+          Roboto: {
+            normal: 'Roboto-Regular.ttf',
+            bold: 'Roboto-Medium.ttf',
+            italics: 'Roboto-Italic.ttf',
+            bolditalics: 'Roboto-MediumItalic.ttf'
+          }
+        };
+        isPdfFontsReady = true;
+        resolve();
+      } else {
+        reject(new Error('Không thể khởi tạo dữ liệu font PDF sau khi tải.'));
+      }
+    };
+    
+    script.onerror = () => {
+      reject(new Error('Không thể tải font PDF từ máy chủ. Vui lòng kiểm tra kết nối mạng.'));
+    };
+    
+    document.head.appendChild(script);
+  });
+}
+
 
 function slugify(value) {
   return String(value || 'du-an')

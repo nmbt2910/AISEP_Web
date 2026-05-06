@@ -269,7 +269,7 @@
 /* ─── Stats Strip ─── */
 .statsStrip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     border-top: 1px solid var(--border-color);
     margin-top: 16px;
     padding-top: 16px;

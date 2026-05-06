@@ -170,16 +170,7 @@ export default function StartupDetail({ startupId, onBack, user, onShowLogin }) 
             <div className={styles.statValue}>Startup</div>
             <div className={styles.statLabel}>Loại hình</div>
           </div>
-          <div className={styles.statItem}>
-            <div className={styles.statEmoji}>👥</div>
-            <div className={styles.statValue}>{startup.followerCount ?? 0}</div>
-            <div className={styles.statLabel}>Theo dõi</div>
-          </div>
-          <div className={styles.statItem}>
-            <div className={styles.statEmoji}>🏢</div>
-            <div className={styles.statValue}>Active</div>
-            <div className={styles.statLabel}>Trạng thái</div>
-          </div>
+
           <div className={styles.statItem}>
             <div className={styles.statEmoji}>📍</div>
             <div className={styles.statValue}>{startup.countryCity ? startup.countryCity.split(',')[0] : 'VN'}</div>
@@ -264,21 +255,19 @@ export default function StartupDetail({ startupId, onBack, user, onShowLogin }) 
             )}
 
             {/* Feed Row: Contact Details */}
-            <div className={styles.feedRow}>
-              <div className={`${styles.iconBox} ${styles.purpleBox}`}>✉️</div>
-              <div className={styles.rowContent}>
-                <div className={styles.rowTitle}>Thông tin liên hệ</div>
-                {startup.contactInfo ? (
+            {startup.contactInfo && (
+              <div className={styles.feedRow}>
+                <div className={`${styles.iconBox} ${styles.purpleBox}`}>✉️</div>
+                <div className={styles.rowContent}>
+                  <div className={styles.rowTitle}>Thông tin liên hệ</div>
                   <div className={styles.chipRow}>
                     {startup.contactInfo.split('|').map((info, i) => (
                       <span key={i} className={styles.chip}>{info.trim()}</span>
                     ))}
                   </div>
-                ) : (
-                  <div className={styles.rowText}>Đang cập nhật</div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
       </div>

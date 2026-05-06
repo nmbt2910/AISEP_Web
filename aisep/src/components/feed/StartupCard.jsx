@@ -376,8 +376,8 @@ function StartupCard({
               const tags = (startup.tags && startup.tags.length > 0) 
                 ? startup.tags 
                 : (Array.isArray(startup.industry) ? startup.industry : (startup.industry ? [startup.industry] : []));
-              return tags.slice(0, 3).map(tag => (
-                <span key={tag} className={styles.tag}>#{tag}</span>
+              return tags.map(tag => (
+                <span key={tag} className={styles.tag}>{tag.startsWith('#') ? tag : '#' + tag}</span>
               ));
             })()}
           </div>
