@@ -2088,6 +2088,21 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 </div>
                                             )}
 
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '8px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Số tiền đầu tư</div>
+                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                        {Number(deal.investedAmount || 0).toLocaleString('vi-VN')} VND
+                                                    </div>
+                                                </div>
+                                                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '8px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Loại giao dịch</div>
+                                                    <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                        {deal.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             {/* Actions */}
                                             <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', flexWrap: 'wrap', paddingTop: '8px' }}>
                                                 {/* Common Button Style */}
@@ -3213,6 +3228,38 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                        <div className={styles.projectDetailSection}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                <DollarSign size={14} /> Chi tiết thỏa thuận
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                <div style={{ backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Số tiền đầu tư</div>
+                                                    <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                        {Number(selectedItem.investedAmount || 0).toLocaleString('vi-VN')} VND
+                                                    </div>
+                                                </div>
+                                                <div style={{ backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Loại giao dịch</div>
+                                                    <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                        {selectedItem.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {selectedItem.type === 'Equity' && selectedItem.equityPercentage !== undefined && selectedItem.equityPercentage !== null && (
+                                                <div style={{ marginTop: '10px', fontSize: '14px', color: 'var(--text-primary)' }}>
+                                                    <strong>Tỷ lệ cổ phần:</strong> {selectedItem.equityPercentage}%
+                                                </div>
+                                            )}
+                                            {selectedItem.type === 'CustomTerms' && selectedItem.exchangeTerms && (
+                                                <div style={{ marginTop: '10px', fontSize: '14px', lineHeight: 1.6, color: 'var(--text-primary)', backgroundColor: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                    <strong>Điều khoản trao đổi:</strong><br />
+                                                    {selectedItem.exchangeTerms}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {/* Status Section */}
                                         <div className={styles.projectDetailSection}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -3221,6 +3268,48 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: getDealStatusInfo(selectedItem.status).color, boxShadow: `0 0 8px ${getDealStatusInfo(selectedItem.status).color}` }}></div>
                                                 <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>{getDealStatusInfo(selectedItem.status).label}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.projectDetailSection}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                <Users size={14} /> Tiến trình xác nhận
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                <div style={{ backgroundColor: 'var(--bg-hover)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '12px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Investor xác nhận</div>
+                                                    <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: '800', color: selectedItem.investorConfirmed ? '#10b981' : '#f59e0b' }}>
+                                                        {selectedItem.investorConfirmed ? 'Đã xác nhận' : 'Chưa xác nhận'}
+                                                    </div>
+                                                </div>
+                                                <div style={{ backgroundColor: 'var(--bg-hover)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '12px' }}>
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Startup xác nhận</div>
+                                                    <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: '800', color: selectedItem.startupConfirmed ? '#10b981' : '#f59e0b' }}>
+                                                        {selectedItem.startupConfirmed ? 'Đã xác nhận' : 'Chưa xác nhận'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.projectDetailSection}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                <Shield size={14} /> Blockchain & minh bạch
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                                                <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                                                    <strong>Document Hash:</strong> {selectedItem.documentHash || 'Chưa có'}
+                                                </div>
+                                                <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                                                    <strong>Blockchain Tx:</strong> {selectedItem.blockchainTxHash || 'Chưa có'}
+                                                </div>
+                                                <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                                                    <strong>Verified At:</strong> {selectedItem.blockchainVerifiedAt ? new Date(selectedItem.blockchainVerifiedAt).toLocaleString('vi-VN') : 'Chưa xác thực'}
+                                                </div>
+                                                {selectedItem.blockchainErrorMessage && (
+                                                    <div style={{ fontSize: '13px', color: '#dc2626' }}>
+                                                        <strong>Lỗi blockchain:</strong> {selectedItem.blockchainErrorMessage}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

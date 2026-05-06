@@ -144,6 +144,60 @@
   font-weight: 500;
 }
 
+.textInput,
+.textareaInput {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 11px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.textareaInput {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.textInput:focus,
+.textareaInput:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px rgba(45, 126, 255, 0.14);
+}
+
+.typeToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.typeToggleBtn {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.typeToggleBtnActive {
+  border-color: var(--primary-blue);
+  background: rgba(45, 126, 255, 0.12);
+  color: var(--primary-blue);
+}
+
+.charCount {
+  margin-top: 6px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .hiddenInput {
   display: none;
 }

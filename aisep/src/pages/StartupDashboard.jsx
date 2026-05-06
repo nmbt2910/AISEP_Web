@@ -20,6 +20,7 @@ import projectSubmissionService from '../services/projectSubmissionService.js';
 import startupProfileService from '../services/startupProfileService.js';
 import connectionService from '../services/connectionService.js';
 import dealsService from '../services/dealsService.js';
+import investorService from '../services/investorService.js';
 import signalRService from '../services/signalRService.js';
 import { PROJECT_STATUS, isUserEditable, STATUS_LABELS, STATUS_COLORS, getStageLabel } from '../constants/ProjectStatus.js';
 import { translateAIResults } from '../utils/translateAIResults.js';
@@ -220,6 +221,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
     const [connectionRequests, setConnectionRequests] = React.useState([]);
     const [isLoadingRequests, setIsLoadingRequests] = React.useState(false);
     const [isRespondingToRequest, setIsRespondingToRequest] = React.useState(null);
+    const [showInvestorProfileModal, setShowInvestorProfileModal] = React.useState(false);
+    const [selectedInvestorProfile, setSelectedInvestorProfile] = React.useState(null);
+    const [isLoadingInvestorProfile, setIsLoadingInvestorProfile] = React.useState(false);
 
     // Deals Approval States (for investment deals from investors)
     const [dealsToApprove, setDealsToApprove] = React.useState([]);
@@ -763,7 +767,9 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                 return {
                     id: req.connectionRequestId,
                     connectionRequestId: req.connectionRequestId,
+                    investorId: req.investorId || req.investor?.investorId || req.investor?.id || null,
                     investorName: req.investorName || 'Investor',
+                    investorAvatarUrl: req.investorAvatarUrl || req.profileImageUrl || req.investor?.profileImageUrl || '',
                     chatSessionId: req.chatSessionId,
                     status: req.status?.toLowerCase() || 'pending',
                     message: req.message || '',
@@ -858,6 +864,53 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         setActiveChatConnectionId(null);
         // Refresh connection requests to update status
         fetchConnectionRequests();
+    };
+
+    const getInvestorIdFromEntity = (entity) =>
+        entity?.investorId || entity?.investor?.investorId || entity?.investor?.id || null;
+
+    const getInvestorAvatarFromEntity = (entity) =>
+        entity?.investorAvatarUrl ||
+        entity?.investorProfileImageUrl ||
+        entity?.profileImageUrl ||
+        entity?.avatarUrl ||
+        entity?.investor?.profileImageUrl ||
+        '';
+
+    const handleOpenInvestorProfile = async (entity) => {
+        const investorId = getInvestorIdFromEntity(entity);
+        if (!investorId) {
+            setSuccessMessage('Không tìm thấy mã nhà đầu tư để mở hồ sơ.');
+            setShowSuccessModal(true);
+            return;
+        }
+
+        setShowInvestorProfileModal(true);
+        setIsLoadingInvestorProfile(true);
+        try {
+            const investor = await investorService.getInvestorById(investorId);
+            const fallbackName = entity?.investorName || 'Nhà đầu tư';
+            setSelectedInvestorProfile(
+                investor || {
+                    investorId,
+                    organizationName: fallbackName,
+                    userName: fallbackName,
+                    profileImageUrl: getInvestorAvatarFromEntity(entity),
+                    investmentTaste: 'Nhà đầu tư chưa cập nhật mô tả hồ sơ.',
+                }
+            );
+        } catch (error) {
+            console.error('[StartupDashboard] Failed to load investor profile:', error);
+            setSelectedInvestorProfile({
+                investorId,
+                organizationName: entity?.investorName || 'Nhà đầu tư',
+                userName: entity?.investorName || 'Nhà đầu tư',
+                profileImageUrl: getInvestorAvatarFromEntity(entity),
+                investmentTaste: 'Không thể tải chi tiết hồ sơ nhà đầu tư.',
+            });
+        } finally {
+            setIsLoadingInvestorProfile(false);
+        }
     };
 
     // --- Deals Approval Functions ---
@@ -2170,9 +2223,26 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                 {/* Header */}
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                     <div style={{ flex: 1 }}>
-                                                        <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                                                            {request.investorName || 'Nhà đầu tư'}
-                                                        </h4>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleOpenInvestorProfile(request)}
+                                                            style={{ margin: '0 0 4px 0', border: 'none', background: 'transparent', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                        >
+                                                            {request.investorAvatarUrl ? (
+                                                                <img
+                                                                    src={request.investorAvatarUrl}
+                                                                    alt={request.investorName || 'Nhà đầu tư'}
+                                                                    style={{ width: '28px', height: '28px', borderRadius: '999px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                                                                />
+                                                            ) : (
+                                                                <div style={{ width: '28px', height: '28px', borderRadius: '999px', background: 'rgba(29,155,240,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '12px' }}>
+                                                                    {(request.investorName || 'N').charAt(0).toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                            <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                                {request.investorName || 'Nhà đầu tư'}
+                                                            </span>
+                                                        </button>
                                                         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
                                                             ID: #{request.connectionRequestId}
                                                         </p>
@@ -2491,9 +2561,26 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                                                         <strong>Nhà đầu tư</strong>
                                                     </div>
-                                                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                                                        {deal.investorName || 'Nhà đầu tư'}
-                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenInvestorProfile(deal)}
+                                                        style={{ border: 'none', background: 'transparent', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+                                                    >
+                                                        {(deal.investorAvatarUrl || deal.profileImageUrl) ? (
+                                                            <img
+                                                                src={deal.investorAvatarUrl || deal.profileImageUrl}
+                                                                alt={deal.investorName || 'Nhà đầu tư'}
+                                                                style={{ width: '26px', height: '26px', borderRadius: '999px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                                                            />
+                                                        ) : (
+                                                            <div style={{ width: '26px', height: '26px', borderRadius: '999px', background: 'rgba(29,155,240,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '12px' }}>
+                                                                {(deal.investorName || 'N').charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                                            {deal.investorName || 'Nhà đầu tư'}
+                                                        </span>
+                                                    </button>
                                                 </div>
 
                                                 {/* Deal Details */}
@@ -3859,6 +3946,82 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                 onClose={() => setShowOnchainResultModal(false)}
                 result={onchainResultData}
             />
+
+            {showInvestorProfileModal && (
+                <div
+                    className={styles.modalOverlay}
+                    onClick={() => {
+                        setShowInvestorProfileModal(false);
+                        setSelectedInvestorProfile(null);
+                    }}
+                >
+                    <div
+                        className={styles.modalContent}
+                        style={{ maxWidth: '560px', padding: '20px' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Hồ sơ nhà đầu tư</h3>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowInvestorProfileModal(false);
+                                    setSelectedInvestorProfile(null);
+                                }}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {isLoadingInvestorProfile ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
+                                <Loader2 size={16} className={styles.spinner} /> Đang tải hồ sơ...
+                            </div>
+                        ) : selectedInvestorProfile ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    {selectedInvestorProfile.profileImageUrl ? (
+                                        <img
+                                            src={selectedInvestorProfile.profileImageUrl}
+                                            alt={selectedInvestorProfile.organizationName || selectedInvestorProfile.userName || 'Nhà đầu tư'}
+                                            style={{ width: '56px', height: '56px', borderRadius: '999px', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                                        />
+                                    ) : (
+                                        <div style={{ width: '56px', height: '56px', borderRadius: '999px', background: 'rgba(29,155,240,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '20px' }}>
+                                            {(selectedInvestorProfile.organizationName || selectedInvestorProfile.userName || 'N').charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <div style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                            {selectedInvestorProfile.organizationName || selectedInvestorProfile.userName || 'Nhà đầu tư'}
+                                        </div>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                            ID: #{selectedInvestorProfile.investorId || selectedInvestorProfile.id || 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedInvestorProfile.investmentRegion && (
+                                    <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                                        <strong>Khu vực đầu tư:</strong> {selectedInvestorProfile.investmentRegion}
+                                    </div>
+                                )}
+                                {selectedInvestorProfile.preferredStage && (
+                                    <div style={{ fontSize: '14px', color: 'var(--text-primary)' }}>
+                                        <strong>Giai đoạn ưu tiên:</strong> {selectedInvestorProfile.preferredStage}
+                                    </div>
+                                )}
+                                <div style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6, background: 'var(--bg-secondary)', borderRadius: '8px', padding: '10px 12px' }}>
+                                    {selectedInvestorProfile.investmentTaste || 'Nhà đầu tư chưa cập nhật mô tả hồ sơ.'}
+                                </div>
+                            </div>
+                        ) : (
+                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Không tải được hồ sơ nhà đầu tư.</p>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <FloatingChatWidget
                 chatSessionId={activeChatSession?.chatSessionId}

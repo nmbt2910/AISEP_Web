@@ -29,17 +29,41 @@ const STRING_STATUS_MAP = {
 
 const dealsService = {
   /**
-   * Create a new investment deal
-   * @param {number} projectId - The ID of the project to invest in
+   * Create a new investment deal (multipart/form-data)
+   * @param {object} payload
+   * @param {number} payload.projectId
+   * @param {number|string} payload.investedAmount
+   * @param {string|number} payload.type - Equity | CustomTerms
+   * @param {number|string|null} payload.equityPercentage
+   * @param {string|null} payload.exchangeTerms
+   * @param {File|null} payload.evidenceFile
    * @returns {Promise} - API response with deal details
    */
-  createDeal: async (projectId, evidenceFile = null) => {
+  createDeal: async (payload = {}) => {
     try {
-      console.log('[dealsService] POST /api/Deals (multipart) with projectId:', projectId);
+      const {
+        projectId,
+        investedAmount,
+        type,
+        equityPercentage,
+        exchangeTerms,
+        evidenceFile
+      } = payload;
+
+      console.log('[dealsService] POST /api/Deals (multipart) with payload:', {
+        projectId,
+        investedAmount,
+        type
+      });
+
       const formData = new FormData();
-      formData.append('projectId', projectId);
+      formData.append('ProjectId', projectId);
+      formData.append('InvestedAmount', investedAmount);
+      formData.append('Type', type);
+      formData.append('EquityPercentage', equityPercentage ?? '');
+      formData.append('ExchangeTerms', exchangeTerms ?? '');
       if (evidenceFile) {
-        formData.append('evidenceFile', evidenceFile);
+        formData.append('EvidenceFile', evidenceFile);
       }
       const response = await apiClient.post('/api/Deals', formData, {
         headers: {

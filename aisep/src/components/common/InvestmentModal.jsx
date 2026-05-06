@@ -22,11 +22,20 @@ const InvestmentModal = ({
   onClose,
   onSuccess
 }) => {
+  const DEAL_TYPE_OPTIONS = [
+    { value: 'Equity', label: 'Cổ phần (Equity)' },
+    { value: 'CustomTerms', label: 'Điều khoản khác (Custom Terms)' },
+  ];
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [dealStatus, setDealStatus] = useState(null);
   const [evidenceFile, setEvidenceFile] = useState(null);
+  const [investedAmount, setInvestedAmount] = useState('');
+  const [dealType, setDealType] = useState('Equity');
+  const [equityPercentage, setEquityPercentage] = useState('');
+  const [exchangeTerms, setExchangeTerms] = useState('');
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
@@ -44,7 +53,37 @@ const InvestmentModal = ({
       if (!evidenceFile) {
         throw new Error('Vui lòng tải lên tài liệu minh chứng thỏa thuận.');
       }
-      const response = await dealsService.createDeal(projectId, evidenceFile);
+      const amountNumber = Number(investedAmount);
+      if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+        throw new Error('Số tiền đầu tư phải lớn hơn 0.');
+      }
+      if (!dealType) {
+        throw new Error('Vui lòng chọn loại hình đầu tư.');
+      }
+      if (dealType === 'Equity') {
+        const pct = Number(equityPercentage);
+        if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+          throw new Error('Phần trăm cổ phần phải trong khoảng 0 - 100.');
+        }
+      }
+      if (dealType === 'CustomTerms') {
+        const terms = String(exchangeTerms || '').trim();
+        if (!terms) {
+          throw new Error('Vui lòng nhập điều khoản trao đổi.');
+        }
+        if (terms.length > 500) {
+          throw new Error('Điều khoản trao đổi tối đa 500 ký tự.');
+        }
+      }
+
+      const response = await dealsService.createDeal({
+        projectId,
+        investedAmount: amountNumber,
+        type: dealType,
+        equityPercentage: dealType === 'Equity' ? Number(equityPercentage) : null,
+        exchangeTerms: dealType === 'CustomTerms' ? String(exchangeTerms || '').trim() : null,
+        evidenceFile
+      });
       
       console.log('[InvestmentModal] Full response from POST /api/Deals:', response);
       console.log('[InvestmentModal] Response data:', response?.data);
@@ -67,7 +106,10 @@ const InvestmentModal = ({
         statusCode: statusInfo.value,
         statusInfo: statusInfo,
         status: dealStatusString,
-        amount: response?.data?.amount || 0
+        amount: response?.data?.investedAmount || response?.data?.amount || 0,
+        type: response?.data?.type || dealType,
+        equityPercentage: response?.data?.equityPercentage,
+        exchangeTerms: response?.data?.exchangeTerms
       });
       
       setSuccessMessage('Gửi yêu cầu đầu tư thành công! Startup sẽ xem tài liệu và phản hồi trong thời gian sớm nhất.');
@@ -132,6 +174,10 @@ const InvestmentModal = ({
     setError(null);
     setSuccessMessage(null);
     setEvidenceFile(null);
+    setInvestedAmount('');
+    setDealType('Equity');
+    setEquityPercentage('');
+    setExchangeTerms('');
     onClose?.();
   };
 
@@ -198,6 +244,22 @@ const InvestmentModal = ({
                       <CheckCircle size={16} />
                       {dealStatus.statusInfo?.labelVi}
                     </div>
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#e2e8f0' }}>
+                      <strong>Số tiền:</strong> {Number(dealStatus.amount || 0).toLocaleString('vi-VN')} VND
+                    </div>
+                    <div style={{ marginTop: '4px', fontSize: '12px', color: '#e2e8f0' }}>
+                      <strong>Loại:</strong> {dealStatus.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
+                    </div>
+                    {dealStatus.type === 'Equity' && dealStatus.equityPercentage !== undefined && dealStatus.equityPercentage !== null && (
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#e2e8f0' }}>
+                        <strong>Tỷ lệ cổ phần:</strong> {dealStatus.equityPercentage}%
+                      </div>
+                    )}
+                    {dealStatus.type === 'CustomTerms' && dealStatus.exchangeTerms && (
+                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#e2e8f0' }}>
+                        <strong>Điều khoản:</strong> {dealStatus.exchangeTerms}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -224,6 +286,70 @@ const InvestmentModal = ({
                 <label className={styles.label}>Công ty khởi nghiệp</label>
                 <div className={styles.staticField}>{startupName}</div>
               </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Số tiền đầu tư (VND) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  className={styles.textInput}
+                  placeholder="Ví dụ: 500000000"
+                  value={investedAmount}
+                  onChange={(e) => setInvestedAmount(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Loại hình đầu tư *</label>
+                <div className={styles.typeToggle}>
+                  {DEAL_TYPE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`${styles.typeToggleBtn} ${dealType === opt.value ? styles.typeToggleBtnActive : ''}`}
+                      onClick={() => setDealType(opt.value)}
+                      disabled={isLoading}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {dealType === 'Equity' && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Tỷ lệ cổ phần (%) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    className={styles.textInput}
+                    placeholder="Ví dụ: 15.5"
+                    value={equityPercentage}
+                    onChange={(e) => setEquityPercentage(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
+              {dealType === 'CustomTerms' && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Điều khoản trao đổi *</label>
+                  <textarea
+                    className={styles.textareaInput}
+                    placeholder="Nhập điều khoản thỏa thuận giữa 2 bên (tối đa 500 ký tự)..."
+                    maxLength={500}
+                    value={exchangeTerms}
+                    onChange={(e) => setExchangeTerms(e.target.value)}
+                    disabled={isLoading}
+                    rows={4}
+                  />
+                  <div className={styles.charCount}>{exchangeTerms.length}/500</div>
+                </div>
+              )}
 
               <div className={styles.infoBox}>
                 <AlertCircle size={18} />
