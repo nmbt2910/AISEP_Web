@@ -945,15 +945,6 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
                       setShowBookingWizard(true);
                     }} style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, background: T.blue, color: '#fff', border: 'none', cursor: 'pointer' }}>Đặt lịch tư vấn</button>
                   )}
-                  {(user?.role?.toString().toLowerCase() === 'startup' || Number(user?.role) === 0) && (
-                    <button onClick={() => {
-                      if (!isStartupApproved) {
-                        onRestrictedAction?.('Bạn cần được phê duyệt hồ sơ Startup để đặt lịch tư vấn với Cố vấn.');
-                        return;
-                      }
-                      setShowBookingWizard(true);
-                    }} style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, background: T.blue, color: '#fff', border: 'none', cursor: 'pointer' }}>Đặt lịch tư vấn</button>
-                  )}
                 </div>
               ) : 'Đang phân công cố vấn'}
             </SectionBody>
