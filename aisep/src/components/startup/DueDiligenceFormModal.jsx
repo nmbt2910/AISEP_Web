@@ -1,5 +1,6 @@
 import React from 'react';
-import pdfMake from 'pdfmake/build/pdfmake';
+import pdfMakeModule from 'pdfmake/build/pdfmake';
+const pdfMake = pdfMakeModule?.default || pdfMakeModule;
 import { X, Loader2, FileText, Sparkles } from 'lucide-react';
 import styles from './DueDiligenceFormModal.module.css';
 
@@ -7,20 +8,39 @@ let isPdfFontsReady = false;
 
 async function ensurePdfFonts() {
   if (isPdfFontsReady && pdfMake?.vfs) return;
-  const mod = await import('pdfmake/build/vfs_fonts');
-  const resolvedVfs =
-    mod?.default?.pdfMake?.vfs ||
-    mod?.default?.vfs ||
-    mod?.pdfMake?.vfs ||
-    mod?.vfs ||
-    null;
+  
+  try {
+    // Robust import for different bundling environments (Vercel/Webpack/Vite)
+    const mod = await import('pdfmake/build/vfs_fonts');
+    
+    // Access the VFS from various possible locations in the module
+    const vfs = mod?.default?.pdfMake?.vfs || 
+                mod?.pdfMake?.vfs || 
+                mod?.default?.vfs || 
+                mod?.vfs;
 
-  if (!resolvedVfs) {
-    throw new Error('Không thể khởi tạo font PDF.');
+    if (!vfs) {
+      console.error('PDFMake VFS not found in module:', mod);
+      throw new Error('Không thể tìm thấy dữ liệu font PDF.');
+    }
+
+    pdfMake.vfs = vfs;
+
+    // Explicitly define Roboto fonts to ensure pdfmake knows where to look in VFS
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      }
+    };
+
+    isPdfFontsReady = true;
+  } catch (err) {
+    console.error('Failed to initialize PDF fonts:', err);
+    throw err;
   }
-
-  pdfMake.vfs = resolvedVfs;
-  isPdfFontsReady = true;
 }
 
 function slugify(value) {
