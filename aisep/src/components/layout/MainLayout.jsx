@@ -126,6 +126,23 @@ function MainLayout({
     setShowRestrictedModal(true);
   };
 
+  // Global navigation: open Investor profile from any dashboard/component.
+  useEffect(() => {
+    const handler = (evt) => {
+      const investorId = evt?.detail?.investorId;
+      if (!investorId) return;
+      setSelectedInvestorProfileId(investorId);
+      // When entering a detail view, close discovery toggles for clarity.
+      try {
+        window.history.pushState({}, '', `/investors/${investorId}`);
+      } catch {
+        // ignore
+      }
+    };
+    window.addEventListener('aisep_open_investor_profile', handler);
+    return () => window.removeEventListener('aisep_open_investor_profile', handler);
+  }, []);
+
   // Scroll Management: Persistence & Scroll-to-Top
   useEffect(() => {
     const main = mainContentRef.current;

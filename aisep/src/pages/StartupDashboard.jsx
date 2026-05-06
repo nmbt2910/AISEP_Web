@@ -885,32 +885,8 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
             return;
         }
 
-        setShowInvestorProfileModal(true);
-        setIsLoadingInvestorProfile(true);
-        try {
-            const investor = await investorService.getInvestorById(investorId);
-            const fallbackName = entity?.investorName || 'Nhà đầu tư';
-            setSelectedInvestorProfile(
-                investor || {
-                    investorId,
-                    organizationName: fallbackName,
-                    userName: fallbackName,
-                    profileImageUrl: getInvestorAvatarFromEntity(entity),
-                    investmentTaste: 'Nhà đầu tư chưa cập nhật mô tả hồ sơ.',
-                }
-            );
-        } catch (error) {
-            console.error('[StartupDashboard] Failed to load investor profile:', error);
-            setSelectedInvestorProfile({
-                investorId,
-                organizationName: entity?.investorName || 'Nhà đầu tư',
-                userName: entity?.investorName || 'Nhà đầu tư',
-                profileImageUrl: getInvestorAvatarFromEntity(entity),
-                investmentTaste: 'Không thể tải chi tiết hồ sơ nhà đầu tư.',
-            });
-        } finally {
-            setIsLoadingInvestorProfile(false);
-        }
+        // Navigate to InvestorDetail (MainLayout listens globally).
+        window.dispatchEvent(new CustomEvent('aisep_open_investor_profile', { detail: { investorId } }));
     };
 
     // --- Deals Approval Functions ---
@@ -920,7 +896,37 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
         try {
             const response = await dealsService.getStartupDeals();
             let deals = Array.isArray(response?.data) ? response.data : (response?.data?.items || []);
-            setDealsToApprove(deals);
+            // Enrich deal rows for UI: ensure investorId + avatar fields exist
+            const normalized = deals.map((d) => ({
+                ...d,
+                investorId: d.investorId || d.investor?.investorId || d.investor?.id || null,
+                investorAvatarUrl: d.investorAvatarUrl || d.profileImageUrl || d.investor?.profileImageUrl || '',
+            }));
+
+            // Best-effort: fetch missing investor avatars in parallel (no blocking if fails)
+            const uniqueInvestorIds = [...new Set(normalized.map((d) => d.investorId).filter(Boolean))];
+            if (uniqueInvestorIds.length > 0) {
+                try {
+                    const results = await Promise.all(
+                        uniqueInvestorIds.map((id) => investorService.getInvestorById(id).catch(() => null))
+                    );
+                    const avatarById = new Map();
+                    results.forEach((inv) => {
+                        if (inv?.investorId && inv?.profileImageUrl) avatarById.set(inv.investorId, inv.profileImageUrl);
+                        if (inv?.id && inv?.profileImageUrl) avatarById.set(inv.id, inv.profileImageUrl);
+                    });
+                    setDealsToApprove(
+                        normalized.map((d) => ({
+                            ...d,
+                            investorAvatarUrl: d.investorAvatarUrl || avatarById.get(d.investorId) || '',
+                        }))
+                    );
+                    return;
+                } catch {
+                    // ignore
+                }
+            }
+            setDealsToApprove(normalized);
         } catch (error) {
             if (!silent) {
                 console.error('[StartupDashboard] Error fetching deals:', error);
@@ -2585,6 +2591,32 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
 
                                                 {/* Deal Details */}
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                                        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Số tiền đầu tư</div>
+                                                            <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                                {Number(deal.investedAmount || 0).toLocaleString('vi-VN')} VND
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Loại</div>
+                                                            <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                                {deal.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {deal.type === 'Equity' && deal.equityPercentage !== undefined && deal.equityPercentage !== null && (
+                                                        <div style={{ backgroundColor: 'rgba(45, 126, 255, 0.06)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(45, 126, 255, 0.18)' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Tỷ lệ cổ phần</div>
+                                                            <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary-blue)' }}>{deal.equityPercentage}%</div>
+                                                        </div>
+                                                    )}
+                                                    {deal.type === 'CustomTerms' && deal.exchangeTerms && (
+                                                        <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.06)', padding: '10px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.18)' }}>
+                                                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Điều khoản</div>
+                                                            <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.55 }}>{deal.exchangeTerms}</div>
+                                                        </div>
+                                                    )}
                                                     <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '6px' }}>
                                                         <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Ngày gửi yêu cầu</div>
                                                         <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>
@@ -3213,20 +3245,20 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                             <div style={{
                                                 background: 'linear-gradient(135deg, rgba(29, 155, 240, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
                                                 border: '1px solid rgba(29, 155, 240, 0.25)',
-                                                borderRadius: isMobile ? '16px' : '20px',
-                                                padding: isMobile ? '14px' : '20px',
-                                                marginBottom: isMobile ? '16px' : '24px',
+                                                borderRadius: '20px',
+                                                padding: '20px',
+                                                marginBottom: '24px',
                                                 display: 'flex',
-                                                alignItems: isMobile ? 'stretch' : 'center',
+                                                alignItems: 'center',
                                                 justifyContent: 'space-between',
-                                                gap: isMobile ? '12px' : '20px',
+                                                gap: '20px',
                                                 flexWrap: 'wrap'
                                             }}>
-                                                <div style={{ display: 'flex', gap: isMobile ? '10px' : '16px', flex: 1, minWidth: isMobile ? '100%' : '280px' }}>
+                                                <div style={{ display: 'flex', gap: '16px', flex: 1, minWidth: '280px' }}>
                                                     <div style={{
-                                                        width: isMobile ? '40px' : '48px',
-                                                        height: isMobile ? '40px' : '48px',
-                                                        borderRadius: isMobile ? '12px' : '14px',
+                                                        width: '48px',
+                                                        height: '48px',
+                                                        borderRadius: '14px',
                                                         background: 'var(--primary-blue)',
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -3234,36 +3266,36 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                         boxShadow: '0 4px 12px rgba(29, 155, 240, 0.3)',
                                                         flexShrink: 0
                                                     }}>
-                                                        <Sparkles size={isMobile ? 20 : 24} color="#fff" fill="#fff" />
+                                                        <Sparkles size={24} color="#fff" fill="#fff" />
                                                     </div>
                                                     <div>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: isMobile ? '6px' : '4px', flexWrap: 'wrap' }}>
-                                                            <h4 style={{ margin: 0, fontSize: isMobile ? '13px' : '15px', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.35 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 900, color: 'var(--text-primary)' }}>
                                                                 Hồ sơ Thẩm định (Due Diligence)
                                                             </h4>
                                                             {lastDueDiligenceDocUrl && (
                                                                 <span style={{
                                                                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                                                                     color: '#10b981',
-                                                                    fontSize: isMobile ? '9px' : '10px',
+                                                                    fontSize: '10px',
                                                                     fontWeight: 800,
-                                                                    padding: isMobile ? '2px 7px' : '2px 8px',
+                                                                    padding: '2px 8px',
                                                                     borderRadius: '99px',
                                                                     textTransform: 'uppercase'
                                                                 }}>Đã có bản nộp</span>
                                                             )}
                                                         </div>
-                                                        <p style={{ margin: 0, fontSize: isMobile ? '12px' : '13px', color: 'var(--text-secondary)', lineHeight: isMobile ? 1.45 : 1.5 }}>
+                                                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                                                             Cung cấp dữ liệu đối chứng để <strong>AI Analyst</strong> đánh giá dự án chính xác hơn.
                                                             Giảm thiểu rủi ro bị trừ điểm do thiếu bằng chứng trong Pitch Deck.
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div style={{ display: 'flex', gap: '10px', width: isMobile ? '100%' : 'auto' }}>
+                                                <div style={{ display: 'flex', gap: '10px' }}>
                                                     {lastDueDiligenceDocUrl && (
                                                         <button
                                                             className={styles.secondaryBtn}
-                                                            style={{ padding: isMobile ? '10px 12px' : '10px 16px', borderRadius: '12px', fontSize: isMobile ? '12px' : '13px', fontWeight: 700, flex: isMobile ? 1 : 'none' }}
+                                                            style={{ padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
                                                             onClick={(e) => {
                                                                 e.preventDefault();
                                                                 window.open(lastDueDiligenceDocUrl, '_blank');
@@ -3275,13 +3307,12 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                     <button
                                                         className={styles.primaryBtn}
                                                         style={{
-                                                            padding: isMobile ? '10px 14px' : '10px 20px',
+                                                            padding: '10px 20px',
                                                             borderRadius: '12px',
-                                                            fontSize: isMobile ? '12px' : '13px',
+                                                            fontSize: '13px',
                                                             fontWeight: 800,
                                                             background: 'var(--primary-blue)',
-                                                            boxShadow: '0 4px 10px rgba(29, 155, 240, 0.2)',
-                                                            flex: isMobile ? 1.35 : 'none'
+                                                            boxShadow: '0 4px 10px rgba(29, 155, 240, 0.2)'
                                                         }}
                                                         onClick={(e) => {
                                                             e.preventDefault();
@@ -3654,6 +3685,53 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                             {contractDealData.projectName ? (
                                 <> — Dự án: <strong style={{ color: 'var(--text-primary)' }}>{contractDealData.projectName}</strong></>
                             ) : null}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+                            <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '12px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Số tiền đầu tư</div>
+                                <div style={{ marginTop: '4px', fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                    {Number(contractDealData.investedAmount || 0).toLocaleString('vi-VN')} VND
+                                </div>
+                            </div>
+                            <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '12px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Loại giao dịch</div>
+                                <div style={{ marginTop: '4px', fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                    {contractDealData.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
+                                </div>
+                            </div>
+                        </div>
+
+                        {contractDealData.type === 'Equity' && contractDealData.equityPercentage !== undefined && contractDealData.equityPercentage !== null && (
+                            <div style={{ marginBottom: '14px', backgroundColor: 'rgba(45, 126, 255, 0.06)', border: '1px solid rgba(45, 126, 255, 0.18)', borderRadius: '10px', padding: '12px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Tỷ lệ cổ phần</div>
+                                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: '900', color: 'var(--primary-blue)' }}>
+                                    {contractDealData.equityPercentage}%
+                                </div>
+                            </div>
+                        )}
+
+                        {contractDealData.type === 'CustomTerms' && contractDealData.exchangeTerms && (
+                            <div style={{ marginBottom: '14px', backgroundColor: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.18)', borderRadius: '10px', padding: '12px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Điều khoản trao đổi</div>
+                                <div style={{ marginTop: '6px', fontSize: '13px', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                                    {contractDealData.exchangeTerms}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', marginBottom: '14px' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                <strong>Initiator:</strong> {contractDealData.initiatorRole || '—'}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                <strong>Investor confirmed:</strong> {contractDealData.investorConfirmed ? 'Đã xác nhận' : 'Chưa'}
+                                {' · '}
+                                <strong>Startup confirmed:</strong> {contractDealData.startupConfirmed ? 'Đã xác nhận' : 'Chưa'}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                <strong>Document hash:</strong> {contractDealData.documentHash || 'Chưa có'}
+                            </div>
                         </div>
 
                         <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
