@@ -1,10 +1,27 @@
 import React from 'react';
 import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { X, Loader2, FileText, Sparkles } from 'lucide-react';
 import styles from './DueDiligenceFormModal.module.css';
 
-pdfMake.vfs = pdfFonts?.pdfMake?.vfs || pdfFonts?.vfs || pdfMake.vfs;
+let isPdfFontsReady = false;
+
+async function ensurePdfFonts() {
+  if (isPdfFontsReady && pdfMake?.vfs) return;
+  const mod = await import('pdfmake/build/vfs_fonts');
+  const resolvedVfs =
+    mod?.default?.pdfMake?.vfs ||
+    mod?.default?.vfs ||
+    mod?.pdfMake?.vfs ||
+    mod?.vfs ||
+    null;
+
+  if (!resolvedVfs) {
+    throw new Error('Không thể khởi tạo font PDF.');
+  }
+
+  pdfMake.vfs = resolvedVfs;
+  isPdfFontsReady = true;
+}
 
 function slugify(value) {
   return String(value || 'du-an')
@@ -92,6 +109,7 @@ export default function DueDiligenceFormModal({
     setSubmitError('');
     setIsPreparingPdf(true);
     try {
+      await ensurePdfFonts();
       const dateStr = new Date().toLocaleString('vi-VN', {
         year: 'numeric',
         month: '2-digit',
