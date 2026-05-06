@@ -493,8 +493,13 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
 
         const [dRes, aRes, bRes] = await Promise.all([
           projectSubmissionService.getDocuments(projectId).catch(err => {
-            if (err?.response?.status === 403) {
-              setDocError(err.response.data?.errors?.[0] || err.response.data?.message || 'Bạn không có quyền xem tài liệu này.');
+            if (err?.statusCode === 403) {
+              const roleStr = user?.role?.toString().toLowerCase();
+              const isAdvisor = roleStr === 'advisor' || Number(user?.role) === 2;
+              const msg = isAdvisor 
+                ? 'Bạn chỉ xem được tài liệu của dự án mà bạn được phân công cố vấn.' 
+                : (err.errors?.[0] || err.message || 'Bạn không có quyền xem tài liệu này.');
+              setDocError(msg);
             }
             return null;
           }),
@@ -502,7 +507,19 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
           bookingService.getAllBookings('', '-Id', 1, 1000).catch(() => null),
         ]);
 
-        const rawDocs = dRes?.data?.items ?? (Array.isArray(dRes?.data) ? dRes?.data : []);
+        const dResData = dRes?.data;
+        const isDResForbidden = dRes?.success === false && (dRes?.statusCode === 403 || dRes?.status === 403);
+        
+        if (isDResForbidden) {
+          const roleStr = user?.role?.toString().toLowerCase();
+          const isAdvisor = roleStr === 'advisor' || Number(user?.role) === 2;
+          const msg = isAdvisor 
+            ? 'Bạn chỉ xem được tài liệu của dự án mà bạn được phân công cố vấn.' 
+            : (dRes?.errors?.[0] || dRes?.message || 'Bạn không có quyền xem tài liệu này.');
+          setDocError(msg);
+        }
+
+        const rawDocs = dResData?.items ?? (Array.isArray(dResData) ? dResData : []);
         const truncateName = (name, max = 28) => {
           if (!name || name.length <= max) return name;
           const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
@@ -941,15 +958,6 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
                     <button onClick={() => {
                       if (!isInvestorApproved) {
                         onRestrictedAction?.('Bạn cần được phê duyệt hồ sơ Nhà đầu tư để đặt lịch tư vấn với Cố vấn.');
-                        return;
-                      }
-                      setShowBookingWizard(true);
-                    }} style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, background: T.blue, color: '#fff', border: 'none', cursor: 'pointer' }}>Đặt lịch tư vấn</button>
-                  )}
-                  {(user?.role?.toString().toLowerCase() === 'startup' || Number(user?.role) === 0) && (
-                    <button onClick={() => {
-                      if (!isStartupApproved) {
-                        onRestrictedAction?.('Bạn cần được phê duyệt hồ sơ Startup để đặt lịch tư vấn với Cố vấn.');
                         return;
                       }
                       setShowBookingWizard(true);

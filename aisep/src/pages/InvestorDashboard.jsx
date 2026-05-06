@@ -522,7 +522,8 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                 ]);
 
                 if (industriesRes && industriesRes.length > 0) {
-                    setAvailableIndustries(industriesRes);
+                    const activeIndustries = industriesRes.filter(opt => opt.isActive !== false);
+                    setAvailableIndustries(activeIndustries);
                 }
 
                 if (stagesRes && stagesRes.length > 0) {
@@ -2268,6 +2269,7 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                             targetId={targetId}
                             onViewProject={onViewProject}
                             onUpdateProfile={() => setActiveSection('preferences')}
+                            onOpenChat={setActiveChatSession}
                             isApproved={isApproved}
                             onRestrictedAction={showRestrictedActionModal}
                         />

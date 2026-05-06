@@ -56,6 +56,8 @@ function Sidebar({
   };
 
   const navItems = React.useMemo(() => {
+    const h = (label) => ({ type: 'header', displayLabel: label });
+
     const baseItems = [
       { icon: Compass, label: 'Home', displayLabel: 'Khám phá dự án', href: '#' },
       { icon: LayoutDashboard, label: 'Dashboard', displayLabel: 'Bảng điều khiển', href: '#', showWhenLoggedIn: true },
@@ -70,87 +72,117 @@ function Sidebar({
     const isAdmin = roleStr === 'admin' || roleNum === 4;
 
     if (isAdmin) {
-      const adminItems = [
+      return [
+        h('Giám sát hệ thống'),
         { icon: Activity, label: 'AdminStatistics', displayLabel: 'Thống kê hệ thống', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminUsers', displayLabel: 'Quản lý người dùng', href: '#', showWhenLoggedIn: true },
         { icon: Users, label: 'AdminStaff', displayLabel: 'Quản lý Staff', href: '#', showWhenLoggedIn: true },
         { icon: DollarSign, label: 'AdminTransactions', displayLabel: 'Giao dịch', href: '#', showWhenLoggedIn: true },
+        
+        h('Quản lý kinh doanh'),
         { icon: Shield, label: 'AdminPackageManagement', displayLabel: 'Quản lý gói', href: '#', showWhenLoggedIn: true },
         { icon: History, label: 'AdminSubscriptionHistory', displayLabel: 'Lịch sử đăng ký gói', href: '#', showWhenLoggedIn: true },
+        
+        h('Cấu hình lõi'),
         { icon: Factory, label: 'AdminIndustryOptions', displayLabel: 'Ngành nghề', href: '#', showWhenLoggedIn: true },
         { icon: Milestone, label: 'AdminStageOptions', displayLabel: 'Giai đoạn dự án', href: '#', showWhenLoggedIn: true },
         { icon: Settings, label: 'AdminScorecardConfig', displayLabel: 'Cấu hình chấm điểm AI', href: '#', showWhenLoggedIn: true },
         { icon: Settings, label: 'AdminValidationRules', displayLabel: 'Rule validate động', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'AdminTerms', displayLabel: 'Quản lý Điều khoản', href: '#', showWhenLoggedIn: true },
+        
+        h('Cá nhân'),
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
-      return adminItems;
     }
 
     if (isStaff) {
-      const staffItems = [
+      const otherItems = baseItems.filter(item => item.label !== 'Dashboard' && item.label !== 'Home');
+      return [
+        h('Phê duyệt & Kiểm duyệt'),
         { icon: LayoutDashboard, label: 'Dashboard', displayLabel: 'Bảng điều khiển', href: '#', showWhenLoggedIn: true },
-        { icon: CreditCard, label: 'Payouts', displayLabel: 'Chi trả cố vấn', href: '#', showWhenLoggedIn: true },
-        { icon: Activity, label: 'CommissionConfig', displayLabel: 'Cấu hình hoa hồng', href: '#', showWhenLoggedIn: true },
-        { icon: FileText, label: 'Projects', displayLabel: 'Quản lý dự án', href: '#', showWhenLoggedIn: true },
-        { icon: Calendar, label: 'Bookings', displayLabel: 'Quản lý Booking', href: '#', showWhenLoggedIn: true },
-        { icon: Newspaper, label: 'PRManagement', displayLabel: 'Đăng bài PR', href: '#', showWhenLoggedIn: true },
-        { icon: AlertCircle, label: 'UserReports', displayLabel: 'Báo cáo vi phạm', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'Approvals', displayLabel: 'Phê duyệt Startup', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'AdvisorApproval', displayLabel: 'Phê duyệt cố vấn', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'InvestorApproval', displayLabel: 'Phê duyệt nhà đầu tư', href: '#', showWhenLoggedIn: true },
+        { icon: FileText, label: 'Projects', displayLabel: 'Quản lý dự án', href: '#', showWhenLoggedIn: true },
         { icon: Briefcase, label: 'StaffInvestmentManagement', displayLabel: 'Quản lý đầu tư', href: '#', showWhenLoggedIn: true },
+        
+        h('Quản lý dịch vụ'),
+        { icon: Calendar, label: 'Bookings', displayLabel: 'Quản lý Booking', href: '#', showWhenLoggedIn: true },
+        { icon: Newspaper, label: 'PRManagement', displayLabel: 'Đăng bài PR', href: '#', showWhenLoggedIn: true },
+        { icon: AlertCircle, label: 'UserReports', displayLabel: 'Báo cáo vi phạm', href: '#', showWhenLoggedIn: true },
+        
+        h('Tài chính & Hệ thống'),
+        { icon: CreditCard, label: 'Payouts', displayLabel: 'Chi trả cố vấn', href: '#', showWhenLoggedIn: true },
+        { icon: Activity, label: 'CommissionConfig', displayLabel: 'Cấu hình hoa hồng', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'Terms', displayLabel: 'Quản lý Điều khoản', href: '#', showWhenLoggedIn: true },
+        
+        h('Cộng đồng & Cá nhân'),
+        baseItems.find(item => item.label === 'Home'),
+        ...otherItems,
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
-      const otherItems = baseItems.filter(item => item.label !== 'Dashboard' && item.label !== 'Home');
-      const homeItem = baseItems.find(item => item.label === 'Home');
-      return [...staffItems, homeItem, ...otherItems];
     }
 
     if (roleStr === 'advisor' || roleNum === 2) {
-      const advisorItems = [
+      const otherItems = baseItems.filter(item => item.label !== 'Dashboard' && item.label !== 'Home');
+      return [
+        h('Quản lý công việc'),
         { icon: LayoutDashboard, label: 'Dashboard', displayLabel: 'Bảng điều khiển', href: '#', showWhenLoggedIn: true },
-        { icon: CreditCard, label: 'Wallet', displayLabel: 'Thu nhập', href: '#', showWhenLoggedIn: true },
-        { icon: Landmark, label: 'Payouts', displayLabel: 'Thanh toán & Đối soát', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'ApproveBookings', displayLabel: 'Duyệt Booking', href: '#', showWhenLoggedIn: true },
         { icon: MessageSquare, label: 'Bookings', displayLabel: 'Danh sách Booking', href: '#', showWhenLoggedIn: true },
         { icon: Calendar, label: 'Availability', displayLabel: 'Lịch Rảnh', href: '#', showWhenLoggedIn: true },
+        
+        h('Tài chính'),
+        { icon: CreditCard, label: 'Wallet', displayLabel: 'Thu nhập', href: '#', showWhenLoggedIn: true },
+        { icon: Landmark, label: 'Payouts', displayLabel: 'Thanh toán & Đối soát', href: '#', showWhenLoggedIn: true },
+        
+        h('Cá nhân & Cộng đồng'),
         { icon: User, label: 'Profile', displayLabel: 'Hồ sơ cố vấn', href: '#', showWhenLoggedIn: true },
+        baseItems.find(item => item.label === 'Home'),
+        ...otherItems,
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
-      const otherItems = baseItems.filter(item => item.label !== 'Dashboard' && item.label !== 'Home');
-      const homeItem = baseItems.find(item => item.label === 'Home');
-      return [...advisorItems, homeItem, ...otherItems];
     }
 
     if (roleStr === 'investor' || roleNum === 1) {
       return [
+        h('Tổng quan'),
         baseItems.find(i => i.label === 'Home'),
         baseItems.find(i => i.label === 'Dashboard'),
         { icon: User, label: 'InvestorProfile', displayLabel: 'Hồ sơ nhà đầu tư', href: '#', showWhenLoggedIn: true },
+        
+        h('Cộng đồng'),
         baseItems.find(i => i.label === 'PRNews'),
         baseItems.find(i => i.label === 'Advisors'),
         baseItems.find(i => i.label === 'Investors'),
+        
+        h('Cá nhân'),
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
     }
 
     if (roleStr === 'startup' || roleNum === 0) {
       return [
+        h('Tổng quan'),
         baseItems.find(i => i.label === 'Home'),
         baseItems.find(i => i.label === 'Dashboard'),
         { icon: Rocket, label: 'StartupProfile', displayLabel: 'Hồ sơ Startup', href: '#', showWhenLoggedIn: true },
+        
+        h('Cộng đồng'),
         baseItems.find(i => i.label === 'PRNews'),
         baseItems.find(i => i.label === 'Advisors'),
         baseItems.find(i => i.label === 'Investors'),
+        
+        h('Cá nhân'),
         { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
       ];
     }
 
     // Default and other roles
     return [
+      h('Cơ bản'),
       ...baseItems,
+      h('Cá nhân'),
       { icon: User, label: 'AccountProfile', displayLabel: 'Hồ sơ người dùng', href: '#', showWhenLoggedIn: true },
     ];
   }, [user]);
@@ -407,7 +439,15 @@ function Sidebar({
                     }
                     return true;
                   })
-                  .map((item) => {
+                  .map((item, idx) => {
+                    if (item.type === 'header') {
+                      return (
+                        <div key={`h-${idx}`} className={styles.sectionHeader}>
+                          {item.displayLabel}
+                        </div>
+                      );
+                    }
+
                     const Icon = item.icon;
                     // Map activeView to nav item labels
                     const getActiveLabel = () => {

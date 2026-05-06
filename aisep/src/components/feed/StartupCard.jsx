@@ -264,12 +264,40 @@ function StartupCard({
 
   const roleStr = user?.role?.toString().toLowerCase() || '';
   const roleNum = Number(user?.role);
-  const isBypassRole = roleStr === 'staff' || roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'advisor' || roleNum === 3 || roleNum === 2;
+  const isBypassRole = roleStr === 'staff' || roleStr === 'operationstaff' || roleStr === 'operation_staff' || roleStr === 'advisor' || roleStr === 'admin' || [2, 3, 4, 5].includes(roleNum);
+  const isAdvisor = roleStr === 'advisor' || roleNum === 2;
+
+  const DISP = (v, fb = '—') => {
+    if (v && String(v).trim()) return v;
+    if (isAdvisor) return (
+      <span style={{ color: 'var(--primary-blue)', fontSize: '13px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        Xem chi tiết <CaretRight size={12} weight="bold" />
+      </span>
+    );
+    return fb;
+  };
+
+  const DISP_BOX = (v, fb = '—') => {
+    if (v && String(v).trim()) return v;
+    if (isAdvisor) return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', color: 'var(--primary-blue)', background: 'rgba(45, 126, 255, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+        Xem chi tiết <CaretRight size={12} weight="bold" />
+      </div>
+    );
+    return fb;
+  };
 
   const isUnlocked = isBypassRole || startup.isUnlockedByCurrentUser || (myStartupProfileId && startup.startupId === myStartupProfileId);
 
   const PremiumLock = () => {
-    if (isBypassRole) return <div style={{ fontSize: '15px' }}>—</div>;
+    if (isBypassRole) {
+      if (isAdvisor) return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', color: 'var(--primary-blue)', background: 'rgba(45, 126, 255, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+          Xem chi tiết <CaretRight size={12} weight="bold" />
+        </div>
+      );
+      return <div style={{ fontSize: '15px' }}>—</div>;
+    }
     if (isUnlocked) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', color: 'var(--primary-blue)', background: 'rgba(45, 126, 255, 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
@@ -285,7 +313,14 @@ function StartupCard({
   };
 
   const PremiumLockText = () => {
-    if (isBypassRole) return <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>—</span>;
+    if (isBypassRole) {
+      if (isAdvisor) return (
+        <span style={{ color: 'var(--primary-blue)', fontSize: '13px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          Xem chi tiết <CaretRight size={12} weight="bold" />
+        </span>
+      );
+      return <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>—</span>;
+    }
     if (isUnlocked) {
       return (
         <span style={{ color: 'var(--primary-blue)', fontSize: '13px', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -504,7 +539,7 @@ function StartupCard({
           <div className={styles.boxIcon}><Sword size={24} weight="duotone" style={{ color: '#71767b' }} /></div>
           {startup.competitors !== undefined ? (
             <div className={`${styles.boxValue} ${styles.grayText}`} style={{ fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {startup.competitors || '—'}
+              {DISP_BOX(startup.competitors)}
             </div>
           ) : <PremiumLock />}
           <div className={styles.boxLabel}>Đối thủ chính</div>
@@ -513,24 +548,24 @@ function StartupCard({
 
       {/* 4. Detail Rows */}
       <div className={styles.detailRows}>
-        {(startup.businessModel === undefined || startup.businessModel) && (
+        {(startup.businessModel === undefined || startup.businessModel || isAdvisor) && (
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Mô hình KD</span>
             <span className={styles.detailValue}>
-              {startup.businessModel !== undefined ? startup.businessModel : <PremiumLockText />}
+              {startup.businessModel !== undefined ? DISP(startup.businessModel) : <PremiumLockText />}
             </span>
           </div>
         )}
-        {startup.targetCustomers && (
+        {(startup.targetCustomers || isAdvisor) && (
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Khách hàng</span>
-            <span className={styles.detailValue}>{startup.targetCustomers}</span>
+            <span className={styles.detailValue}>{DISP(startup.targetCustomers)}</span>
           </div>
         )}
-        {startup.uniqueValueProposition && (
+        {(startup.uniqueValueProposition || isAdvisor) && (
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>Giá trị</span>
-            <span className={`${styles.detailValue} ${styles.blueText}`}>{startup.uniqueValueProposition}</span>
+            <span className={`${styles.detailValue} ${styles.blueText}`}>{DISP(startup.uniqueValueProposition)}</span>
           </div>
         )}
       </div>

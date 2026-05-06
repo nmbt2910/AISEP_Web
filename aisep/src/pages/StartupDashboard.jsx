@@ -2420,6 +2420,7 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                         <StartupBookings
                             user={user}
                             onViewProject={(pid) => setActiveSection('project_' + pid)}
+                            onOpenChat={setActiveChatSession}
                             initialFilterStatus={lastBookingFilter}
                             onFilterStatusChange={setLastBookingFilter}
                             isApproved={isApproved}
