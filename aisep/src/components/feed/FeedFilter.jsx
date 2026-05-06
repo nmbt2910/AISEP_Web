@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Filter, X, Clock, Flame, Star, Coins, List } from 'lucide-react';
+import { Filter, X, Clock, Flame, Star, Coins, List, Sparkles } from 'lucide-react';
 import styles from './FeedFilter.module.css';
 import optionService from '../../services/optionService';
 import { getStageLabel } from '../../constants/ProjectStatus';
@@ -10,7 +10,7 @@ import { getStageLabel } from '../../constants/ProjectStatus';
  * @param {function} onFilterChange - Callback when filters change
  * @param {object} totalCount - Total number of projects
  */
-function FeedFilter({ onFilterChange, totalCount = 0, activeFilters }) {
+function FeedFilter({ user, onFilterChange, totalCount = 0, activeFilters }) {
   const [activeSort, setActiveSort] = useState(activeFilters?.sort || 'newest');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -69,11 +69,13 @@ function FeedFilter({ onFilterChange, totalCount = 0, activeFilters }) {
     };
   }, [activeSort]);
 
+  const isInvestor = user && (user.role === 'Investor' || user.role === 1 || String(user.role) === '1');
   const sortOptions = [
+    { id: 'foryou', label: 'Dành cho bạn', icon: Sparkles, hidden: !isInvestor },
     { id: 'newest', label: 'Mới nhất', icon: Clock },
     { id: 'oldest', label: 'Cũ nhất', icon: List },
     { id: 'rated', label: 'Được đánh giá cao', icon: Star },
-  ];
+  ].filter(opt => !opt.hidden);
 
   const handleSortClick = (sortId) => {
     setActiveSort(sortId);
