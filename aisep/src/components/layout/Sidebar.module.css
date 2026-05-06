@@ -141,10 +141,28 @@
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   padding-bottom: 20px;
   width: 100%;
   box-sizing: border-box;
+}
+
+.sectionHeader {
+  padding: 24px 16px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.8;
+  user-select: none;
+}
+
+/* Tablet Icon-Only Sidebar: Hide section headers */
+@media (max-width: 1439px) and (min-width: 1024px) {
+  .sectionHeader {
+    display: none;
+  }
 }
 
 .navItem {

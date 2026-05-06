@@ -211,7 +211,8 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
             }
 
             setValidationRules(rules);
-            setAvailableIndustries(industriesData);
+            const activeIndustries = (industriesData || []).filter(opt => opt.isActive !== false);
+            setAvailableIndustries(activeIndustries);
 
             if (data) {
                 setProfile(data);

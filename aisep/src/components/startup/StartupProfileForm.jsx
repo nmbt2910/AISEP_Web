@@ -58,10 +58,13 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
     setConfigError('');
     try {
       const formKey = initialData ? 'startup.update' : 'startup.create';
-      const [rules, indOptions] = await Promise.all([
+      const [rules, rawIndOptions] = await Promise.all([
         validationService.getFormRules(formKey),
         optionService.getIndustries()
       ]);
+
+      // Filter to only show active industries in the selection list
+      const indOptions = (rawIndOptions || []).filter(opt => opt.isActive !== false);
 
       if (!rules || Object.keys(rules).length === 0) {
         throw new Error(`Không tìm thấy cấu hình xác thực cho ${formKey}.`);

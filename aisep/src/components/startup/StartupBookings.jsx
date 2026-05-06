@@ -58,7 +58,7 @@ const FILTER_OPTIONS = [
     { id: 'Complaint', label: 'Khiếu nại' }
 ];
 
-export default function StartupBookings({ user, targetId, onViewProject, initialFilterStatus, onFilterStatusChange, banner, isApproved, onRestrictedAction }) {
+export default function StartupBookings({ user, targetId, onViewProject, onOpenChat, initialFilterStatus, onFilterStatusChange, banner, isApproved, onRestrictedAction }) {
     const [bookings, setBookings] = useState([]);
     const [userReports, setUserReports] = useState([]);
     const [userReviews, setUserReviews] = useState([]);
@@ -134,13 +134,19 @@ export default function StartupBookings({ user, targetId, onViewProject, initial
         try {
             const result = await chatService.createOrGetBookingChat(booking.id);
             const chatData = result?.data || result || {};
-            setChatSession({
+            const sessionData = {
                 chatSessionId: chatData.chatSessionId || result.chatSessionId,
                 displayName: chatData.advisorFullName || chatData.advisorName || result.advisorName || 'Cố vấn',
                 handle: chatData.advisorName || result.advisorName,
                 currentUserId: user?.userId,
                 sentTime: chatData.startTime || result.startTime || new Date().toISOString()
-            });
+            };
+            
+            if (onOpenChat) {
+                onOpenChat(sessionData);
+            } else {
+                setChatSession(sessionData);
+            }
         } catch (error) {
             console.error('Failed to access chat', error);
         } finally {
@@ -450,7 +456,15 @@ export default function StartupBookings({ user, targetId, onViewProject, initial
                         }} 
                     />
                 )}
-                <FloatingChatWidget chatSessionId={chatSession?.chatSessionId} displayName={chatSession?.displayName} currentUserId={chatSession?.currentUserId} sentTime={chatSession?.sentTime} onClose={() => setChatSession(null)} />
+                {!onOpenChat && (
+                    <FloatingChatWidget 
+                        chatSessionId={chatSession?.chatSessionId} 
+                        displayName={chatSession?.displayName} 
+                        currentUserId={chatSession?.currentUserId} 
+                        sentTime={chatSession?.sentTime} 
+                        onClose={() => setChatSession(null)} 
+                    />
+                )}
                 {paymentBooking && (
                     <PaymentModal
                         bookingId={paymentBooking.id}

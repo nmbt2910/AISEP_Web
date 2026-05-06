@@ -118,14 +118,21 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
         throw new Error(`Không tìm thấy cấu hình xác thực cho ${formKey}.`);
       }
 
-      if (rules && rules.industryoptionids) {
-        rules.industryoptionids.minCount = 1;
-        rules.industryoptionids.maxCount = 1;
-        rules.industryoptionids.minCountMessage = 'Vui lòng chọn lĩnh vực.';
-        rules.industryoptionids.maxCountMessage = 'Vui lòng chỉ chọn 1 lĩnh vực.';
-      }
+      // Enforce all fields as mandatory regardless of API rules
+      const enforcedRules = { ...rules };
+      Object.keys(enforcedRules).forEach(key => {
+        if (enforcedRules[key]) {
+          enforcedRules[key].required = true;
+          // Ensure requiredMessage is present or fallback to localized label
+          if (!enforcedRules[key].requiredMessage) {
+            enforcedRules[key].requiredMessage = `Vui lòng nhập ${FIELD_LABEL_MAP[key.toLowerCase()] || enforcedRules[key].displayName || key}`;
+          }
+          // Remove stage-specific optional logic if any
+          enforcedRules[key].stageOptionIds = [];
+        }
+      });
 
-      setValidationRules(rules);
+      setValidationRules(enforcedRules);
       setIndustries(indOptions.filter(i => i.isActive));
       setStages(stageOptions.filter(s => s.isActive));
 
@@ -309,8 +316,18 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
 
     currentFields.forEach((name) => {
       const error = validateField(name, formData[name]);
-      if (error) newErrors[name] = error;
+      if (error) {
+        newErrors[name] = error;
+      } else if (!formData[name] || String(formData[name]).trim() === '') {
+        // Double check even if validateField missed it due to rule mapping
+        newErrors[name] = 'Vui lòng không để trống trường này';
+      }
     });
+
+    // Special check for Project Image File as it's not always in validationRules
+    if (currentStep === 1 && !formData.projectImageFile && !isEdit) {
+      newErrors.projectImageFile = 'Vui lòng tải lên hình ảnh cho dự án';
+    }
 
     const requireScore = (keys) => {
       keys.forEach((k) => {
@@ -577,14 +594,8 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
                 const maxLength = rule?.maxLength;
                 const isOverLimit = maxLength && currentLength > maxLength;
 
-                // Determine dynamic required status using the same logic as validationService
-                let isRequired = rule?.required;
-                const currentStage = formData.developmentStage;
-                if (currentStage !== null && currentStage !== undefined && rule?.stageOptionIds && rule.stageOptionIds.length > 0) {
-                  const stageId = Number(currentStage);
-                  const isStageInList = rule.stageOptionIds.some(id => Number(id) === stageId);
-                  isRequired = isStageInList ? rule.required : !rule.required;
-                }
+                // Force all fields to be required visually
+                const isRequired = true;
 
                 // Priority: 1. rule.displayName (from BE), 2. Local Map (Vietnamese), 3. hardcoded label, 4. rule.fieldKey
                 const ruleLabel = rule?.displayName || FIELD_LABEL_MAP[ruleKey] || label || rule?.fieldKey;
@@ -670,7 +681,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
 
                       <div className={styles.formGroup}>
                         <label className={styles.label}>
-                          <span>Hình Ảnh Dự Án <span className={styles.optional}>(Tùy chọn)</span></span>
+                          <span>Hình Ảnh Dự Án <span className={styles.required}>*</span></span>
                         </label>
                         <div style={{ 
                           border: imagePreview ? '1px solid var(--border-color)' : '2px dashed var(--border-color)', 

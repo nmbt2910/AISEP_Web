@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageCircle, X } from 'lucide-react';
 import styles from './FloatingChatWidget.module.css';
 import ChatWindow from './ChatWindow';
 
 /**
  * FloatingChatWidget - Floating chat widget in bottom-right corner
- * Props:
- *   - chatSessionId: ID of chat session (enables chat)
- *   - displayName: Name to display in widget header
- *   - currentUserId: Current user ID for role detection (required)
- *   - sentTime: (optional) When request was sent
- *   - onClose: Callback when widget closes
+ * Uses Portals to ensure it stays in the viewport corner regardless of parent styling
  */
 export default function FloatingChatWidget({ 
   chatSessionId,
@@ -48,15 +44,16 @@ export default function FloatingChatWidget({
     }, 200);
   };
 
-  const handleCloseClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    handleClose();
-  };
-
-  return (
+  const widgetContent = (
     <>
-      {/* Chat Widget is now shown outright when chatSessionId is present */}
+      {/* Backdrop for mobile or focus - only active if session exists */}
+      {isOpen && (
+        <div 
+          className={`${styles.backdrop} ${isClosing ? styles.closing : ''}`} 
+          onClick={handleClose} 
+        />
+      )}
+      
       {isOpen && (
         <div className={`${styles.chatContainer} ${isClosing ? styles.closing : ''}`}>
           <ChatWindow
@@ -71,4 +68,7 @@ export default function FloatingChatWidget({
       )}
     </>
   );
+
+  // Render into body to bypass parent transforms/overflows
+  return createPortal(widgetContent, document.body);
 }

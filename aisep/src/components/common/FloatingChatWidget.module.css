@@ -60,7 +60,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 1001;
+  z-index: 10000;
   border: 1px solid var(--border-color);
   animation: fadeInFast 0.2s ease-out forwards;
   transform-origin: bottom right;
@@ -143,9 +143,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
   animation: fadeInBackdrop 0.3s ease-out forwards;
+  display: none;
 }
 
 .backdrop.closing {
@@ -178,5 +179,10 @@
     border: none;
     box-shadow: none;
     transform-origin: center;
+    z-index: 10001;
+  }
+
+  .backdrop {
+    display: block;
   }
 }
