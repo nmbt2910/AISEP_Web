@@ -1,35 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import pdfMakeModule from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import { X, Loader2, FileText, Sparkles } from 'lucide-react';
 import styles from './DueDiligenceFormModal.module.css';
 
 const pdfMake = pdfMakeModule?.default || pdfMakeModule;
 
-// Initialize fonts statically to avoid Vite/Webpack dynamic import issues with UMD modules
-const vfs = pdfFonts?.pdfMake?.vfs || pdfFonts?.default?.pdfMake?.vfs || pdfFonts?.vfs || window?.pdfMake?.vfs;
-if (vfs) {
-  pdfMake.vfs = vfs;
-  pdfMake.fonts = {
-    Roboto: {
-      normal: 'Roboto-Regular.ttf',
-      bold: 'Roboto-Medium.ttf',
-      italics: 'Roboto-Italic.ttf',
-      bolditalics: 'Roboto-MediumItalic.ttf'
-    }
-  };
-} else {
-  console.error("Could not find pdfMake VFS from pdfFonts:", pdfFonts);
-}
-
-let isPdfFontsReady = !!vfs;
+let isPdfFontsReady = false;
 
 async function ensurePdfFonts() {
   if (isPdfFontsReady && pdfMake?.vfs) return;
-  // Fallback if static initialization somehow failed but we still try
-  if (!pdfMake?.vfs) {
-    throw new Error('Không thể tìm thấy dữ liệu font PDF. Vui lòng thử lại.');
+
+  // If already loaded globally by a previous script injection
+  if (window?.pdfMake?.vfs) {
+    pdfMake.vfs = window.pdfMake.vfs;
+    pdfMake.fonts = {
+      Roboto: {
+        normal: 'Roboto-Regular.ttf',
+        bold: 'Roboto-Medium.ttf',
+        italics: 'Roboto-Italic.ttf',
+        bolditalics: 'Roboto-MediumItalic.ttf'
+      }
+    };
+    isPdfFontsReady = true;
+    return;
   }
+
+  // Load from CDN to bypass Vite/Rollup ESM 'this' context issues with UMD modules
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.js';
+    script.async = true;
+    
+    script.onload = () => {
+      if (window?.pdfMake?.vfs) {
+        pdfMake.vfs = window.pdfMake.vfs;
+        pdfMake.fonts = {
+          Roboto: {
+            normal: 'Roboto-Regular.ttf',
+            bold: 'Roboto-Medium.ttf',
+            italics: 'Roboto-Italic.ttf',
+            bolditalics: 'Roboto-MediumItalic.ttf'
+          }
+        };
+        isPdfFontsReady = true;
+        resolve();
+      } else {
+        reject(new Error('Không thể khởi tạo dữ liệu font PDF sau khi tải.'));
+      }
+    };
+    
+    script.onerror = () => {
+      reject(new Error('Không thể tải font PDF từ máy chủ. Vui lòng kiểm tra kết nối mạng.'));
+    };
+    
+    document.head.appendChild(script);
+  });
 }
 
 
