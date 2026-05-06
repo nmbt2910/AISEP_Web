@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { TrendingUp, Heart, DollarSign, CheckCircle, Eye, MessageSquare, TrendingUpIcon, Loader2, Crown, X, Info, Calendar, PieChart, ArrowRight, FileText, Check, Users, AlertCircle, RefreshCw, Trash2, Settings, Download, XCircle, Clock, Shield, ChevronRight, GripVertical, Camera, Mail, Upload, ExternalLink, Plus, Lock } from 'lucide-react';
+import { TrendingUp, Heart, DollarSign, CheckCircle, Eye, MessageSquare, TrendingUpIcon, Loader2, Crown, X, Info, Calendar, PieChart, ArrowRight, FileText, Check, Users, AlertCircle, RefreshCw, Trash2, Settings, Download, XCircle, Clock, Shield, ChevronRight, GripVertical, Camera, Mail, Upload, ExternalLink, Plus, Lock, User } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import styles from '../styles/SharedDashboard.module.css';
 import contractStyles from './ContractSigningModal.module.css';
@@ -234,6 +234,12 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
+    // Founder contact modal (GET /api/projects/{id}/founder-contact)
+    const [showFounderContactModal, setShowFounderContactModal] = useState(false);
+    const [founderContactData, setFounderContactData] = useState(null);
+    const [isLoadingFounderContact, setIsLoadingFounderContact] = useState(false);
+    const [founderContactError, setFounderContactError] = useState('');
+
     // AI Analysis View States
     const [showAIReportModal, setShowAIReportModal] = useState(false);
     const [selectedAIReport, setSelectedAIReport] = useState(null);
@@ -246,6 +252,30 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
     const showRestrictedActionModal = (message) => {
         setRestrictedActionMessage(message);
         setShowRestrictedModal(true);
+    };
+
+    const handleCloseFounderContactModal = () => {
+        setShowFounderContactModal(false);
+        setFounderContactData(null);
+        setFounderContactError('');
+        setIsLoadingFounderContact(false);
+    };
+
+    const handleOpenFounderContact = async (projectId) => {
+        if (!projectId) return;
+        setShowFounderContactModal(true);
+        setFounderContactData(null);
+        setFounderContactError('');
+        setIsLoadingFounderContact(true);
+        try {
+            const res = await connectionService.getFounderContact(projectId);
+            const data = res?.data?.data ?? res?.data ?? res?.data?.result ?? res;
+            setFounderContactData(data);
+        } catch (err) {
+            setFounderContactError('Không thể tải thông tin liên hệ Founder. Vui lòng thử lại.');
+        } finally {
+            setIsLoadingFounderContact(false);
+        }
     };
 
     const checkAccess = (actionName) => {
@@ -1727,51 +1757,61 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
 
                                             {/* Actions */}
                                             <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', flexWrap: 'wrap' }}>
-                                                {canChat ? (
-                                                    <button
-                                                        style={{
-                                                            flex: 1,
-                                                            padding: '8px 12px',
-                                                            backgroundColor: '#10b981',
-                                                            color: '#fff',
-                                                            border: 'none',
-                                                            borderRadius: '4px',
-                                                            fontSize: '12px',
-                                                            fontWeight: '600',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '4px',
-                                                            transition: 'all 0.2s',
-                                                            opacity: actionLoading[`chat-${request.id || request.connectionRequestId}`] ? 0.7 : 1
-                                                        }}
-                                                        onClick={() => handleStartChat(request.id || request.connectionRequestId)}
-                                                        disabled={actionLoading[`chat-${request.id || request.connectionRequestId}`]}
-                                                    >
-                                                        {actionLoading[`chat-${request.id || request.connectionRequestId}`] ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
-                                                        Bắt đầu chat
-                                                    </button>
-                                                ) : request.status === 'Accepted' ? (
-                                                    <button
-                                                        style={{
-                                                            flex: 1,
-                                                            padding: '8px 12px',
-                                                            backgroundColor: 'var(--bg-secondary)',
-                                                            color: 'var(--text-secondary)',
-                                                            border: '1px solid var(--border-color)',
-                                                            borderRadius: '4px',
-                                                            fontSize: '12px',
-                                                            fontWeight: '600',
-                                                            cursor: 'default',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            gap: '4px'
-                                                        }}
-                                                    >
-                                                        Chat chưa sẵn sàng
-                                                    </button>
+                                                {request.status === 'Accepted' ? (
+                                                    <>
+                                                        {/* Accepted: luôn cho xem liên hệ + chat (nếu có) */}
+                                                        <button
+                                                            type="button"
+                                                            style={{
+                                                                flex: 1,
+                                                                minWidth: '140px',
+                                                                padding: '8px 12px',
+                                                                backgroundColor: 'rgba(45,126,255,0.10)',
+                                                                color: 'var(--primary-blue)',
+                                                                border: '1px solid rgba(45,126,255,0.35)',
+                                                                borderRadius: '4px',
+                                                                fontSize: '12px',
+                                                                fontWeight: '800',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                gap: '6px',
+                                                            }}
+                                                            onClick={() => handleOpenFounderContact(request.projectId)}
+                                                        >
+                                                            <User size={14} />
+                                                            Xem liên hệ
+                                                        </button>
+
+                                                        {request.chatSessionId ? (
+                                                            <button
+                                                                style={{
+                                                                    flex: 1,
+                                                                    minWidth: '140px',
+                                                                    padding: '8px 12px',
+                                                                    backgroundColor: '#10b981',
+                                                                    color: '#fff',
+                                                                    border: 'none',
+                                                                    borderRadius: '4px',
+                                                                    fontSize: '12px',
+                                                                    fontWeight: '800',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    gap: '4px',
+                                                                    transition: 'all 0.2s',
+                                                                    opacity: actionLoading[`chat-${request.id || request.connectionRequestId}`] ? 0.7 : 1
+                                                                }}
+                                                                onClick={() => handleStartChat(request.id || request.connectionRequestId)}
+                                                                disabled={actionLoading[`chat-${request.id || request.connectionRequestId}`]}
+                                                            >
+                                                                {actionLoading[`chat-${request.id || request.connectionRequestId}`] ? <Loader2 size={12} className="animate-spin" /> : <MessageSquare size={12} />}
+                                                                Bắt đầu chat
+                                                            </button>
+                                                        ) : null}
+                                                    </>
                                                 ) : (
                                                     <button
                                                         style={{
@@ -3225,6 +3265,35 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 </div>
                                             </div>
                                         )}
+
+                                        {selectedItem.status === 'Accepted' && (
+                                            <div className={styles.projectDetailSection}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                                                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                                        Thông tin liên hệ Founder
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenFounderContact(selectedItem.projectId)}
+                                                        style={{
+                                                            padding: '8px 12px',
+                                                            borderRadius: '12px',
+                                                            border: '1px solid rgba(45,126,255,0.35)',
+                                                            background: 'rgba(45,126,255,0.10)',
+                                                            color: 'var(--primary-blue)',
+                                                            fontSize: '12px',
+                                                            fontWeight: '800',
+                                                            cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        Xem liên hệ
+                                                    </button>
+                                                </div>
+                                                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                    Chỉ hiển thị sau khi Startup đã chấp nhận yêu cầu thông tin.
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -3347,6 +3416,92 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                     onClose={() => setShowRestrictedModal(false)}
                     message={restrictedActionMessage}
                 />
+
+                {showFounderContactModal && (
+                    <div className={styles.modalOverlay} onClick={handleCloseFounderContactModal}>
+                        <div
+                            className={styles.modalContent}
+                            style={{ maxWidth: '560px', width: '100%', maxHeight: '85vh' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className={styles.modalSplitDesktopHeader} style={{ padding: '18px 22px' }}>
+                                <div>
+                                    <h3 className={styles.modalSplitDesktopTitle} style={{ fontSize: '18px' }}>Liên hệ Founder</h3>
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                                        Dữ liệu lấy từ API theo ProjectId
+                                    </div>
+                                </div>
+                                <button onClick={handleCloseFounderContactModal} className={styles.modalCloseBtnInline}>
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <div className={styles.modalContentBody} style={{ padding: '20px 22px', overflowY: 'auto' }}>
+                                {isLoadingFounderContact ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-secondary)' }}>
+                                        <Loader2 size={16} className={styles.spinner} />
+                                        Đang tải thông tin...
+                                    </div>
+                                ) : founderContactError ? (
+                                    <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px', padding: '12px', color: 'var(--text-primary)' }}>
+                                        {founderContactError}
+                                    </div>
+                                ) : founderContactData ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                                        <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Công ty</div>
+                                            <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                                {founderContactData.companyName || '—'}
+                                            </div>
+                                        </div>
+                                        <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Founder</div>
+                                            <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                                {founderContactData.founder || '—'}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Email</div>
+                                                <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                    {founderContactData.email || '—'}
+                                                </div>
+                                            </div>
+                                            <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Số điện thoại</div>
+                                                <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                    {founderContactData.phoneNumber || '—'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                            <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Website</div>
+                                                <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                    {founderContactData.website || '—'}
+                                                </div>
+                                            </div>
+                                            <div style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Quốc gia/TP</div>
+                                                <div style={{ marginTop: '4px', fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
+                                                    {founderContactData.countryCity || founderContactData.countrycity || '—'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ color: 'var(--text-secondary)' }}>Không có dữ liệu.</div>
+                                )}
+                            </div>
+
+                            <div className={styles.stickyActions} style={{ padding: '14px 22px', justifyContent: 'flex-end' }}>
+                                <button onClick={handleCloseFounderContactModal} className={styles.secondaryBtn} style={{ padding: '10px 18px' }}>
+                                    Đóng
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

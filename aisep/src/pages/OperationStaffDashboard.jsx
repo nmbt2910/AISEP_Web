@@ -3036,7 +3036,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                             <div>
                                                                 <div className={local.sleekMetaLabel}>Số tiền</div>
                                                                 <div className={local.sleekMetaValue}>
-                                                                    {deal.amount ? `${Number(deal.amount).toLocaleString('vi-VN')}` : 'N/A'} <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>VND</span>
+                                                                    {deal.investedAmount ? `${Number(deal.investedAmount).toLocaleString('vi-VN')}` : (deal.amount ? `${Number(deal.amount).toLocaleString('vi-VN')}` : 'N/A')} <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>VND</span>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -3611,7 +3611,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                     <div>
                                         <div className={local.sleekMetaLabel}>Số tiền đầu tư</div>
                                         <div style={{ color: 'var(--text-primary)', fontWeight: '700' }}>
-                                            {selectedDealForPR.amount ? `${Number(selectedDealForPR.amount).toLocaleString('vi-VN')} VND` : 'N/A'}
+                                            {selectedDealForPR.investedAmount ? `${Number(selectedDealForPR.investedAmount).toLocaleString('vi-VN')} VND` : (selectedDealForPR.amount ? `${Number(selectedDealForPR.amount).toLocaleString('vi-VN')} VND` : 'N/A')}
                                         </div>
                                     </div>
 
