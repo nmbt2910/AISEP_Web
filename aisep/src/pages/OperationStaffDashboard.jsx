@@ -3055,7 +3055,9 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                             <div>
                                                                 <div className={local.sleekMetaLabel}>Ngày ký</div>
                                                                 <div className={local.sleekMetaValue}>
-                                                                    {deal.startupSignedAt ? new Date(deal.startupSignedAt).toLocaleDateString('vi-VN') : 'Vừa xong'}
+                                                                    {deal.completionDate
+                                                                        ? new Date(deal.completionDate).toLocaleDateString('vi-VN')
+                                                                        : (deal.dealDate ? new Date(deal.dealDate).toLocaleDateString('vi-VN') : 'N/A')}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -3619,25 +3621,42 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                     </div>
 
                                     <div>
-                                        <div className={local.sleekMetaLabel}>Cổ phần</div>
+                                        <div className={local.sleekMetaLabel}>Loại giao dịch</div>
                                         <div style={{ color: 'var(--text-primary)', fontWeight: '600' }}>
-                                            {selectedDealForPR.equityPercentage ? `${selectedDealForPR.equityPercentage}%` : 'N/A'}
+                                            {selectedDealForPR.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
                                         </div>
                                     </div>
 
                                     <div>
                                         <div className={local.sleekMetaLabel}>Ngày ký</div>
                                         <div style={{ color: 'var(--text-primary)', fontWeight: '600' }}>
-                                            {selectedDealForPR.startupSignedAt ? new Date(selectedDealForPR.startupSignedAt).toLocaleDateString('vi-VN') : 'N/A'}
+                                            {selectedDealForPR.dealDate
+                                                ? new Date(selectedDealForPR.dealDate).toLocaleDateString('vi-VN')
+                                                : (selectedDealForPR.completionDate
+                                                    ? new Date(selectedDealForPR.completionDate).toLocaleDateString('vi-VN')
+                                                    : 'N/A')}
                                         </div>
                                     </div>
 
-                                    <div style={{ gridColumn: '1 / -1' }}>
-                                        <div className={local.sleekMetaLabel}>Điều khoản bổ sung</div>
-                                        <div style={{ color: 'var(--text-primary)', fontSize: '12px' }}>
-                                            {selectedDealForPR.additionalTerms || 'Không có'}
+                                    {selectedDealForPR.type === 'Equity' && (
+                                        <div>
+                                            <div className={local.sleekMetaLabel}>Tỷ lệ cổ phần</div>
+                                            <div style={{ color: 'var(--text-primary)', fontWeight: '600' }}>
+                                                {selectedDealForPR.equityPercentage !== undefined && selectedDealForPR.equityPercentage !== null
+                                                    ? `${selectedDealForPR.equityPercentage}%`
+                                                    : 'N/A'}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {selectedDealForPR.type === 'CustomTerms' && (
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <div className={local.sleekMetaLabel}>Điều khoản trao đổi</div>
+                                            <div style={{ color: 'var(--text-primary)', fontSize: '12px', lineHeight: 1.5 }}>
+                                                {selectedDealForPR.exchangeTerms || 'Không có'}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
