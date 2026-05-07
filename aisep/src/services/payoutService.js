@@ -41,12 +41,19 @@ const payoutService = {
 
   // Individual Payout Endpoints (Staff/Admin & Advisor)
 
-  /**
-   * Staff/Admin: Mark a payout as paid (works for Pending → Paid and PendingRecheck → Paid)
-   * @param {number} id 
-   * @param {Object} data { note? }
-   */
   async markPaid(id, data = {}) {
+    // Check if we need to send multipart/form-data (for evidence image)
+    if (data.evidenceImage instanceof File || data.evidenceImage instanceof Blob) {
+      const formData = new FormData();
+      if (data.note) formData.append('Note', data.note);
+      formData.append('ProofFile', data.evidenceImage);
+      
+      const response = await apiClient.patch(`/api/payouts/${id}/mark-paid`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      return response.data;
+    }
+
     const response = await apiClient.patch(`/api/payouts/${id}/mark-paid`, data);
     return response.data;
   },

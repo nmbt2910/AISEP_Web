@@ -262,6 +262,9 @@ function MainLayout({
   }, [user?.userId]);
 
   // Public feed: non-premium list filtered to approved/published only (see utils/projectDiscoveryFilters.js)
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const isFirstLoadRef = useRef(true);
+  const isFetchingRef = useRef(false);
   const [allStartups, setAllStartups] = useState([]);
   const [topRatedStartups, setTopRatedStartups] = useState([]);
   const [trendingSectors, setTrendingSectors] = useState([]);
@@ -587,176 +590,221 @@ function MainLayout({
     fetchStages();
   }, []);
 
-  useEffect(() => {
+  const fetchFeed = useCallback(async ({ silent = false } = {}) => {
     // Only fetch if we are showing the main feed
     if (showAdvisors || showInvestors) return;
 
-    const fetchFeed = async () => {
+    if (!silent) {
       setIsLoading(true);
       setFeedError(null);
-      try {
-        const projectsPromise = projectSubmissionService.getAllProjects();
+    }
+    
+    try {
+      const projectsPromise = projectSubmissionService.getAllProjects();
 
-        // Fetch both projects and startup profiles with large pageSize to ensure all are joined
-        const [projectsRes, startupsRes] = await Promise.all([
-          projectsPromise,
-          startupProfileService.getAllStartups({ pageSize: 100 })
-        ]);
+      // Fetch both projects and startup profiles with large pageSize to ensure all are joined
+      const [projectsRes, startupsRes] = await Promise.all([
+        projectsPromise,
+        startupProfileService.getAllStartups({ pageSize: 100 })
+      ]);
 
-        const startupMap = {};
-        const startups = startupsRes?.data?.items || startupsRes?.items || (Array.isArray(startupsRes?.data) ? startupsRes.data : []);
+      const startupMap = {};
+      const startups = startupsRes?.data?.items || startupsRes?.items || (Array.isArray(startupsRes?.data) ? startupsRes.data : []);
 
-        if (startups.length > 0) {
-          startups.forEach(s => {
-            const name = s.organizationName || s.companyName;
-            const logo = s.logoUrl || s.logo;
-            if (!name) return;
+      if (startups.length > 0) {
+        startups.forEach(s => {
+          const name = s.organizationName || s.companyName;
+          const logo = s.logoUrl || s.logo;
+          if (!name) return;
 
-            const info = { name, logo };
+          const info = { name, logo };
 
-            // Map by all possible ID fields to be safe
-            if (s.startupId) startupMap[s.startupId] = info;
-            if (s.StartupId) startupMap[s.StartupId] = info;
-            if (s.userId) startupMap[s.userId] = info;
-            if (s.UserId) startupMap[s.UserId] = info;
-            if (s.id) startupMap[s.id] = info;
+          // Map by all possible ID fields to be safe
+          if (s.startupId) startupMap[s.startupId] = info;
+          if (s.StartupId) startupMap[s.StartupId] = info;
+          if (s.userId) startupMap[s.userId] = info;
+          if (s.UserId) startupMap[s.UserId] = info;
+          if (s.id) startupMap[s.id] = info;
+        });
+      }
+      setAllStartupsMap(startupMap);
+
+      if (projectsRes.statusCode === 200 && projectsRes.data && projectsRes.data.items) {
+        const approvedOnly = filterProjectsForPublicDiscovery(projectsRes.data.items);
+        // Map to UI model (non-premium API may return mixed statuses; discovery is approved/published only)
+        let publishedProjects = approvedOnly
+          .map(p => {
+            // Try every possible ID field that backend might use to link project to startup/owner
+            const sid = p.startupId || p.StartupId || p.userId || p.UserId || p.ownerId || p.authorId;
+            const mappedInfo = startupMap[sid];
+            const mappedName = mappedInfo?.name || p.startupName || p.organizationName || null;
+            const mappedLogo = mappedInfo?.logo || p.logoUrl || p.logo || null;
+
+            return {
+              ...p,
+              id: p.projectId,
+              startupId: sid,
+              startupName: mappedName,
+              name: p.projectName,
+              description: p.shortDescription,
+              stage: getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages),
+              industries: (() => {
+                const inds = p.industries || p.Industries;
+                if (Array.isArray(inds) && inds.length > 0) return inds;
+                const ind = p.industry || p.Industry;
+                if (Array.isArray(ind)) return ind;
+                if (ind) return [ind];
+                return [];
+              })(),
+              industry: (() => {
+                const inds = p.industries || p.Industries;
+                if (Array.isArray(inds) && inds.length > 0) return inds.join(', ');
+                const ind = p.industry || p.Industry;
+                if (Array.isArray(ind) && ind.length > 0) return ind.join(', ');
+                if (ind) return ind;
+                return 'Chưa cập nhật';
+              })(),
+              imageUrl: p.projectImageUrl,
+              tags: (() => {
+                const inds = p.industries || p.Industries;
+                if (Array.isArray(inds)) return inds;
+                const ind = p.industry || p.Industry;
+                if (Array.isArray(ind)) return ind;
+                return ind ? [ind] : [];
+              })(),
+              aiScore: p.startupPotentialScore,
+              score: p.startupPotentialScore,
+              timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
+              createdAt: p.createdAt,
+              logo: mappedLogo,
+              logoUrl: mappedLogo,
+              // Full project details
+              problemStatement: p.problemStatement,
+              solutionDescription: p.solutionDescription,
+              targetCustomers: p.targetCustomers,
+              uniqueValueProposition: p.uniqueValueProposition,
+              businessModel: p.businessModel,
+              competitors: p.competitors,
+              projectScorecard: p.projectScorecard || p.ProjectScorecard,
+              status: p.status,
+              viewCount: p.viewCount,
+              followerCount: p.followerCount || 0,
+              isFollowedByCurrentUser: !!p.isFollowedByCurrentUser,
+              isConnectionRequestedByCurrentInvestor: !!p.isConnectionRequestedByCurrentInvestor,
+              isUnlockedByCurrentUser: !!p.isUnlockedByCurrentUser,
+              assignedAdvisorId: p.assignedAdvisorId,
+              assignedAdvisorName: p.assignedAdvisorName,
+              assignedAdvisorHourlyRate: p.assignedAdvisorHourlyRate,
+              assignedAdvisorRating: p.assignedAdvisorRating,
+              assignedAdvisorIndustries: p.assignedAdvisorIndustries || [],
+            };
           });
-        }
-        setAllStartupsMap(startupMap);
 
-        if (projectsRes.statusCode === 200 && projectsRes.data && projectsRes.data.items) {
-          const approvedOnly = filterProjectsForPublicDiscovery(projectsRes.data.items);
-          // Map to UI model (non-premium API may return mixed statuses; discovery is approved/published only)
-          let publishedProjects = approvedOnly
-            .map(p => {
-              // Try every possible ID field that backend might use to link project to startup/owner
-              const sid = p.startupId || p.StartupId || p.userId || p.UserId || p.ownerId || p.authorId;
-              const mappedInfo = startupMap[sid];
-              const mappedName = mappedInfo?.name || p.startupName || p.organizationName || null;
-              const mappedLogo = mappedInfo?.logo || p.logoUrl || p.logo || null;
+        setAllStartups(publishedProjects);
 
-              return {
-                ...p,
-                id: p.projectId,
-                startupId: sid,
-                startupName: mappedName,
-                name: p.projectName,
-                description: p.shortDescription,
-                stage: getStageLabel(p.stageOptionId || p.StageOptionId || p.developmentStage || p.DevelopmentStage, stages),
-                industries: (() => {
-                  const inds = p.industries || p.Industries;
-                  if (Array.isArray(inds) && inds.length > 0) return inds;
-                  const ind = p.industry || p.Industry;
-                  if (Array.isArray(ind)) return ind;
-                  if (ind) return [ind];
-                  return [];
-                })(),
-                industry: (() => {
-                  const inds = p.industries || p.Industries;
-                  if (Array.isArray(inds) && inds.length > 0) return inds.join(', ');
-                  const ind = p.industry || p.Industry;
-                  if (Array.isArray(ind) && ind.length > 0) return ind.join(', ');
-                  if (ind) return ind;
-                  return 'Chưa cập nhật';
-                })(),
-                imageUrl: p.projectImageUrl,
-                tags: (() => {
-                  const inds = p.industries || p.Industries;
-                  if (Array.isArray(inds)) return inds;
-                  const ind = p.industry || p.Industry;
-                  if (Array.isArray(ind)) return ind;
-                  return ind ? [ind] : [];
-                })(),
-                aiScore: p.startupPotentialScore,
-                score: p.startupPotentialScore,
-                timestamp: p.createdAt ? new Date(p.createdAt).toLocaleDateString('vi-VN') : new Date().toLocaleDateString('vi-VN'),
-                createdAt: p.createdAt,
-                logo: mappedLogo,
-                logoUrl: mappedLogo,
-                // Full project details
-                problemStatement: p.problemStatement,
-                solutionDescription: p.solutionDescription,
-                targetCustomers: p.targetCustomers,
-                uniqueValueProposition: p.uniqueValueProposition,
-                businessModel: p.businessModel,
-                competitors: p.competitors,
-                projectScorecard: p.projectScorecard || p.ProjectScorecard,
-                status: p.status,
-                viewCount: p.viewCount,
-                followerCount: p.followerCount || 0,
-                isFollowedByCurrentUser: !!p.isFollowedByCurrentUser,
-                isConnectionRequestedByCurrentInvestor: !!p.isConnectionRequestedByCurrentInvestor,
-                isUnlockedByCurrentUser: !!p.isUnlockedByCurrentUser,
-                assignedAdvisorId: p.assignedAdvisorId,
-                assignedAdvisorName: p.assignedAdvisorName,
-                assignedAdvisorHourlyRate: p.assignedAdvisorHourlyRate,
-                assignedAdvisorRating: p.assignedAdvisorRating,
-                assignedAdvisorIndustries: p.assignedAdvisorIndustries || [],
-              };
+        // Extract trending sectors based on industry tags frequency
+        const industryCounts = publishedProjects.reduce((acc, p) => {
+          if (p.tags && p.tags.length > 0) {
+            p.tags.forEach(t => {
+              acc[t] = (acc[t] || 0) + 1;
             });
+          } else if (p.industry) {
+            acc[p.industry] = (acc[p.industry] || 0) + 1;
+          }
+          return acc;
+        }, {});
 
-          setAllStartups(publishedProjects);
+        const trending = Object.entries(industryCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5)
+          .map(([name, count]) => ({
+            label: name,
+            name: name,
+            count: count
+          }));
 
-          // Extract trending sectors based on industry tags frequency
-          const industryCounts = publishedProjects.reduce((acc, p) => {
-            if (p.tags && p.tags.length > 0) {
-              p.tags.forEach(t => {
-                acc[t] = (acc[t] || 0) + 1;
-              });
-            } else if (p.industry) {
-              acc[p.industry] = (acc[p.industry] || 0) + 1;
-            }
-            return acc;
-          }, {});
+        setTrendingSectors(trending);
 
-          const trending = Object.entries(industryCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([name, count]) => ({
-              label: name,
-              name: name,
-              count: count
-            }));
+        // Update Top Rated Startups based on real startupPotentialScore
+        const sortedByScore = [...publishedProjects].filter(p => p.aiScore > 0).sort((a, b) => b.aiScore - a.aiScore);
+        setTopRatedStartups(sortedByScore.slice(0, 3));
 
-          setTrendingSectors(trending);
-
-          // Update Top Rated Startups based on real startupPotentialScore
-          const sortedByScore = [...publishedProjects].filter(p => p.aiScore > 0).sort((a, b) => b.aiScore - a.aiScore);
-          setTopRatedStartups(sortedByScore.slice(0, 3));
-
-        } else {
-          setFeedError(projectsRes.message || "Không thể tải danh sách dự án.");
-        }
-      } catch (err) {
-        console.error("Failed to load feed", err);
-        setFeedError(err.message || "Đã xảy ra lỗi khi kết nối với máy chủ.");
-      } finally {
-        setIsLoading(false);
+      } else {
+        if (!silent) setFeedError(projectsRes.message || "Không thể tải danh sách dự án.");
       }
-    };
-    const fetchStats = async () => {
-      try {
-        const invRes = await investorService.getAllInvestors({ pageSize: 1 });
-        setInvestorCount(invRes.totalCount || 0);
-      } catch (err) {
-        console.error("Failed to fetch investor count", err);
-      }
-    };
+    } catch (err) {
+      console.error("Failed to load feed", err);
+      if (!silent) setFeedError(err.message || "Đã xảy ra lỗi khi kết nối với máy chủ.");
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [showAdvisors, showInvestors, stages]);
 
-    const fetchStages = async () => {
-      try {
-        const res = await optionService.getStages();
-        setStages(res.filter(s => s.isActive));
-      } catch (err) {
-        console.error("Failed to fetch stages", err);
-      }
-    };
+  const fetchStats = useCallback(async () => {
+    try {
+      const invRes = await investorService.getAllInvestors({ pageSize: 1 });
+      setInvestorCount(invRes.totalCount || 0);
+    } catch (err) {
+      console.error("Failed to fetch investor count", err);
+    }
+  }, []);
 
-    fetchFeed();
+  const fetchStages = useCallback(async () => {
+    try {
+      const res = await optionService.getStages();
+      if (res) {
+        setStages(prev => {
+          const activeStages = res.filter(s => s.isActive);
+          // Only update if length or content might have changed (shallow check)
+          if (prev.length === activeStages.length) return prev;
+          return activeStages;
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch stages", err);
+    }
+  }, []);
+
+  // Background polling every 5 seconds
+  useEffect(() => {
+    if (showAdvisors || showInvestors || activeView !== 'main') return;
+    
+    const interval = setInterval(() => {
+      console.log('[MainLayout] Silent background poll triggered');
+      setRefreshTrigger(prev => prev + 1);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [showAdvisors, showInvestors, activeView]);
+
+  // Handle refresh trigger
+  useEffect(() => {
+    if (showAdvisors || showInvestors || activeView !== 'main') return;
+    
+    const isSilent = !isFirstLoadRef.current;
+    
+    // Prevent overlapping fetches
+    if (isFetchingRef.current && isSilent) return;
+    isFetchingRef.current = true;
+
+    fetchFeed({ silent: isSilent }).finally(() => {
+      isFetchingRef.current = false;
+      if (isFirstLoadRef.current) {
+        isFirstLoadRef.current = false;
+      }
+    });
+    
+    if (!isSilent) {
+      fetchStats();
+      fetchStages();
+    }
+  }, [refreshTrigger, fetchFeed, fetchStats, fetchStages, showAdvisors, showInvestors, activeView]);
+
+  // Initial stats and stages (if not already fetched by trigger)
+  useEffect(() => {
+    if (stages.length === 0) fetchStages();
     fetchStats();
-    fetchStages();
-    // Profile fetching removed — handled globally by ProfileContext
-  }, [showAdvisors, showInvestors, user, token, stages.length]);
+  }, [fetchStages, fetchStats, stages.length]);
 
 
   // 2. Define Handlers

@@ -156,10 +156,13 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
         fetchInitialData();
     }, [isStartup]);
 
-    const fetchProjects = async () => {
-        setIsLoading(true);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const isFirstLoad = useRef(true);
+
+    const fetchProjects = async (silent = false) => {
+        if (!silent) setIsLoading(true);
+        console.log(`[DiscoveryHub] fetchProjects triggered (silent: ${silent})`);
         try {
-            // Fetch both projects and startup profiles to join logo data
             const [projectsRes, startupsRes] = await Promise.all([
                 projectSubmissionService.getAllProjects(),
                 startupProfileService.getAllStartups({ pageSize: 100 })
@@ -168,10 +171,7 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
             const startupMap = {};
             const profiles = startupsRes?.data?.items || startupsRes?.items || [];
             profiles.forEach(p => {
-                const info = {
-                    name: p.organizationName || p.companyName,
-                    logo: p.logoUrl || p.logo
-                };
+                const info = { name: p.organizationName || p.companyName, logo: p.logoUrl || p.logo };
                 if (p.startupId) startupMap[p.startupId] = info;
                 if (p.id) startupMap[p.id] = info;
                 if (p.userId) startupMap[p.userId] = info;
@@ -184,22 +184,13 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
             const items = approved.map(p => {
                 const sid = p.startupId || p.StartupId || p.userId || p.UserId;
                 const info = startupMap[sid];
-                
-                // Robust industry mapping
-                let industryDisp = 'Chưa cập nhật';
-                const ind = p.industry || p.Industry;
-                if (ind) industryDisp = ind;
-                else {
-                    const inds = p.industries || p.Industries;
-                    if (Array.isArray(inds) && inds.length > 0) industryDisp = inds[0];
-                }
+                let industryDisp = p.industry || p.Industry || (Array.isArray(p.industries) ? p.industries[0] : 'Chưa cập nhật');
 
                 return {
                     ...p,
                     id: p.projectId,
                     startupName: info?.name || p.startupName || p.organizationName,
                     logoUrl: info?.logo || p.logoUrl || p.logo,
-                    // Map current API fields to StartupCard expected fields if missing
                     name: p.projectName,
                     description: p.shortDescription,
                     industry: industryDisp,
@@ -210,78 +201,72 @@ const DiscoveryHub = ({ user, onSelectStartup, onNotificationNavigate, banner, i
             });
 
             setStartups(items);
-
-            if (isInvestor) {
-                fetchInvestmentStatusNow(items);
-            }
+            if (isInvestor) fetchInvestmentStatusNow(items);
         } catch (error) {
-            console.error("Failed to fetch projects:", error);
+            console.error("[DiscoveryHub] Failed to fetch projects:", error);
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
+            isFirstLoad.current = false;
         }
     };
-
-    useEffect(() => {
-        fetchProjects();
-    }, [isInvestor]);
 
     const fetchInvestmentStatusNow = async (startupsList = null) => {
         if (!isInvestor) {
             setInvestmentStatusMap({});
             return;
         }
-
         try {
             const dealsRes = await dealsService.getInvestorDeals();
             const deals = dealsRes?.data?.items || [];
-
             const combinedMap = {};
             deals.forEach(deal => {
                 if (!isActiveInvestmentStatus(deal.status)) return;
-                const dealInfo = {
-                    dealId: deal.dealId,
-                    status: deal.status,
-                    projectId: deal.projectId,
-                    projectName: deal.projectName,
-                    startupName: deal.startupName
-                };
-
+                const dealInfo = { dealId: deal.dealId, status: deal.status, projectId: deal.projectId, projectName: deal.projectName, startupName: deal.startupName };
                 if (deal.projectId) combinedMap[deal.projectId] = dealInfo;
                 if (deal.projectId) combinedMap[deal.projectId.toString()] = dealInfo;
             });
-
             setInvestmentStatusMap(combinedMap);
         } catch (error) {
             console.error('[DiscoveryHub] Failed to fetch investment status:', error);
-            setInvestmentStatusMap({});
         }
     };
 
-    useEffect(() => {
-        if (!isInvestor || startups.length === 0) return;
-        fetchInvestmentStatusNow(startups);
-    }, [isInvestor, startups.length]);
+    const fetchPRs = async (silent = false) => {
+        if (!silent) setIsLoadingPRs(true);
+        console.log(`[DiscoveryHub] fetchPRs triggered (silent: ${silent})`);
+        try {
+            const response = await prService.getPRs();
+            let prList = response?.data?.items || response?.data || response?.items || response || [];
+            if (!Array.isArray(prList)) prList = [];
+            const sortedPRs = prList.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+            setPRs(sortedPRs);
+        } catch (error) {
+            console.error('[DiscoveryHub] Failed to fetch PRs:', error);
+        } finally {
+            if (!silent) setIsLoadingPRs(false);
+        }
+    };
 
+    // Main fetch effect
     useEffect(() => {
-        const fetchPRs = async () => {
-            setIsLoadingPRs(true);
-            try {
-                const response = await prService.getPRs();
-                let prList = response?.data?.items || response?.data || response?.items || response || [];
-                if (!Array.isArray(prList)) prList = [];
+        const silent = !isFirstLoad.current;
+        fetchProjects(silent);
+        fetchPRs(silent);
+    }, [isInvestor, refreshTrigger, stages]);
 
-                const sortedPRs = prList.sort((a, b) =>
-                    new Date(b.publishedAt) - new Date(a.publishedAt)
-                );
-                setPRs(sortedPRs);
-            } catch (error) {
-                console.error('[DiscoveryHub] Failed to fetch PRs:', error);
-            } finally {
-                setIsLoadingPRs(false);
-            }
+    // Polling effect
+    useEffect(() => {
+        console.log('[DiscoveryHub] Polling effect initialized');
+        const interval = setInterval(() => {
+            setRefreshTrigger(prev => {
+                console.log(`[DiscoveryHub] Triggering refresh cycle #${prev + 1}`);
+                return prev + 1;
+            });
+        }, 5000);
+        return () => {
+            console.log('[DiscoveryHub] Polling effect cleaned up');
+            clearInterval(interval);
         };
-
-        fetchPRs();
     }, []);
 
     const baseList = searchResults !== null ? searchResults : startups;

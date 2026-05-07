@@ -673,6 +673,9 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
                     onClick={() => {
                       setActiveProjectTab('mine');
                       setSelectedProject(null);
+                      setSelectedAdvisor(null);
+                      setSelectedSlotIds([]);
+                      setNote('');
                     }}
                   >
                     <Briefcase size={18} weight={activeProjectTab === 'mine' ? 'fill' : 'regular'} />
@@ -683,6 +686,9 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
                     onClick={() => {
                       setActiveProjectTab('followed');
                       setSelectedProject(null);
+                      setSelectedAdvisor(null);
+                      setSelectedSlotIds([]);
+                      setNote('');
                     }}
                   >
                     <Heart size={18} weight={activeProjectTab === 'followed' ? 'fill' : 'regular'} />
@@ -721,7 +727,14 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
                   <div
                     key={p.projectId}
                     className={`${styles.optionCard} ${selectedProject?.projectId === p.projectId ? styles.optionCardSelected : ''}`}
-                    onClick={() => setSelectedProject(p)}
+                    onClick={() => {
+                      if (selectedProject?.projectId !== p.projectId) {
+                        setSelectedProject(p);
+                        setSelectedAdvisor(null);
+                        setSelectedSlotIds([]);
+                        setNote('');
+                      }
+                    }}
                   >
                     <div className={styles.optionCardIcon}>
                       {activeProjectTab === 'mine' ? <Briefcase size={22} /> : <Heart size={22} color="#ec4899" weight="fill" />}
@@ -794,7 +807,12 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
                     <button
                       key={opt.advisorId}
                       className={`${styles.advisorCard} ${selectedAdvisor?.advisorId === opt.advisorId ? styles.advisorCardSelected : ''}`}
-                      onClick={() => setSelectedAdvisor(opt)}
+                      onClick={() => {
+                        if (selectedAdvisor?.advisorId !== opt.advisorId) {
+                          setSelectedAdvisor(opt);
+                          setSelectedSlotIds([]);
+                        }
+                      }}
                     >
                       <div className={styles.advisorAvatar}>
                         {advisorsLoading ? <CircleNotch size={18} className={styles.spin} weight="bold" /> : (opt.advisorName || 'A').charAt(0).toUpperCase()}

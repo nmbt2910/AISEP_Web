@@ -49,10 +49,10 @@ const prService = {
    * Get all posted PRs (optional - for viewing PR history)
    * @returns {Promise<any>} - API response with paginated PR list
    */
-  getPRs: async () => {
+  getPRs: async (params = { pageSize: 100 }) => {
     try {
-      console.log('[prService] GET /api/PostPRs');
-      const response = await apiClient.get('/api/PostPRs');
+      console.log('[prService] GET /api/PostPRs', params);
+      const response = await apiClient.get('/api/PostPRs', { params });
       console.log('[prService] GET /api/PostPRs - Response:', response);
       
       // Handle nested response structure

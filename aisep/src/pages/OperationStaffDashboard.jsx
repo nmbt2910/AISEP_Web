@@ -15,7 +15,7 @@ import dealsService from '../services/dealsService';
 import prService from '../services/prService';
 import investorService from '../services/investorService';
 import AIEvaluationModal from '../components/common/AIEvaluationModal';
-import { STATUS_COLORS, STATUS_LABELS, getStageLabel } from '../constants/ProjectStatus';
+import { STATUS_COLORS, STATUS_LABELS, getStageLabel, getIndustryLabels } from '../constants/ProjectStatus';
 import optionService from '../services/optionService';
 import { getTeamHeadcountFromScorecard, getScorecardRowsForDisplay } from '../constants/projectScorecard';
 import AdvisorApprovalPage from '../components/advisor/AdvisorApprovalPage';
@@ -99,7 +99,7 @@ const T = {
 /**
  * ProjectKanbanCard - Single card for the Kanban board
  */
-const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, processingProjectId, processingAction, isHighlighted, stages }) => {
+const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, processingProjectId, processingAction, isHighlighted, stages, industries }) => {
     // Determine development stage label and class
     const getDevStageTag = (p, stages) => {
         const label = getStageLabel(p?.stageOptionId || p?.StageOptionId || p?.developmentStage || p?.DevelopmentStage, stages);
@@ -132,6 +132,9 @@ const ProjectKanbanCard = ({ project, status, onDetail, onApprove, onReject, pro
 
                 <div className={local.bcardTagRow}>
                     <span className={`${local.btag} ${stageInfo.class}`}>{stageInfo.label}</span>
+                    <span className={local.btag} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                        {getIndustryLabels(project?.industries || project?.industryOptionIds, industries)}
+                    </span>
                 </div>
 
                 <p className={local.bcardDesc}>{project?.shortDescription || '-'}</p>
@@ -646,13 +649,19 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     }, [initialSection]);
 
     useEffect(() => {
-        const fetchStages = async () => {
-            const stagesRes = await optionService.getStages();
-            if (stagesRes) {
-                setStages(stagesRes.filter(s => s.isActive));
+        const fetchMetadata = async () => {
+            try {
+                const [stagesRes, industriesRes] = await Promise.all([
+                    optionService.getStages(),
+                    optionService.getIndustries()
+                ]);
+                if (stagesRes) setStages(stagesRes.filter(s => s.isActive));
+                if (industriesRes) setIndustries(industriesRes.filter(i => i.isActive));
+            } catch (err) {
+                console.error("Error fetching metadata:", err);
             }
         };
-        fetchStages();
+        fetchMetadata();
     }, []);
 
 
@@ -667,9 +676,10 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const [rejectedStartups, setRejectedStartups] = useState([]);
     const [isLoadingStartups, setIsLoadingStartups] = useState(true);
     const [stages, setStages] = useState([]);
+    const [industries, setIndustries] = useState([]);
     const [selectedStartupForDetail, setSelectedStartupForDetail] = useState(null);
     const [showStartupDetailModal, setShowStartupDetailModal] = useState(false);
-    const [activeMobileStartupTab, setActiveMobileStartupTab] = useState('pend'); // 'all', 'pend', 'appr', 'rej'
+    const [activeMobileStartupTab, setActiveMobileStartupTab] = useState('all'); // 'all', 'pend', 'appr', 'rej'
 
     // Core Modal & UI States
     const [showModal, setShowModal] = useState(false);
@@ -1041,7 +1051,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         if (!silent) setIsLoadingProjects(true);
         if (!silent) setProjectsError(null);
         try {
-            const response = await projectSubmissionService.getPendingProjects();
+            const response = await projectSubmissionService.getPendingProjects({ pageSize: 100 });
             if (response.success && response.data) {
                 let projects = response.data.items || [];
                 projects.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -1061,7 +1071,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const fetchApprovedProjects = async ({ silent = false } = {}) => {
         if (!silent) setIsLoadingProjects(true);
         try {
-            const response = await projectSubmissionService.getApprovedProjects();
+            const response = await projectSubmissionService.getApprovedProjects({ pageSize: 100 });
             if (response.success && response.data) {
                 let projects = response.data.items || [];
                 projects.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
@@ -1078,7 +1088,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const fetchRejectedProjects = async ({ silent = false } = {}) => {
         if (!silent) setIsLoadingProjects(true);
         try {
-            const response = await projectSubmissionService.getRejectedProjects();
+            const response = await projectSubmissionService.getRejectedProjects({ pageSize: 100 });
             if (response.success && response.data) {
                 let projects = response.data.items || [];
                 projects.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
@@ -1095,7 +1105,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
     const fetchStartupsData = async ({ silent = false } = {}) => {
         if (!silent) setIsLoadingStartups(true);
         try {
-            const response = await startupProfileService.getAllStartups();
+            const response = await startupProfileService.getAllStartups({ pageSize: 100 });
             const items = Array.isArray(response) ? response : (response?.data?.items || response?.items || []);
 
             // Map statuses correctly
@@ -1575,7 +1585,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         if (!silent) setIsLoadingUserReports(true);
         if (!silent) setUserReportsError(null);
         try {
-            const response = await userReportService.getAllReports();
+            const response = await userReportService.getAllReports({ pageSize: 100 });
             // Some API endpoints return { data: [...] } or { items: [...] }
             const reports = response?.data || response?.items || (Array.isArray(response) ? response : []);
 
@@ -1619,7 +1629,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         setSignedDealsError(null);
         try {
             // Use getAllSignedDeals for staff to fetch all deals; lọc theo status + project
-            const response = await dealsService.getAllSignedDeals();
+            const response = await dealsService.getAllSignedDeals({ pageSize: 100 });
 
             // Response data structure: { page, pageSize, totalCount, items: [...] }
             let deals = [];
@@ -1674,7 +1684,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
             setStaffDealsError(null);
         }
         try {
-            const response = await dealsService.getAllSignedDeals();
+            const response = await dealsService.getAllSignedDeals({ pageSize: 100 });
             let deals = [];
             if (response?.data?.items && Array.isArray(response.data.items)) {
                 deals = response.data.items;
@@ -1874,7 +1884,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         if (!silent) setIsLoadingPRNews(true);
         setPrNewsError(null);
         try {
-            const response = await prService.getPRs();
+            const response = await prService.getPRs({ pageSize: 100 });
 
             // Response data structure: { data: { page, pageSize, totalCount, totalPages, items: [...] } }
             let prsList = [];
@@ -1993,6 +2003,13 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
         const silent = forceSilent ?? !isFirstLoad.current;
 
         try {
+            const [stageRes, industryRes] = await Promise.all([
+                optionService.getStages(),
+                optionService.getIndustries()
+            ]);
+            setStages(stageRes.filter(s => s.isActive));
+            setIndustries(industryRes.filter(i => i.isActive));
+
             await Promise.all([
                 fetchPendingProjects({ silent }),
                 fetchApprovedProjects({ silent }),
@@ -2526,6 +2543,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                         processingAction={processingAction}
                                                         isHighlighted={String(targetId) === String(project.projectId)}
                                                         stages={stages}
+                                                        industries={industries}
                                                     />
                                                 ))}
                                             </div>
@@ -2899,15 +2917,6 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                 onRetry={fetchSignedDeals}
                                             />
                                         </div>
-                                    )}
-
-                                    {/* Empty State */}
-                                    {!isLoadingSignedDeals && signedDeals.length === 0 && (
-                                        <EmptyState
-                                            icon={Archive}
-                                            title="Trống"
-                                            message="Hiện chưa có deal Hoàn tất (Completed, value 4) hoặc legacy đã ký đủ thông tin dự án để đăng PR."
-                                        />
                                     )}
 
                                     {/* Loading State */}
@@ -4134,7 +4143,7 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
                                                 <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Mô tả dự án</label><p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.7' }}>{detailProject.shortDescription || 'Chưa cung cấp'}</p></div>
                                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                                                     <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Giai đoạn dự án</label><p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--primary-blue)' }}>📈 {getStageLabel(detailProject.stageOptionId || detailProject.StageOptionId || detailProject.developmentStage || detailProject.DevelopmentStage, stages)}</p></div>
-                                                    <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Lĩnh vực chính</label><p style={{ fontSize: '15px', fontWeight: 700 }}>{Array.isArray(detailProject.industry) ? detailProject.industry.join(', ') : (detailProject.industry || 'Công nghệ')}</p></div>
+                                                    <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Lĩnh vực chính</label><p style={{ fontSize: '15px', fontWeight: 700 }}>{getIndustryLabels(detailProject.industries || detailProject.industryOptionIds || detailProject.industry, industries)}</p></div>
                                                 </div>
                                                 <div className={styles.formGroup}><label style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Vấn đề & Giải pháp</label><p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.7' }}>{detailProject.problemStatement || '—'}</p><p style={{ fontSize: '15px', color: 'var(--text-primary)', lineHeight: '1.7' }}>{detailProject.solutionDescription || '—'}</p></div>
                                             </div>

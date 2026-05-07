@@ -118,21 +118,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
         throw new Error(`Không tìm thấy cấu hình xác thực cho ${formKey}.`);
       }
 
-      // Enforce all fields as mandatory regardless of API rules
-      const enforcedRules = { ...rules };
-      Object.keys(enforcedRules).forEach(key => {
-        if (enforcedRules[key]) {
-          enforcedRules[key].required = true;
-          // Ensure requiredMessage is present or fallback to localized label
-          if (!enforcedRules[key].requiredMessage) {
-            enforcedRules[key].requiredMessage = `Vui lòng nhập ${FIELD_LABEL_MAP[key.toLowerCase()] || enforcedRules[key].displayName || key}`;
-          }
-          // Remove stage-specific optional logic if any
-          enforcedRules[key].stageOptionIds = [];
-        }
-      });
-
-      setValidationRules(enforcedRules);
+      setValidationRules(rules);
       setIndustries(indOptions.filter(i => i.isActive));
       setStages(stageOptions.filter(s => s.isActive));
 
@@ -318,9 +304,6 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
       const error = validateField(name, formData[name]);
       if (error) {
         newErrors[name] = error;
-      } else if (!formData[name] || String(formData[name]).trim() === '') {
-        // Double check even if validateField missed it due to rule mapping
-        newErrors[name] = 'Vui lòng không để trống trường này';
       }
     });
 
@@ -594,8 +577,7 @@ export default function ProjectSubmissionForm({ onClose, onSuccess, user, initia
                 const maxLength = rule?.maxLength;
                 const isOverLimit = maxLength && currentLength > maxLength;
 
-                // Force all fields to be required visually
-                const isRequired = true;
+                const isRequired = rule?.required;
 
                 // Priority: 1. rule.displayName (from BE), 2. Local Map (Vietnamese), 3. hardcoded label, 4. rule.fieldKey
                 const ruleLabel = rule?.displayName || FIELD_LABEL_MAP[ruleKey] || label || rule?.fieldKey;

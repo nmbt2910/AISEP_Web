@@ -626,10 +626,10 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                                         />
                                     </div>
                                     {renderFieldConstraints('location')}
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginTop: '4px' }}>
+                                        {fieldErrors.location && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.location}</span>}
                                         {renderCharCounter(formData.location, 'location')}
                                     </div>
-                                    {fieldErrors.location && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.location}</span>}
                                 </div>
                                 <div className={styles.formGroup}>
                                     {renderLabel('Ngôn ngữ', 'languagesSpoken')}
@@ -643,10 +643,10 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                                         />
                                     </div>
                                     {renderFieldConstraints('languagesSpoken')}
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginTop: '4px' }}>
+                                        {fieldErrors.languagesSpoken && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.languagesSpoken}</span>}
                                         {renderCharCounter(formData.languagesSpoken, 'languagesSpoken')}
                                     </div>
-                                    {fieldErrors.languagesSpoken && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.languagesSpoken}</span>}
                                 </div>
                             </div>
 
@@ -659,11 +659,13 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                                     rows={4}
                                     placeholder="Chia sẻ về hành trình chuyên môn và đam mê hỗ trợ startup của bạn..."
                                 />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    {renderFieldConstraints('bio')}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginTop: '4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {renderFieldConstraints('bio')}
+                                        {fieldErrors.bio && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.bio}</span>}
+                                    </div>
                                     {renderCharCounter(formData.bio, 'bio')}
                                 </div>
-                                {fieldErrors.bio && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.bio}</span>}
                             </div>
                         </div>
                     </div>
@@ -687,10 +689,10 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                                         />
                                     </div>
                                     {renderFieldConstraints('expertise')}
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginTop: '4px' }}>
+                                        {fieldErrors.expertise && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.expertise}</span>}
                                         {renderCharCounter(formData.expertise, 'expertise')}
                                     </div>
-                                    {fieldErrors.expertise && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.expertise}</span>}
                                 </div>
                                 <div className={styles.formGroup}>
                                     {renderLabel('Phí tư vấn theo giờ (VNĐ)', 'hourlyRate')}
@@ -777,11 +779,13 @@ export default function AdvisorProfilePage({ user, onBack, banner, onNotificatio
                                     rows={4}
                                     placeholder="Liệt kê các vị trí quan trọng hoặc dự án thành công..."
                                 />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    {renderFieldConstraints('previousExperience')}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginTop: '4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        {renderFieldConstraints('previousExperience')}
+                                        {fieldErrors.previousExperience && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.previousExperience}</span>}
+                                    </div>
                                     {renderCharCounter(formData.previousExperience, 'previousExperience')}
                                 </div>
-                                {fieldErrors.previousExperience && <span style={{ color: 'red', fontSize: '12px' }}>{fieldErrors.previousExperience}</span>}
                             </div>
 
                             <div className={styles.formGroup}>

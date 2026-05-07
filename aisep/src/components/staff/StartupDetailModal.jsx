@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Building, User, FileText, ExternalLink, Shield, CheckCircle, XCircle, Loader2, Globe, MapPin } from 'lucide-react';
 import styles from '../../styles/SharedDashboard.module.css';
 import local from '../../styles/OperationStaffDashboard.module.css';
+import { getIndustryLabels } from '../../constants/ProjectStatus';
 
 /**
  * StartupDetailModal - Comprehensive view of a startup profile for staff review.
@@ -13,7 +14,8 @@ const StartupDetailModal = ({
     onApprove, 
     onReject, 
     isProcessing, 
-    processingAction 
+    processingAction,
+    industries
 }) => {
     if (!isOpen || !startup) return null;
 
@@ -77,10 +79,7 @@ const StartupDetailModal = ({
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '12px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)' }}>
                                     <Building size={16} color="var(--primary-blue)" /> 
-                                    {(() => {
-                                        const industries = startup?.industries || (startup?.industry ? [startup.industry] : []);
-                                        return industries.join(', ') || 'Lĩnh vực khác';
-                                    })()}
+                                    {getIndustryLabels(startup?.industries || startup?.industryOptionIds || startup?.industry, industries)}
                                 </div>
                             </div>
                         </div>
