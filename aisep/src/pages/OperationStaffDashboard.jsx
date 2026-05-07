@@ -4516,83 +4516,142 @@ const OperationStaffDashboard = ({ user, onLogout, initialSection = 'statistics'
 
             {showStaffDealModal && selectedStaffDeal && (
                 <div className={styles.modalOverlay} onClick={handleCloseStaffDealModal}>
-                    <div className={styles.modalContent} style={{ maxWidth: '760px', padding: '20px' }} onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className={styles.modalContent}
+                        style={{ maxWidth: '760px', padding: '20px', maxHeight: '88vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {(() => {
                             const statusInfo = getDealStatusInfo(selectedStaffDeal.status);
                             const canStaffReview = statusInfo.value === 1;
                             return (
                                 <>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                                        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>
-                                            {canStaffReview ? 'Duyệt thỏa thuận đầu tư' : 'Xem hợp đồng đầu tư'}
-                                        </h3>
-                                        <button type="button" className={styles.modalCloseBtn} onClick={handleCloseStaffDealModal} disabled={isSubmittingStaffReview || isCheckingOnchain}>
-                                            <X size={18} />
-                                        </button>
-                                    </div>
+                                    <div style={{ overflowY: 'auto', paddingRight: '6px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                                            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800 }}>
+                                                {canStaffReview ? 'Duyệt thỏa thuận đầu tư' : 'Xem hợp đồng đầu tư'}
+                                            </h3>
+                                            <button type="button" className={styles.modalCloseBtn} onClick={handleCloseStaffDealModal} disabled={isSubmittingStaffReview || isCheckingOnchain}>
+                                                <X size={18} />
+                                            </button>
+                                        </div>
 
-                                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                                        Dự án: <b>{selectedStaffDeal.projectName || '-'}</b> — Startup: <b>{selectedStaffDeal.startupName || '-'}</b> — Nhà đầu tư: <b>{selectedStaffDeal.investorName || '-'}</b>
-                                    </div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                                            Dự án: <b>{selectedStaffDeal.projectName || '-'}</b> — Startup: <b>{selectedStaffDeal.startupName || '-'}</b> — Nhà đầu tư: <b>{selectedStaffDeal.investorName || '-'}</b>
+                                        </div>
 
-                                    <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '14px', marginBottom: '12px' }}>
-                                        {selectedStaffDeal.documentUrl ? (
-                                            <>
-                                                <div
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => setShowDealDocumentLightbox(true)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' || e.key === ' ') {
-                                                            e.preventDefault();
-                                                            setShowDealDocumentLightbox(true);
-                                                        }
-                                                    }}
-                                                    style={{ width: '100%', height: '320px', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden', background: '#fff', cursor: 'zoom-in' }}
-                                                    title="Bấm để phóng to"
-                                                >
-                                                    {isImageDocumentUrl(selectedStaffDeal.documentUrl) ? (
-                                                        <img src={selectedStaffDeal.documentUrl} alt={selectedStaffDeal.projectName ? `Tài liệu — ${selectedStaffDeal.projectName}` : 'Tài liệu hợp đồng'} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                                                    ) : (
-                                                        <iframe src={selectedStaffDeal.documentUrl} title="Xem trước tài liệu hợp đồng" style={{ width: '100%', height: '100%', border: 'none' }} />
-                                                    )}
+                                        {/* Deal core terms (new API fields) */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+                                            <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Số tiền đầu tư</div>
+                                                <div style={{ marginTop: '4px', fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                                    {Number(selectedStaffDeal.investedAmount || selectedStaffDeal.amount || 0).toLocaleString('vi-VN')} VND
                                                 </div>
-                                                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                    Bấm vào khung để phóng to tài liệu.
+                                            </div>
+                                            <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Loại giao dịch</div>
+                                                <div style={{ marginTop: '4px', fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)' }}>
+                                                    {selectedStaffDeal.type === 'CustomTerms' ? 'Điều khoản khác' : 'Cổ phần'}
                                                 </div>
-                                            </>
-                                        ) : (
-                                            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Deal chưa có tài liệu hợp đồng.</p>
+                                            </div>
+                                        </div>
+
+                                        {selectedStaffDeal.type === 'Equity' && selectedStaffDeal.equityPercentage !== undefined && selectedStaffDeal.equityPercentage !== null && (
+                                            <div style={{ marginBottom: '12px', backgroundColor: 'rgba(45, 126, 255, 0.06)', border: '1px solid rgba(45, 126, 255, 0.18)', borderRadius: '10px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Tỷ lệ cổ phần</div>
+                                                <div style={{ marginTop: '4px', fontSize: '14px', fontWeight: '900', color: 'var(--primary-blue)' }}>
+                                                    {selectedStaffDeal.equityPercentage}%
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedStaffDeal.type === 'CustomTerms' && selectedStaffDeal.exchangeTerms && (
+                                            <div style={{ marginBottom: '12px', backgroundColor: 'rgba(16, 185, 129, 0.06)', border: '1px solid rgba(16, 185, 129, 0.18)', borderRadius: '10px', padding: '12px' }}>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Điều khoản trao đổi</div>
+                                                <div style={{ marginTop: '6px', fontSize: '13px', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                                                    {selectedStaffDeal.exchangeTerms}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px', marginBottom: '12px' }}>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                <strong>Initiator:</strong> {selectedStaffDeal.initiatorRole || '—'}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                <strong>Investor confirmed:</strong> {selectedStaffDeal.investorConfirmed ? 'Đã xác nhận' : 'Chưa'}
+                                                {' · '}
+                                                <strong>Startup confirmed:</strong> {selectedStaffDeal.startupConfirmed ? 'Đã xác nhận' : 'Chưa'}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                <strong>Document hash:</strong> {selectedStaffDeal.documentHash || 'Chưa có'}
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                <strong>Blockchain Tx:</strong> {selectedStaffDeal.blockchainTxHash || 'Chưa có'}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '10px', padding: '14px', marginBottom: '12px' }}>
+                                            {selectedStaffDeal.documentUrl ? (
+                                                <>
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => setShowDealDocumentLightbox(true)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                                e.preventDefault();
+                                                                setShowDealDocumentLightbox(true);
+                                                            }
+                                                        }}
+                                                        style={{ width: '100%', height: '320px', border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden', background: '#fff', cursor: 'zoom-in' }}
+                                                        title="Bấm để phóng to"
+                                                    >
+                                                        {isImageDocumentUrl(selectedStaffDeal.documentUrl) ? (
+                                                            <img src={selectedStaffDeal.documentUrl} alt={selectedStaffDeal.projectName ? `Tài liệu — ${selectedStaffDeal.projectName}` : 'Tài liệu hợp đồng'} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                        ) : (
+                                                            <iframe src={selectedStaffDeal.documentUrl} title="Xem trước tài liệu hợp đồng" style={{ width: '100%', height: '100%', border: 'none' }} />
+                                                        )}
+                                                    </div>
+                                                    <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                        Bấm vào khung để phóng to tài liệu.
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Deal chưa có tài liệu hợp đồng.</p>
+                                            )}
+                                        </div>
+
+                                        {canStaffReview && (
+                                            <div className={styles.formGroup} style={{ marginBottom: '12px' }}>
+                                                <label>Lý do từ chối (bắt buộc khi bấm Từ chối)</label>
+                                                <textarea
+                                                    value={staffRejectReason}
+                                                    onChange={(e) => setStaffRejectReason(e.target.value)}
+                                                    placeholder="Nhập lý do để investor chỉnh sửa và upload lại tài liệu"
+                                                    rows={3}
+                                                    maxLength={1000}
+                                                    disabled={isSubmittingStaffReview}
+                                                />
+                                            </div>
                                         )}
                                     </div>
 
-                                    {canStaffReview && (
-                                        <div className={styles.formGroup} style={{ marginBottom: '12px' }}>
-                                            <label>Lý do từ chối (bắt buộc khi bấm Từ chối)</label>
-                                            <textarea
-                                                value={staffRejectReason}
-                                                onChange={(e) => setStaffRejectReason(e.target.value)}
-                                                placeholder="Nhập lý do để investor chỉnh sửa và upload lại tài liệu"
-                                                rows={3}
-                                                maxLength={1000}
-                                                disabled={isSubmittingStaffReview}
-                                            />
-                                        </div>
-                                    )}
-
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                            <button type="button" className={styles.secondaryBtn} onClick={handleCloseStaffDealModal} disabled={isSubmittingStaffReview || isCheckingOnchain}>Đóng</button>
-                                            {canStaffReview && (
-                                                <>
-                                                    <button type="button" className={styles.dangerBtn} onClick={() => handleStaffReviewDeal(false)} disabled={isSubmittingStaffReview}>
-                                                        {isSubmittingStaffReview ? <><Loader2 size={14} className={styles.spinner} /> Đang gửi...</> : 'Từ chối'}
-                                                    </button>
-                                                    <button type="button" className={styles.primaryBtn} onClick={() => handleStaffReviewDeal(true)} disabled={isSubmittingStaffReview}>
-                                                        {isSubmittingStaffReview ? <><Loader2 size={14} className={styles.spinner} /> Đang gửi...</> : 'Chấp nhận'}
-                                                    </button>
-                                                </>
-                                            )}
+                                    <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                                <button type="button" className={styles.secondaryBtn} onClick={handleCloseStaffDealModal} disabled={isSubmittingStaffReview || isCheckingOnchain}>Đóng</button>
+                                                {canStaffReview && (
+                                                    <>
+                                                        <button type="button" className={styles.dangerBtn} onClick={() => handleStaffReviewDeal(false)} disabled={isSubmittingStaffReview}>
+                                                            {isSubmittingStaffReview ? <><Loader2 size={14} className={styles.spinner} /> Đang gửi...</> : 'Từ chối'}
+                                                        </button>
+                                                        <button type="button" className={styles.primaryBtn} onClick={() => handleStaffReviewDeal(true)} disabled={isSubmittingStaffReview}>
+                                                            {isSubmittingStaffReview ? <><Loader2 size={14} className={styles.spinner} /> Đang gửi...</> : 'Chấp nhận'}
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </>
