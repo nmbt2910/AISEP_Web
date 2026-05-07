@@ -4125,6 +4125,10 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                     initialAdvisorId={bookingInitialAdvisorId}
                     onClose={() => setShowBookingWizard(false)}
                     onRestrictedAction={showRestrictedActionModal}
+                    onViewProject={(pid) => {
+                        setShowBookingWizard(false);
+                        setActiveSection('project_' + pid);
+                    }}
                 />
             )}
 

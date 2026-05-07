@@ -508,6 +508,10 @@ export default function StartupBookings({ user, targetId, onViewProject, onOpenC
                         onRestrictedAction={onRestrictedAction}
                         onClose={() => setShowBookingWizard(false)}
                         onSuccess={() => { setShowBookingWizard(false); loadBookings(); }}
+                        onViewProject={(pid) => {
+                            setShowBookingWizard(false);
+                            onViewProject?.(pid);
+                        }}
                     />
                 )}
                 {viewReport && (

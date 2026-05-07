@@ -175,10 +175,19 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      await authService.logout();
+      // Use dynamic import or check if global to avoid reference error if not imported
+      if (typeof authService !== 'undefined') {
+        await authService.logout();
+      }
     } catch (err) {
       console.error('Logout error:', err);
     }
+    
+    // Clear project URL if present to prevent reopening on next login
+    if (window.location.pathname.includes('/projects/')) {
+      window.history.pushState({}, '', '/');
+    }
+
     localStorage.removeItem('aisep_user');
     localStorage.removeItem('aisep_token');
     localStorage.removeItem('aisep_refresh_token');

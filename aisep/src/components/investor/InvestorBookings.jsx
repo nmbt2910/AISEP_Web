@@ -530,6 +530,10 @@ export default function InvestorBookings({ user, targetId, onViewProject, onOpen
                             setShowBookingWizard(false);
                             loadBookings();
                         }}
+                        onViewProject={(pid) => {
+                            setShowBookingWizard(false);
+                            onViewProject?.(pid);
+                        }}
                     />
                 )}
                 {viewReport && (
