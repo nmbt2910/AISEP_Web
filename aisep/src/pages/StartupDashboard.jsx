@@ -796,7 +796,30 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
             });
 
             console.log('[StartupDashboard] Formatted requests:', formattedRequests);
-            setConnectionRequests(formattedRequests);
+            // Enrich missing avatars from Investor profile API
+            const uniqueInvestorIds = [...new Set(formattedRequests.map((r) => r.investorId).filter(Boolean))];
+            if (uniqueInvestorIds.length > 0) {
+                try {
+                    const results = await Promise.all(
+                        uniqueInvestorIds.map((id) => investorService.getInvestorById(id).catch(() => null))
+                    );
+                    const avatarById = new Map();
+                    results.forEach((inv) => {
+                        if (inv?.investorId && inv?.profileImageUrl) avatarById.set(inv.investorId, inv.profileImageUrl);
+                        if (inv?.id && inv?.profileImageUrl) avatarById.set(inv.id, inv.profileImageUrl);
+                    });
+                    setConnectionRequests(
+                        formattedRequests.map((r) => ({
+                            ...r,
+                            investorAvatarUrl: r.investorAvatarUrl || avatarById.get(r.investorId) || '',
+                        }))
+                    );
+                } catch {
+                    setConnectionRequests(formattedRequests);
+                }
+            } else {
+                setConnectionRequests(formattedRequests);
+            }
         } catch (error) {
             if (!silent) {
                 console.error('[StartupDashboard] Failed to fetch connection requests:', error);
@@ -2259,7 +2282,8 @@ export default function StartupDashboard({ user, initialSection = 'my-projects',
                                                             </span>
                                                         </button>
                                                         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                                            ID: #{request.connectionRequestId}
+                                                            {/* Ẩn ID theo yêu cầu UX */}
+                                                            Ngày gửi: {request.sentDate || '-'}
                                                         </p>
                                                     </div>
                                                     <div style={{
