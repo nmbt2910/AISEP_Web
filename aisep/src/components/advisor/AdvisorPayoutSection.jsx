@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Landmark, CreditCard, History, AlertCircle, CheckCircle, 
-  XCircle, Clock, Loader2, Save, RefreshCw, Send, X
+  XCircle, Clock, Loader2, Save, RefreshCw, Send, X, Eye, FileText
 } from 'lucide-react';
 import styles from './AdvisorPayoutSection.module.css';
 import bankAccountService from '../../services/bankAccountService';
@@ -320,6 +320,16 @@ export default function AdvisorPayoutSection({ user, isApproved, onRestrictedAct
                                       <RefreshCw size={12} /> Yêu cầu chuyển lại
                                     </button>
                                   )}
+                                  {p.status === 'Paid' && p.payoutProofFileUrl && (
+                                    <button 
+                                      className={styles.viewProofBtn} 
+                                      onClick={() => window.open(p.payoutProofFileUrl, '_blank')}
+                                      title="Xem minh chứng thanh toán"
+                                    >
+                                      {p.payoutProofFileUrl.toLowerCase().endsWith('.pdf') ? <FileText size={14} /> : <Eye size={14} />}
+                                      Xem minh chứng
+                                    </button>
+                                  )}
                                   {p.status === 'Pending' && !p.paidAt && !p.rejectReason && (
                                     <span className={styles.mutedMeta}>Đang đối soát</span>
                                   )}
@@ -365,7 +375,20 @@ export default function AdvisorPayoutSection({ user, isApproved, onRestrictedAct
                           </div>
 
                           <div className={styles.payoutCardFooter}>
-                            {p.paidAt && <span className={styles.dateMeta}>Đã chi trả: {new Date(p.paidAt).toLocaleDateString('vi-VN')}</span>}
+                            {p.paidAt && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: p.payoutProofFileUrl ? 8 : 0 }}>
+                                <span className={styles.dateMeta}>Đã chi trả: {new Date(p.paidAt).toLocaleDateString('vi-VN')}</span>
+                                {p.payoutProofFileUrl && (
+                                  <button 
+                                    className={styles.viewProofBtn} 
+                                    onClick={() => window.open(p.payoutProofFileUrl, '_blank')}
+                                    style={{ padding: '4px 8px', fontSize: '11px' }}
+                                  >
+                                    <Eye size={12} /> Xem minh chứng
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             {p.status === 'Rejected' && p.rejectReason && (
                               <div className={styles.rejectInfo}>
                                 <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />

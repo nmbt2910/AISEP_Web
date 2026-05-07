@@ -18,7 +18,7 @@ const FIELD_LABEL_MAP = {
   'phonenumber': 'Số điện thoại',
   'countrycity': 'Quốc gia & Thành phố',
   'website': 'Website',
-  'industryoptionids': 'Lĩnh vực kinh doanh',
+  'industryoptionid': 'Lĩnh vực kinh doanh',
   'logofile': 'Logo công ty',
   'businesslicensefile': 'Giấy phép kinh doanh'
 };
@@ -70,11 +70,12 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
         throw new Error(`Không tìm thấy cấu hình xác thực cho ${formKey}.`);
       }
 
-      if (rules && rules.industryoptionids) {
-        rules.industryoptionids.minCount = 1;
-        rules.industryoptionids.maxCount = 1;
-        rules.industryoptionids.minCountMessage = 'Vui lòng chọn lĩnh vực.';
-        rules.industryoptionids.maxCountMessage = 'Vui lòng chỉ chọn 1 lĩnh vực.';
+      if (rules && (rules.industryoptionid || rules.industryoptionids)) {
+        const indRule = rules.industryoptionid || rules.industryoptionids;
+        indRule.minCount = 1;
+        indRule.maxCount = 1;
+        indRule.minCountMessage = 'Vui lòng chọn lĩnh vực.';
+        indRule.maxCountMessage = 'Vui lòng chỉ chọn 1 lĩnh vực.';
       }
 
       setValidationRules(rules);
@@ -153,7 +154,7 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
     phoneNumber: 'phoneNumber',
     countryCity: 'countryCity',
     website: 'website',
-    industry: 'industryOptionIds',
+    industry: 'industryOptionId',
     logoFile: 'logoFile',
     businessLicenseFile: 'businessLicenseFile'
   };
@@ -389,10 +390,10 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Tên chính thức của công ty"
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginTop: '4px' }}>
-                <span className={styles.errorText}>{errors.companyName || ''}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px', gap: '8px' }}>
+                <span className={styles.errorText} style={{ flex: 1 }}>{errors.companyName || ''}</span>
                 {validationRules?.companyname?.maxLength && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {formData.companyName?.length || 0}/{validationRules.companyname.maxLength}
                   </span>
                 )}
@@ -412,10 +413,10 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Tên người sáng lập"
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginTop: '4px' }}>
-                <span className={styles.errorText}>{errors.founder || ''}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px', gap: '8px' }}>
+                <span className={styles.errorText} style={{ flex: 1 }}>{errors.founder || ''}</span>
                 {validationRules?.founder?.maxLength && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {formData.founder?.length || 0}/{validationRules.founder.maxLength}
                   </span>
                 )}
@@ -435,10 +436,10 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Ví dụ: contact@startup.com"
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginTop: '4px' }}>
-                <span className={styles.errorText}>{errors.email || ''}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px', gap: '8px' }}>
+                <span className={styles.errorText} style={{ flex: 1 }}>{errors.email || ''}</span>
                 {validationRules?.email?.maxLength && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {formData.email?.length || 0}/{validationRules.email.maxLength}
                   </span>
                 )}
@@ -470,10 +471,10 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   style={{ paddingLeft: '48px' }}
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                <span className={styles.errorText}>{errors.phoneNumber || ''}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px', gap: '8px' }}>
+                <span className={styles.errorText} style={{ flex: 1 }}>{errors.phoneNumber || ''}</span>
                 {validationRules?.phonenumber?.maxLength && (
-                  <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {formData.phoneNumber?.length || 0}/{validationRules.phonenumber.maxLength}
                   </span>
                 )}
@@ -493,10 +494,10 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="Tỉnh/Thành phố"
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginTop: '4px' }}>
-                <span className={styles.errorText}>{errors.countryCity || ''}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px', gap: '8px' }}>
+                <span className={styles.errorText} style={{ flex: 1 }}>{errors.countryCity || ''}</span>
                 {validationRules?.countrycity?.maxLength && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {formData.countryCity?.length || 0}/{validationRules.countrycity.maxLength}
                   </span>
                 )}
@@ -516,10 +517,10 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                   placeholder="https://example.com"
                 />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', marginTop: '4px' }}>
-                <span className={styles.errorText}>{errors.website || ''}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px', gap: '8px' }}>
+                <span className={styles.errorText} style={{ flex: 1 }}>{errors.website || ''}</span>
                 {validationRules?.website?.maxLength && (
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                     {formData.website?.length || 0}/{validationRules.website.maxLength}
                   </span>
                 )}
@@ -613,7 +614,7 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                 />
                 <label htmlFor="logoUpload" className={styles.uploadLabel}>
                   {logoFile || formData.logoUrl ? (
-                    <div className={styles.previewContainer}>
+                    <div className={styles.previewContainer} style={{ borderColor: errors.logoFile ? '#ef4444' : 'var(--border-color)' }}>
                       <img src={logoFile ? URL.createObjectURL(logoFile) : formData.logoUrl} alt="Logo Preview" className={styles.logoPreview} />
                       <div className={styles.previewActions}>
                         <a
@@ -629,6 +630,7 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                           <X size={18} />
                         </button>
                       </div>
+                      {errors.logoFile && <span className={styles.errorText} style={{ position: 'absolute', bottom: '-20px', left: 0 }}>{errors.logoFile}</span>}
                     </div>
                   ) : (
                     <div className={styles.uploadPlaceholder}>
@@ -674,7 +676,7 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                 />
                 <label htmlFor="licenseUpload" className={styles.uploadLabel}>
                   {licenseFile || formData.businessLicenseUrl ? (
-                    <div className={styles.filePreviewMini}>
+                    <div className={styles.filePreviewMini} style={{ borderColor: errors.businessLicenseFile ? '#ef4444' : 'var(--border-color)' }}>
                       <FileText size={20} className={styles.fileIcon} />
                       <div className={styles.fileInfoMini}>
                         <span className={styles.fileNameMini}>
@@ -697,6 +699,7 @@ export default function StartupProfileForm({ initialData, user, onSuccess }) {
                           <X size={18} />
                         </button>
                       </div>
+                      {errors.businessLicenseFile && <span className={styles.errorText} style={{ position: 'absolute', bottom: '-20px', left: 0 }}>{errors.businessLicenseFile}</span>}
                     </div>
                   ) : (
                     <div className={styles.uploadPlaceholder}>

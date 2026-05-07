@@ -4,7 +4,7 @@ import {
   DollarSign, Clock, CheckCircle, XCircle, Eye, 
   Loader2, AlertCircle, FileText, Download, Calculator, 
   ChevronRight, Calendar, ArrowLeft, Search, Save, X,
-  Archive, RefreshCw, Info
+  Archive, RefreshCw, Info, UploadCloud
 } from 'lucide-react';
 import EmptyState from '../common/EmptyState';
 import styles from '../../styles/OperationStaffDashboard.module.css';
@@ -76,16 +76,19 @@ export default function PayoutManagement({ searchTerm = '' }) {
   const openRejectModal = (item) => setActionModal({ type: 'reject', item });
   const closeActionModal = () => setActionModal(null);
 
-  const handleMarkPaidConfirm = async (item, note) => {
+  const handleMarkPaidConfirm = async (item, note, evidenceImage) => {
     try {
-      await payoutService.markPaid(item.payoutId, { note: note || undefined });
+      await payoutService.markPaid(item.payoutId, { note: note || undefined, evidenceImage });
       setModalMessage('Đã cập nhật trạng thái chi trả thành công.');
       setShowSuccess(true);
       closeActionModal();
       handleViewBatch(selectedBatch);
     } catch (error) {
-      setModalMessage(error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi cập nhật.');
-      setShowError(true);
+      const beError = error?.response?.data;
+      if (beError?.errors && Array.isArray(beError.errors)) {
+        throw new Error(beError.errors.join(' | '));
+      }
+      throw new Error(beError?.message || error?.message || 'Có lỗi xảy ra khi cập nhật.');
     }
   };
 
@@ -97,8 +100,7 @@ export default function PayoutManagement({ searchTerm = '' }) {
       closeActionModal();
       handleViewBatch(selectedBatch);
     } catch (error) {
-      setModalMessage(error?.response?.data?.message || error?.message || 'Có lỗi xảy ra.');
-      setShowError(true);
+      throw new Error(error?.response?.data?.message || error?.message || 'Có lỗi xảy ra.');
     }
   };
 
@@ -487,11 +489,38 @@ function BatchDetailView({ batch, items, loading, onBack, onExport, onMarkPaid, 
                 {/* ── Status Strips (Paid / Rejected / Retry) ──────────────── */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {item.status === 'Paid' && item.paidAt && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 12, padding: '10px 14px' }}>
-                      <CheckCircle size={14} color="#10b981" style={{ flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
-                        Đã thanh toán · {new Date(item.paidAt).toLocaleDateString('vi-VN')}
-                      </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 12, padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <CheckCircle size={14} color="#10b981" style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>
+                          Đã thanh toán · {new Date(item.paidAt).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      
+                      {item.payoutProofFileUrl && (
+                        <div style={{ marginTop: '4px' }}>
+                           <p style={{ margin: '0 0 8px 0', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Minh chứng thanh toán</p>
+                           <div 
+                             onClick={() => window.open(item.payoutProofFileUrl, '_blank')}
+                             style={{ width: '80px', height: '80px', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--border-color)', position: 'relative', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                           >
+                             {item.payoutProofFileUrl.toLowerCase().endsWith('.pdf') ? (
+                               <FileText size={32} color="#ef4444" />
+                             ) : (
+                               <img src={item.payoutProofFileUrl} alt="Proof" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                             )}
+                             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} onMouseEnter={e => e.currentTarget.style.opacity = 1} onMouseLeave={e => e.currentTarget.style.opacity = 0}>
+                               <Eye size={16} color="white" />
+                             </div>
+                           </div>
+                        </div>
+                      )}
+
+                      {item.note && (
+                        <div style={{ padding: '8px 12px', background: 'var(--bg-secondary)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                          "{item.note}"
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -539,8 +568,24 @@ function PayoutActionModal({ type, item, onClose, onConfirm }) {
   const isReject = type === 'reject';
   const isPendingRecheck = item?.status === 'PendingRecheck';
   const [value, setValue] = useState('');
+  const [evidenceImage, setEvidenceImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Kích thước ảnh không được vượt quá 5MB.');
+        return;
+      }
+      setEvidenceImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrl(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async () => {
     setError('');
@@ -549,8 +594,13 @@ function PayoutActionModal({ type, item, onClose, onConfirm }) {
       return;
     }
     setLoading(true);
-    await onConfirm(item, value.trim() || undefined);
-    setLoading(false);
+    try {
+      await onConfirm(item, value.trim() || undefined, evidenceImage);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const actionLabel = isReject
@@ -612,12 +662,69 @@ function PayoutActionModal({ type, item, onClose, onConfirm }) {
             rows={3}
             style={{ width: '100%', padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${error ? '#ef4444' : 'var(--border-color)'}`, background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: 14, resize: 'vertical', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s', fontFamily: 'inherit' }}
           />
-          {error && (
+           {error && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 6, color: '#ef4444', fontSize: 12, fontWeight: 600 }}>
               <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1 }} /> {error}
             </div>
           )}
         </div>
+
+        {/* Evidence Upload (only for mark paid) */}
+        {!isReject && (
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.04em' }}>
+              Minh chứng giao dịch (PDF/Ảnh)
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+               <label 
+                 style={{ 
+                   width: '100%', height: 120, borderRadius: 16, border: `2px dashed ${evidenceImage ? 'var(--staff-success)' : 'var(--border-color)'}`, 
+                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                   gap: 8, cursor: 'pointer', transition: 'all 0.2s', overflow: 'hidden', background: 'var(--bg-secondary)',
+                   position: 'relative'
+                 }}
+                 onMouseEnter={e => { if(!evidenceImage) e.currentTarget.style.borderColor = 'var(--primary-blue)'; }}
+                 onMouseLeave={e => { if(!evidenceImage) e.currentTarget.style.borderColor = 'var(--border-color)'; }}
+               >
+                 {previewUrl ? (
+                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.03)' }}>
+                     {evidenceImage?.type === 'application/pdf' ? (
+                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                         <FileText size={48} color="#ef4444" />
+                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                           {evidenceImage.name}
+                         </span>
+                       </div>
+                     ) : (
+                       <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                     )}
+                   </div>
+                 ) : (
+                   <>
+                     <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                       <UploadCloud size={20} color="var(--primary-blue)" />
+                     </div>
+                     <span style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700 }}>Nhấn để tải lên minh chứng</span>
+                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Hỗ trợ PDF, JPG, PNG (Tối đa 5MB)</span>
+                   </>
+                 )}
+                 <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={handleFileChange} disabled={loading} />
+               </label>
+               
+               {evidenceImage && (
+                 <div style={{ display: 'flex', justifyContent: 'center' }}>
+                   <button 
+                     onClick={() => { setEvidenceImage(null); setPreviewUrl(null); }}
+                     style={{ background: 'transparent', border: 'none', color: '#ef4444', padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                     disabled={loading}
+                   >
+                     <XCircle size={14} /> Thay đổi file khác
+                   </button>
+                 </div>
+               )}
+            </div>
+          </div>
+        )}
 
         {/* Footer buttons */}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

@@ -26,8 +26,8 @@ const userReportService = {
    * Lấy danh sách tất cả báo cáo (Staff/Admin).
    * GET /api/UserReports
    */
-  getAllReports: async () => {
-    const response = await apiClient.get('/api/UserReports');
+  getAllReports: async (params = { pageSize: 100 }) => {
+    const response = await apiClient.get('/api/UserReports', { params });
     return response?.data ?? response;
   },
 

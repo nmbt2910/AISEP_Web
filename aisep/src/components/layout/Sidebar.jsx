@@ -130,6 +130,7 @@ function Sidebar({
         { icon: LayoutDashboard, label: 'Dashboard', displayLabel: 'Bảng điều khiển', href: '#', showWhenLoggedIn: true },
         { icon: ShieldCheck, label: 'ApproveBookings', displayLabel: 'Duyệt Booking', href: '#', showWhenLoggedIn: true },
         { icon: MessageSquare, label: 'Bookings', displayLabel: 'Danh sách Booking', href: '#', showWhenLoggedIn: true },
+        { icon: Rocket, label: 'AssignedProjects', displayLabel: 'Dự án phụ trách', href: '#', showWhenLoggedIn: true },
         { icon: Calendar, label: 'Availability', displayLabel: 'Lịch Rảnh', href: '#', showWhenLoggedIn: true },
         
         h('Tài chính'),
@@ -255,6 +256,9 @@ function Sidebar({
     }
     if (label === 'Availability' && onShowDashboard) {
       onShowDashboard('availability');
+    }
+    if (label === 'AssignedProjects' && onShowDashboard) {
+      onShowDashboard('assigned_projects');
     }
     if (label === 'ApproveBookings' && onShowDashboard) {
       onShowDashboard('approve_bookings');
@@ -462,6 +466,7 @@ function Sidebar({
                       if (activeView === 'dashboard_approvals') return 'Approvals';
                       if (activeView === 'dashboard_advisor_approval') return 'AdvisorApproval';
                       if (activeView === 'dashboard_availability') return 'Availability';
+                      if (activeView === 'dashboard_assigned_projects') return 'AssignedProjects';
                       if (activeView === 'dashboard_approve_bookings') return 'ApproveBookings';
                       if (activeView === 'dashboard_user_reports') return 'UserReports';
                       if (activeView === 'dashboard_pr_management') return 'PRManagement';

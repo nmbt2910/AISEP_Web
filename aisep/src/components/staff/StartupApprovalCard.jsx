@@ -2,6 +2,7 @@ import React from 'react';
 import { Building, User, Mail, Calendar, ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import local from '../../styles/OperationStaffDashboard.module.css';
 import styles from '../../styles/SharedDashboard.module.css';
+import { getIndustryLabels } from '../../constants/ProjectStatus';
 
 /**
  * StartupApprovalCard - A responsive card for staff to review startup profile applications.
@@ -15,7 +16,8 @@ const StartupApprovalCard = ({
     isProcessing, 
     processingAction,
     isAnyProcessing,
-    isHighlighted 
+    isHighlighted,
+    industries
 }) => {
     // Basic info with fallbacks
     const companyName = startup?.companyName || startup?.name || 'Công ty khởi nghiệp';
@@ -68,10 +70,7 @@ const StartupApprovalCard = ({
                         <Building size={12} style={{ marginRight: '4px' }} /> Lĩnh vực
                     </span>
                     <span className={local.investorProValue}>
-                        {(() => {
-                            const industries = startup?.industries || (startup?.industry ? [startup.industry] : []);
-                            return industries.join(', ') || 'Lĩnh vực khác';
-                        })()}
+                        {getIndustryLabels(startup?.industries || startup?.industryOptionIds || startup?.industry, industries)}
                     </span>
                 </div>
                 <div className={local.investorProRow}>

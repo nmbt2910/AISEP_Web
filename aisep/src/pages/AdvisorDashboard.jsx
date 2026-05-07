@@ -28,6 +28,7 @@ import AccountProfileTab from '../components/common/AccountProfileTab';
 import BookingRejectionModal from '../components/booking/BookingRejectionModal';
 import UserReportStatusModal from '../components/booking/UserReportStatusModal';
 import ReviewModal from '../components/booking/ReviewModal';
+import AdvisorAssignedProjectsSection from '../components/advisor/AdvisorAssignedProjectsSection';
 import RestrictedActionModal from '../components/common/RestrictedActionModal';
 import { useProfile } from '../context/ProfileContext';
 
@@ -260,6 +261,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
         'account_profile': "Hồ sơ người dùng",
         'payouts': "Thanh toán & Đối soát",
         'reports': "Báo cáo tư vấn",
+        'assigned_projects': "Dự án phụ trách",
         'discovery': "Khám phá dự án",
         'news': "Tin tức",
         'investors': "Tìm nhà đầu tư"
@@ -275,6 +277,7 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
         'account_profile': "Quản lý thông tin tài khoản và mật khẩu của bạn.",
         'payouts': "Lịch sử giao dịch và yêu cầu rút tiền.",
         'reports': "Xem lại các báo cáo sau mỗi buổi tư vấn.",
+        'assigned_projects': "Danh sách các dự án bạn đang hỗ trợ và giám sát.",
         'discovery': "Tìm kiếm và kết nối với các dự án startup tiềm năng.",
         'pr_news': "Cập nhật tin tức mới nhất từ nền tảng.",
         'investors': "Danh sách các nhà đầu tư trên hệ thống."
@@ -498,6 +501,12 @@ export default function AdvisorDashboard({ user, initialSection = 'overview', ta
                             onRestrictedAction={showRestrictedActionModal}
                         />
                     )
+                )}
+                
+                {activeSection === 'assigned_projects' && (
+                    <AdvisorAssignedProjectsSection 
+                        onSelectProject={(id) => handleNavigate(`project_${id}`)}
+                    />
                 )}
 
                 {activeSection === 'wallet' && (

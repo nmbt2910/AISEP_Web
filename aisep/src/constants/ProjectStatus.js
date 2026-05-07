@@ -4,7 +4,7 @@
  * Implements BR-03: Project Status States
  */
 
-import { formatStageOptionDisplayLabel } from '../utils/optionDisplayLabels';
+import { formatStageOptionDisplayLabel, formatIndustryOptionDisplayLabel } from '../utils/optionDisplayLabels';
 
 // Define all valid project statuses
 const PROJECT_STATUS = {
@@ -229,6 +229,40 @@ function getStageLabel(stage, dynamicStages = null) {
 }
 
 /**
+ * Get display labels for industries
+ * @param {any} industryValue - Single ID or value, or array of IDs/values
+ * @param {Array} dynamicIndustries - List of industry options from API
+ * @returns {string} - Comma-separated labels
+ */
+function getIndustryLabels(industryValue, dynamicIndustries = null) {
+  if (industryValue === null || industryValue === undefined) return 'Lĩnh vực khác';
+  
+  const values = Array.isArray(industryValue) ? industryValue : [industryValue];
+  if (values.length === 0) return 'Lĩnh vực khác';
+
+  const labels = values.map(val => {
+    // Try dynamic mapping first
+    if (Array.isArray(dynamicIndustries)) {
+      const valId = Number(val);
+      const dynamicMatch = dynamicIndustries.find(i => 
+        (i.id !== undefined && i.id === valId) || 
+        (i.value !== undefined && (Number(i.value) === valId || i.value === val)) ||
+        (i.label && i.label.toLowerCase() === String(val).toLowerCase())
+      );
+      
+      if (dynamicMatch) {
+        return dynamicMatch.label;
+      }
+    }
+
+    // Fallback formatting
+    return formatIndustryOptionDisplayLabel(val);
+  });
+
+  return labels.filter(Boolean).join(', ') || 'Lĩnh vực khác';
+}
+
+/**
  * Get internal stage value for API/Form
  * @param {any} stage - Development stage value
  * @returns {string} - "0", "1", or "2"
@@ -252,6 +286,7 @@ export {
   PUBLISH_PREREQUISITES,
   VALID_TRANSITIONS,
   getStageLabel,
+  getIndustryLabels,
   getStageNumericValue,
   isValidTransition,
   isEditable,

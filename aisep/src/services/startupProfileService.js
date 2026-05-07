@@ -52,10 +52,10 @@ const startupProfileService = {
    * @param {Object} queryParams - Sieve query params (page, pageSize, filters, etc.)
    * @returns {Promise<Object>} Response data containing items array
    */
-  getAllStartups: async (queryParams = {}) => {
+  getAllStartups: async (params = { pageSize: 100 }) => {
     try {
       // apiClient interceptor returns ApiResponse<T> wrapper; data is at response.data
-      return await apiClient.get('/api/Startups', { params: queryParams });
+      return await apiClient.get('/api/Startups', { params });
     } catch (error) {
       console.error('Error fetching all startups:', error);
       throw error;

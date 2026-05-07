@@ -1193,6 +1193,20 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
         return validationService.validateField(value, validationRules[ruleKey]);
     };
 
+    const renderCharCounter = (value, fieldKey) => {
+        const ruleKey = fieldMapping[fieldKey]?.toLowerCase();
+        const maxLength = validationRules?.[ruleKey]?.maxLength;
+        if (!maxLength) return null;
+
+        const count = (value || '').length;
+        const isOver = count > maxLength;
+        return (
+            <span style={{ fontSize: '10px', color: isOver ? '#f4212e' : 'var(--text-secondary)', fontWeight: isOver ? '700' : '400' }}>
+                {count}/{maxLength}
+            </span>
+        );
+    };
+
     const handleProfileInputChange = (e) => {
         let { name, value } = e.target;
         // Mark form as dirty to prevent background polling from overwriting edits
@@ -2707,11 +2721,16 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 width: '100%'
                                             }}
                                         />
-                                        {errors.organizationName && (
-                                            <span style={{ display: 'block', marginTop: '6px', color: '#f4212e', fontSize: '11px', fontWeight: '600' }}>
-                                                {errors.organizationName}
-                                            </span>
-                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                {errors.organizationName && (
+                                                    <span style={{ color: '#f4212e', fontSize: '11px', fontWeight: '600' }}>
+                                                        {errors.organizationName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {renderCharCounter(prefFormData.organizationName, 'organizationName')}
+                                        </div>
                                     </div>
 
                                     <div className={styles.formGroup}>
@@ -2732,9 +2751,14 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 width: '100%'
                                             }}
                                         />
-                                        <p style={{ color: errors.walletAddress ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', marginTop: '6px', fontWeight: '500' }}>
-                                            {errors.walletAddress || 'Địa chỉ ví chuẩn EIP-55 checksum (Mix-case).'}
-                                        </p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <p style={{ color: errors.walletAddress ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', margin: 0, fontWeight: '500' }}>
+                                                    {errors.walletAddress || 'Địa chỉ ví chuẩn EIP-55 checksum (Mix-case).'}
+                                                </p>
+                                            </div>
+                                            {renderCharCounter(prefFormData.walletAddress, 'walletAddress')}
+                                        </div>
                                     </div>
 
                                     <div className={styles.formGroup}>
@@ -2755,9 +2779,15 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 width: '100%'
                                             }}
                                         />
-                                        <p style={{ color: errors.investmentAmount ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', marginTop: '6px', fontWeight: '500' }}>
-                                            {errors.investmentAmount || (validationRules?.investmentamount?.minValue ? `Số tiền đầu tư tối thiểu: ${Number(validationRules.investmentamount.minValue).toLocaleString()} VNĐ.` : 'Nhập ngân sách đầu tư dự kiến của bạn.')}
-                                        </p>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <p style={{ color: errors.investmentAmount ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', margin: 0, fontWeight: '500' }}>
+                                                    {errors.investmentAmount || (validationRules?.investmentamount?.minValue ? `Số tiền đầu tư tối thiểu: ${Number(validationRules.investmentamount.minValue).toLocaleString()} VNĐ.` : 'Nhập ngân sách đầu tư dự kiến của bạn.')}
+                                                </p>
+                                            </div>
+                                            {/* No counter for numeric fields usually, but helper handles it if rule exists */}
+                                            {renderCharCounter(prefFormData.investmentAmount?.toString(), 'investmentAmount')}
+                                        </div>
                                     </div>
 
                                     <div className={styles.formGroup}>
@@ -2778,11 +2808,16 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                                 width: '100%'
                                             }}
                                         />
-                                        {errors.investmentRegion && (
-                                            <span style={{ display: 'block', marginTop: '6px', color: '#f4212e', fontSize: '11px', fontWeight: '600' }}>
-                                                {errors.investmentRegion}
-                                            </span>
-                                        )}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '6px' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                {errors.investmentRegion && (
+                                                    <span style={{ color: '#f4212e', fontSize: '11px', fontWeight: '600' }}>
+                                                        {errors.investmentRegion}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {renderCharCounter(prefFormData.investmentRegion, 'investmentRegion')}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -2904,13 +2939,13 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             width: '100%'
                                         }}
                                     />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                                        <p style={{ color: errors.investmentTaste ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', margin: 0, fontWeight: '500' }}>
-                                            {errors.investmentTaste || 'Mô tả chi tiết chiến lược đầu tư của bạn.'}
-                                        </p>
-                                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                                            {prefFormData.investmentTaste?.length || 0}/{validationRules?.investmenttaste?.maxLength || 1000}
-                                        </span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', alignItems: 'flex-start', gap: '8px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <p style={{ color: errors.investmentTaste ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', margin: 0, fontWeight: '500' }}>
+                                                {errors.investmentTaste || 'Mô tả chi tiết chiến lược đầu tư của bạn.'}
+                                            </p>
+                                        </div>
+                                        {renderCharCounter(prefFormData.investmentTaste, 'investmentTaste')}
                                     </div>
                                 </div>
 
@@ -2932,11 +2967,13 @@ export default function InvestorDashboard({ user, initialSection = 'investments'
                                             width: '100%'
                                         }}
                                     />
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                                        <span style={{ color: errors.previousInvestments ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', fontWeight: '500' }}>
-                                            {errors.previousInvestments || 'Danh sách các startup bạn đã từng đầu tư (Tối đa 1000 ký tự).'}
-                                        </span>
-                                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{prefFormData.previousInvestments?.length || 0}/1000</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', alignItems: 'flex-start', gap: '8px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span style={{ color: errors.previousInvestments ? '#f4212e' : 'var(--text-secondary)', fontSize: '11px', fontWeight: '500' }}>
+                                                {errors.previousInvestments || 'Danh sách các startup bạn đã từng đầu tư (Tối đa 1000 ký tự).'}
+                                            </span>
+                                        </div>
+                                        {renderCharCounter(prefFormData.previousInvestments, 'previousInvestments')}
                                     </div>
                                 </div>
 
