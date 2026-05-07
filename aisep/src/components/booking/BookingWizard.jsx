@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X, CaretLeft, CaretRight, Check, WarningCircle, CircleNotch, Calendar, Clock, User, Briefcase, CreditCard, Sparkle, Info, ShieldCheck, Gavel, Crown, CurrencyCircleDollar } from '@phosphor-icons/react';
+import { X, CaretLeft, CaretRight, Check, WarningCircle, CircleNotch, Calendar, Clock, User, Briefcase, CreditCard, Sparkle, Info, ShieldCheck, Gavel, Crown, CurrencyCircleDollar, Eye, Heart } from '@phosphor-icons/react';
 import subscriptionService from '../../services/subscriptionService';
 import userService from '../../services/userService';
 import bookingService from '../../services/bookingService';
 import advisorAvailabilityService from '../../services/advisorAvailabilityService';
 import advisorService from '../../services/advisorService';
+import followerService from '../../services/followerService';
 import SlotPicker from './SlotPicker';
 import PaymentModal from './PaymentModal';
 import styles from './BookingWizard.module.css';
@@ -20,15 +21,22 @@ const STEPS = ['Chọn Dự Án', 'Chọn Cố Vấn', 'Chọn Khung Giờ', 'X�
  *   initialAdvisorId   – (optional) pre-select advisor, skip step 2
  *   sourceBookingId    – (optional) dùng khi rebooking từ NoResponse/Cancel
  */
-export default function BookingWizard({ onClose, user, isApproved = true, initialAdvisorId = null, initialProjectId = null, sourceBookingId = null }) {
+export default function BookingWizard({ onClose, user, isApproved = true, initialAdvisorId = null, initialProjectId = null, sourceBookingId = null, onViewProject = null }) {
   const [step, setStep] = useState((initialProjectId || sourceBookingId) ? 1 : 0);
   const [isInitializing, setIsInitializing] = useState(!!(initialProjectId || sourceBookingId));
+  
+  const roleStr = user?.role?.toString().toLowerCase() || '';
+  const roleNum = Number(user?.role);
+  const isInvestor = roleStr === 'investor' || roleNum === 1;
 
   // Step 1 – Project
   const [projects, setProjects] = useState([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [activeProjectTab, setActiveProjectTab] = useState('mine');
+  const [followedProjects, setFollowedProjects] = useState([]);
+  const [followedProjectsLoading, setFollowedProjectsLoading] = useState(false);
 
   // Step 2 – Advisor
   const [advisorOptions, setAdvisorOptions] = useState([]);
@@ -154,38 +162,88 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
         // Nếu rỗng thì set ngay
         if (projectList.length === 0) {
           setProjects([]);
-          return;
-        }
-
-        // Kiểm tra assignment của tất cả project
-        const assignedProjectIds = [];
-        await Promise.allSettled(
-          projectList.map(async (p) => {
-            try {
-              const options = await bookingService.getAdvisorOptions(p.projectId);
-              if (Array.isArray(options) && options.length > 0) {
-                 if (initialAdvisorId) {
-                    if (options.some(o => o.advisorId === initialAdvisorId)) {
-                       assignedProjectIds.push(p.projectId);
-                    }
-                 } else {
-                    assignedProjectIds.push(p.projectId);
-                 }
+        } else {
+          // Kiểm tra assignment của tất cả project
+          const assignedProjectIds = [];
+          await Promise.allSettled(
+            projectList.map(async (p) => {
+              try {
+                const options = await bookingService.getAdvisorOptions(p.projectId);
+                if (Array.isArray(options) && options.length > 0) {
+                   if (initialAdvisorId) {
+                      if (options.some(o => o.advisorId === initialAdvisorId)) {
+                         assignedProjectIds.push(p.projectId);
+                      }
+                   } else {
+                      assignedProjectIds.push(p.projectId);
+                   }
+                }
+              } catch {
+                // ignore errors, just don't add
               }
-            } catch {
-              // ignore errors, just don't add
+            })
+          );
+
+          const filteredProjects = projectList.filter(p => assignedProjectIds.includes(p.projectId));
+          setProjects(filteredProjects);
+
+          // Pre-select project if initialProjectId is provided
+          if (initialProjectId) {
+            const found = filteredProjects.find(p => p.projectId === initialProjectId);
+            if (found) {
+              setSelectedProject(found);
             }
-          })
-        );
-
-        const filteredProjects = projectList.filter(p => assignedProjectIds.includes(p.projectId));
-        setProjects(filteredProjects);
-
-        // Pre-select project if initialProjectId is provided
-        if (initialProjectId) {
-          const found = filteredProjects.find(p => p.projectId === initialProjectId);
-          if (found) {
-            setSelectedProject(found);
+          }
+        }
+        
+        // Load followed projects if investor
+        if (isInvestor) {
+          setFollowedProjectsLoading(true);
+          try {
+            const followedRes = await followerService.getMyFollowing();
+            const followedList = followedRes?.data?.items || followedRes?.items || (Array.isArray(followedRes) ? followedRes : []);
+            
+            // Filter followed projects that have advisors assigned
+            const assignedFollowedIds = [];
+            await Promise.allSettled(
+              followedList.map(async (p) => {
+                const pid = p.projectId || p.id;
+                try {
+                  const options = await bookingService.getAdvisorOptions(pid);
+                  if (Array.isArray(options) && options.length > 0) {
+                    if (initialAdvisorId) {
+                      if (options.some(o => o.advisorId === initialAdvisorId)) {
+                        assignedFollowedIds.push(pid);
+                      }
+                    } else {
+                      assignedFollowedIds.push(pid);
+                    }
+                  }
+                } catch { }
+              })
+            );
+            
+            const filteredFollowed = followedList
+              .filter(p => assignedFollowedIds.includes(p.projectId || p.id))
+              .map(p => ({
+                projectId: p.projectId || p.id,
+                projectName: p.projectName || p.name
+              }));
+              
+            setFollowedProjects(filteredFollowed);
+            
+            // If we have an initial project and it's in followed but not in mine, switch tab
+            if (initialProjectId && !projects.some(p => p.projectId === initialProjectId)) {
+               if (filteredFollowed.some(p => p.projectId === initialProjectId)) {
+                  setActiveProjectTab('followed');
+                  const found = filteredFollowed.find(p => p.projectId === initialProjectId);
+                  if (found) setSelectedProject(found);
+               }
+            }
+          } catch (err) {
+            console.error("Failed to load followed projects", err);
+          } finally {
+            setFollowedProjectsLoading(false);
           }
         }
       } catch (e) {
@@ -195,7 +253,7 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
       }
     };
     load();
-  }, [step, initialAdvisorId, initialProjectId]);
+  }, [step, initialAdvisorId, initialProjectId, isInvestor]);
 
   // ── Load Advisors khi project được chọn ────────────────────────────────
   useEffect(() => {
@@ -607,38 +665,84 @@ export default function BookingWizard({ onClose, user, isApproved = true, initia
           {step === 0 && (
             <div className={styles.stepContent}>
               <p className={styles.stepHint}>Chọn dự án bạn muốn tư vấn</p>
-              {projectsLoading && (
+
+              {isInvestor && (
+                <div className={styles.tabContainer}>
+                  <button 
+                    className={`${styles.tabItem} ${activeProjectTab === 'mine' ? styles.tabActive : ''}`}
+                    onClick={() => {
+                      setActiveProjectTab('mine');
+                      setSelectedProject(null);
+                    }}
+                  >
+                    <Briefcase size={18} weight={activeProjectTab === 'mine' ? 'fill' : 'regular'} />
+                    Dự án của tôi
+                  </button>
+                  <button 
+                    className={`${styles.tabItem} ${activeProjectTab === 'followed' ? styles.tabActive : ''}`}
+                    onClick={() => {
+                      setActiveProjectTab('followed');
+                      setSelectedProject(null);
+                    }}
+                  >
+                    <Heart size={18} weight={activeProjectTab === 'followed' ? 'fill' : 'regular'} />
+                    Dự án quan tâm
+                  </button>
+                </div>
+              )}
+
+              {(projectsLoading || followedProjectsLoading) && (
                 <div className={styles.loadingState}>
                   <CircleNotch size={24} className={styles.spin} weight="bold" />
                   <span>Đang tải dự án...</span>
                 </div>
               )}
+
               {projectsError && (
                 <div className={styles.errorBanner}>
                   <WarningCircle size={16} />
                   <span>{projectsError}</span>
                 </div>
               )}
-              {!projectsLoading && !projectsError && projects.length === 0 && (
+
+              {!projectsLoading && !followedProjectsLoading && !projectsError && (activeProjectTab === 'mine' ? projects.length === 0 : followedProjects.length === 0) && (
                 <div className={styles.emptyState}>
-                  <Briefcase size={40} />
-                  <p>Không có dự án nào đang được phân công {initialAdvisorId ? 'cho Cố vấn này' : 'hiện tại'}. 
-                  <br/> Vắng dự án, không thể tiến hành đặt lịch.</p>
+                  {activeProjectTab === 'mine' ? <Briefcase size={40} /> : <Heart size={40} />}
+                  <p>
+                    {activeProjectTab === 'mine' 
+                      ? (initialAdvisorId ? 'Không có dự án nào của bạn đang được phân công cho Cố vấn này.' : 'Bạn chưa có dự án nào.')
+                      : 'Bạn chưa quan tâm đến dự án nào có cố vấn được phân công.'}
+                  </p>
                 </div>
               )}
+
               <div className={styles.cardGrid}>
-                {projects.map(p => (
-                  <button
+                {(activeProjectTab === 'mine' ? projects : followedProjects).map(p => (
+                  <div
                     key={p.projectId}
                     className={`${styles.optionCard} ${selectedProject?.projectId === p.projectId ? styles.optionCardSelected : ''}`}
                     onClick={() => setSelectedProject(p)}
                   >
-                    <div className={styles.optionCardIcon}><Briefcase size={22} /></div>
+                    <div className={styles.optionCardIcon}>
+                      {activeProjectTab === 'mine' ? <Briefcase size={22} /> : <Heart size={22} color="#ec4899" weight="fill" />}
+                    </div>
                     <span className={styles.optionCardName}>{p.projectName}</span>
                     {selectedProject?.projectId === p.projectId && (
                       <div className={styles.checkMark}><Check size={14} /></div>
                     )}
-                  </button>
+                    {onViewProject && (
+                      <button 
+                        className={styles.projectDetailBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewProject(p.projectId);
+                        }}
+                        title="Xem chi tiết dự án"
+                      >
+                        <Eye size={18} />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

@@ -14,7 +14,7 @@ import AuthRequirementScreen from '../common/AuthRequirementScreen';
  * AdvisorDetailView - Enhanced profile view for an Advisor
  * Mirrors the structure of StartupDetail and InvestorDetail
  */
-const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onRestrictedAction }) => {
+const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onRestrictedAction, onViewProject }) => {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Modal state
@@ -309,6 +309,10 @@ const AdvisorDetailView = ({ user, advisor, onBack, onShowLogin, isApproved, onR
           isApproved={isApproved}
           onRestrictedAction={onRestrictedAction}
           onClose={() => setShowBookingWizard(false)}
+          onViewProject={(pid) => {
+            setShowBookingWizard(false);
+            onViewProject?.(pid);
+          }}
         />
       )}
     </div>

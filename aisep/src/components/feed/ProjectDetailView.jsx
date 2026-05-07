@@ -268,7 +268,20 @@ const DocumentCard = ({ doc }) => (
 );
 
 /* ─── Main Component ─────────────────────────────────────── */
-export default function ProjectDetailView({ projectId, onBack, user, isPaidUser = false, onShowLogin, isFullView, isInvestorApproved = false, isStartupApproved = false, isAdvisorApproved = false, onUnlock, onRestrictedAction }) {
+export default function ProjectDetailView({ 
+  projectId, 
+  onBack, 
+  user, 
+  isPaidUser = false, 
+  onShowLogin, 
+  isFullView = false, 
+  isInvestorApproved = false, 
+  isStartupApproved = false, 
+  isAdvisorApproved = false, 
+  onUnlock, 
+  onRestrictedAction,
+  onViewProject
+}) {
   const [project, setProject] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [docError, setDocError] = useState(null);
@@ -1044,6 +1057,10 @@ export default function ProjectDetailView({ projectId, onBack, user, isPaidUser 
           })()}
           initialProjectId={projectId}
           initialAdvisorId={project?.assignedAdvisorId}
+          onViewProject={(pid) => {
+            setShowBookingWizard(false);
+            onViewProject?.(pid);
+          }}
         />
       )}
       {showUnlockConfirm && <UnlockConfirmationModal isOpen={showUnlockConfirm} onClose={() => setShowUnlockConfirm(false)} onConfirm={confirmUnlock} isUnlocking={isUnlocking} isLoadingQuota={isLoadingQuota} projectName={project?.name} remainingViews={remainingViews} packageName={subscription?.packageName} />}

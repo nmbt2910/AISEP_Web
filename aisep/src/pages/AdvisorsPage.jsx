@@ -10,7 +10,7 @@ import InvestorStatusBanner from '../components/common/InvestorStatusBanner';
 import Avatar from '../components/common/Avatar';
 import styles from './AdvisorsPage.module.css';
 
-export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate, startupBanner, isApproved, onRestrictedAction }) {
+export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, investorProfileStatus, investorProfileReason, onUpdateProfile, onNotificationNavigate, startupBanner, isApproved, onRestrictedAction, onViewProject }) {
     const [advisors, setAdvisors] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -294,6 +294,10 @@ export default function AdvisorsPage({ user, onSelectAdvisor, onShowLogin, inves
                     onClose={() => {
                         setShowBookingWizard(false);
                         setWizardInitialAdvisorId(null);
+                    }}
+                    onViewProject={(pid) => {
+                        setShowBookingWizard(false);
+                        onViewProject?.(pid);
                     }}
                 />
             )}

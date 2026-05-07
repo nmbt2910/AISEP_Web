@@ -203,6 +203,12 @@ function MainLayout({
       if (activeView === 'main' || activeView === '') {
         refreshAllFeedData();
       }
+
+      // Clear detail views when switching main tabs
+      setSelectedProjectId(null);
+      setSelectedStartupProfileId(null);
+      setSelectedInvestorProfileId(null);
+      setSelectedAdvisor(null);
     }
 
     if (typeof document !== 'undefined') {
@@ -245,6 +251,15 @@ function MainLayout({
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Clear detail views on logout/login (user change)
+  useEffect(() => {
+    setSelectedProjectId(null);
+    setSelectedStartupProfileId(null);
+    setSelectedInvestorProfileId(null);
+    setSelectedAdvisor(null);
+    homeScrollPos.current = 0;
+  }, [user?.userId]);
 
   // Public feed: non-premium list filtered to approved/published only (see utils/projectDiscoveryFilters.js)
   const [allStartups, setAllStartups] = useState([]);
@@ -879,7 +894,13 @@ function MainLayout({
           onShowProfile={onShowProfile}
           onShowSubscription={onShowSubscription}
           onMenuItemClick={() => {
-            // Reset cached scroll if user navigates via sidebar
+            // Clear detail views when navigating via sidebar
+            setSelectedProjectId(null);
+            setSelectedStartupProfileId(null);
+            setSelectedInvestorProfileId(null);
+            setSelectedAdvisor(null);
+            
+            // Reset cached scroll
             homeScrollPos.current = 0;
             closeMobileMenu();
           }}
@@ -918,6 +939,7 @@ function MainLayout({
               return isStaff || isApprovedAdvisor;
             })()}
             onUnlock={handleProjectUnlock}
+            onViewProject={(pid) => setSelectedProjectId(pid)}
             onBack={() => {
               setSelectedProjectId(null);
               if (window.location.pathname.startsWith('/projects/')) {
@@ -950,6 +972,9 @@ function MainLayout({
               onShowLogin={onShowLogin}
               isApproved={isApproved}
               onRestrictedAction={showRestrictedActionModal}
+              onViewProject={(pid) => {
+                setSelectedProjectId(pid);
+              }}
             />
           ) : (
             <AdvisorsPage
@@ -994,6 +1019,9 @@ function MainLayout({
                   return null;
                 })()
               }
+              onViewProject={(pid) => {
+                setSelectedProjectId(pid);
+              }}
             />
           )
         ) : showInvestors ? (
