@@ -13,7 +13,7 @@ export const validationService = {
    */
   getFormRules: async (formKey) => {
     try {
-      const response = await apiClient.get(`/api/form-validation-rules/${formKey}`);
+      const response = await apiClient.get(`/api/form-validation-rules/${formKey}`, { params: { pageSize: 100 } });
       const data = response?.data || response;
       
       if (!data) return null;

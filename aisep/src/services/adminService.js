@@ -8,7 +8,7 @@ const adminService = {
    * @returns {Promise<any>}
    */
   getTransactions: async (params = {}) => {
-    const queryParams = { page: 1, pageSize: 10, ...params };
+    const queryParams = { page: 1, pageSize: 100, ...params };
     const response = await apiClient.get('/api/admin/transactions', { params: queryParams });
     return response;
   },
@@ -44,7 +44,8 @@ const adminService = {
    * @returns {Promise<any>}
    */
   getFormValidationRules: async (formKey, params = {}) => {
-    const response = await apiClient.get(`/api/form-validation-rules/${formKey}`, { params });
+    const queryParams = { page: 1, pageSize: 100, ...params };
+    const response = await apiClient.get(`/api/form-validation-rules/${formKey}`, { params: queryParams });
     return response;
   },
 

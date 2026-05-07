@@ -267,7 +267,7 @@ export default function AdminDashboard({ user, initialSection = 'statistics' }) 
         }
     };
 
-    const fetchIndustryOptions = async (page = 1, pageSize = 10, options = {}) => {
+    const fetchIndustryOptions = async (page = 1, pageSize = 100, options = {}) => {
         const { silent = false, preserveMessages = false } = options;
         if (!silent) {
             setIsLoadingIndustry(true);
@@ -346,7 +346,7 @@ export default function AdminDashboard({ user, initialSection = 'statistics' }) 
         }
     };
 
-    const fetchStageOptions = async (page = 1, pageSize = 10, options = {}) => {
+    const fetchStageOptions = async (page = 1, pageSize = 100, options = {}) => {
         const { silent = false, preserveMessages = false } = options;
         if (!silent) {
             setIsLoadingStage(true);
@@ -573,7 +573,7 @@ export default function AdminDashboard({ user, initialSection = 'statistics' }) 
         maxFileSizeBytes: toNullableNumber(draft.maxFileSizeBytes)
     });
 
-    const fetchValidationRules = async (formKey = selectedFormKey, page = 1, pageSize = 50) => {
+    const fetchValidationRules = async (formKey = selectedFormKey, page = 1, pageSize = 100) => {
         setIsLoadingValidationRules(true);
         setValidationError('');
         setValidationSuccess('');
