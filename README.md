@@ -223,6 +223,38 @@ Frontend services under `src/services/` map directly to C# Backend endpoints:
     npm run preview
     ```
 
+### 4.4 Main Application Workflows (Demo Videos)
+To understand the system's operational flows, watch the interactive Canva demo videos below. You can click the badges to view the full presentation or use the embedded players.
+
+#### 🎥 Flow 1: Startup Publish Project
+Learn how startup founders upload documents, register intellectual property on the blockchain, and request AI Gemini evaluations.
+*   **Link:** [Startup Publish Project Demo](https://canva.link/30ulra7hrp9gy33)
+*   [![Watch Demo on Canva](https://img.shields.io/badge/Watch%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/30ulra7hrp9gy33)
+
+<p align="center">
+  <iframe src="https://canva.link/30ulra7hrp9gy33" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
+</p>
+
+#### 🎥 Flow 2: Investment Flow
+See how verified investors discover premium projects, initiate deal terms, and execute bilateral smart contracts on Sepolia Testnet.
+*   **Link:** [Investment Flow Demo](https://canva.link/xy69crzgvpohejd)
+*   [![Watch Demo on Canva](https://img.shields.io/badge/Watch%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/xy69crzgvpohejd)
+
+<p align="center">
+  <iframe src="https://canva.link/xy69crzgvpohejd" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
+</p>
+
+#### 🎥 Flow 3: Advisor Booking Flow
+Observe the advisor session scheduling, secure SePay banking QR payment clearance, and advisor post-session reporting processes.
+*   **Link:** [Advisor Booking Flow Demo](https://canva.link/rafqc7spgnqwwxp)
+*   [![Watch Demo on Canva](https://img.shields.io/badge/Watch%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/rafqc7spgnqwwxp)
+
+<p align="center">
+  <iframe src="https://canva.link/rafqc7spgnqwwxp" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
+</p>
+
+---
+
 # TÀI LIỆU TIẾNG VIỆT
 
 ## 1. Nghiệp vụ Sản phẩm & Luồng logic cốt lõi
@@ -342,3 +374,33 @@ AISEP Web là ứng dụng Single Page Application (SPA) viết bằng React và
     ```bash
     npm run preview
     ```
+
+### 4.4 Luồng Hoạt Động Chính (Video Demo)
+Để hiểu rõ hơn các luồng vận hành thực tế của hệ thống, vui lòng xem các video giới thiệu Canva tương tác bên dưới. Bạn có thể nhấn vào các huy hiệu badge để xem trực tiếp hoặc sử dụng trình phát nhúng.
+
+#### 🎥 Luồng 1: Startup Đăng Ký Dự Án & Bảo Hộ IP
+Quy trình người sáng lập dự án tải lên tài liệu, đăng ký bảo hộ sở hữu trí tuệ trên blockchain Sepolia và thực hiện phân tích tự động bằng Gemini AI.
+*   **Liên kết:** [Demo Đăng Ký Dự Án & Bảo Hộ IP](https://canva.link/30ulra7hrp9gy33)
+*   [![Xem Demo trên Canva](https://img.shields.io/badge/Xem%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/30ulra7hrp9gy33)
+
+<p align="center">
+  <iframe src="https://canva.link/30ulra7hrp9gy33" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
+</p>
+
+#### 🎥 Luồng 2: Luồng Đầu Tư & Ký Hợp Đồng
+Quy trình nhà đầu tư đã xác minh tìm kiếm dự án cao cấp, gửi đề xuất thương vụ đầu tư và hoàn tất hợp đồng ký kết song phương ghi nhận on-chain.
+*   **Liên kết:** [Demo Luồng Đầu Tư](https://canva.link/xy69crzgvpohejd)
+*   [![Xem Demo trên Canva](https://img.shields.io/badge/Xem%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/xy69crzgvpohejd)
+
+<p align="center">
+  <iframe src="https://canva.link/xy69crzgvpohejd" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
+</p>
+
+#### 🎥 Luồng 3: Luồng Đặt Lịch Cố Vấn & Chi Trả
+Quy trình đặt lịch tư vấn với chuyên gia, thanh toán tự động qua cổng SePay bằng mã QR ngân hàng và cố vấn gửi báo cáo tư vấn.
+*   **Liên kết:** [Demo Đặt Lịch Cố Vấn](https://canva.link/rafqc7spgnqwwxp)
+*   [![Xem Demo trên Canva](https://img.shields.io/badge/Xem%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/rafqc7spgnqwwxp)
+
+<p align="center">
+  <iframe src="https://canva.link/rafqc7spgnqwwxp" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
+</p>
