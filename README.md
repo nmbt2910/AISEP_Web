@@ -224,34 +224,12 @@ Frontend services under `src/services/` map directly to C# Backend endpoints:
     ```
 
 ### 4.4 Main Application Workflows (Demo Videos)
-To understand the system's operational flows, watch the interactive Canva demo videos below. You can click the badges to view the full presentation or use the embedded players.
+To understand the system's operational flows, watch the interactive Canva demo videos below. Since standard Markdown viewers (such as GitHub and VS Code) restrict raw `<iframe>` embeds due to strict Content Security Policy (CSP) sanitization, please click the play buttons or direct links in the matrix below to launch the video walkthroughs.
 
-#### 🎥 Flow 1: Startup Publish Project
-Learn how startup founders upload documents, register intellectual property on the blockchain, and request AI Gemini evaluations.
-*   **Link:** [Startup Publish Project Demo](https://canva.link/30ulra7hrp9gy33)
-*   [![Watch Demo on Canva](https://img.shields.io/badge/Watch%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/30ulra7hrp9gy33)
-
-<p align="center">
-  <iframe src="https://canva.link/30ulra7hrp9gy33" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
-</p>
-
-#### 🎥 Flow 2: Investment Flow
-See how verified investors discover premium projects, initiate deal terms, and execute bilateral smart contracts on Sepolia Testnet.
-*   **Link:** [Investment Flow Demo](https://canva.link/xy69crzgvpohejd)
-*   [![Watch Demo on Canva](https://img.shields.io/badge/Watch%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/xy69crzgvpohejd)
-
-<p align="center">
-  <iframe src="https://canva.link/xy69crzgvpohejd" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
-</p>
-
-#### 🎥 Flow 3: Advisor Booking Flow
-Observe the advisor session scheduling, secure SePay banking QR payment clearance, and advisor post-session reporting processes.
-*   **Link:** [Advisor Booking Flow Demo](https://canva.link/rafqc7spgnqwwxp)
-*   [![Watch Demo on Canva](https://img.shields.io/badge/Watch%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/rafqc7spgnqwwxp)
-
-<p align="center">
-  <iframe src="https://canva.link/rafqc7spgnqwwxp" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
-</p>
+| 🎥 Flow 1: Startup Publish Project | 🎥 Flow 2: Investment Flow | 🎥 Flow 3: Advisor Booking Flow |
+| :---: | :---: | :---: |
+| [![Flow 1](https://img.shields.io/badge/PLAY%20DEMO-STARTUP%20PUBLISH-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/30ulra7hrp9gy33) | [![Flow 2](https://img.shields.io/badge/PLAY%20DEMO-INVESTMENT%20FLOW-00B2A9?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/xy69crzgvpohejd) | [![Flow 3](https://img.shields.io/badge/PLAY%20DEMO-ADVISOR%20BOOKING-FFAD1F?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/rafqc7spgnqwwxp) |
+| [Open Flow 1 Walkthrough ↗](https://canva.link/30ulra7hrp9gy33) | [Open Flow 2 Walkthrough ↗](https://canva.link/xy69crzgvpohejd) | [Open Flow 3 Walkthrough ↗](https://canva.link/rafqc7spgnqwwxp) |
 
 ---
 
@@ -376,31 +354,9 @@ AISEP Web là ứng dụng Single Page Application (SPA) viết bằng React và
     ```
 
 ### 4.4 Luồng Hoạt Động Chính (Video Demo)
-Để hiểu rõ hơn các luồng vận hành thực tế của hệ thống, vui lòng xem các video giới thiệu Canva tương tác bên dưới. Bạn có thể nhấn vào các huy hiệu badge để xem trực tiếp hoặc sử dụng trình phát nhúng.
+Để hiểu rõ hơn các luồng vận hành thực tế của hệ thống, vui lòng xem các video giới thiệu Canva tương tác bên dưới. Vì các trình đọc Markdown tiêu chuẩn (như GitHub và VS Code) giới hạn hiển thị thẻ nhúng `<iframe>` trực tiếp do chính sách bảo mật nội dung (CSP), vui lòng sử dụng các nút bấm hoặc liên kết trực tiếp trong bảng dưới đây để mở video thuyết trình.
 
-#### 🎥 Luồng 1: Startup Đăng Ký Dự Án & Bảo Hộ IP
-Quy trình người sáng lập dự án tải lên tài liệu, đăng ký bảo hộ sở hữu trí tuệ trên blockchain Sepolia và thực hiện phân tích tự động bằng Gemini AI.
-*   **Liên kết:** [Demo Đăng Ký Dự Án & Bảo Hộ IP](https://canva.link/30ulra7hrp9gy33)
-*   [![Xem Demo trên Canva](https://img.shields.io/badge/Xem%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/30ulra7hrp9gy33)
-
-<p align="center">
-  <iframe src="https://canva.link/30ulra7hrp9gy33" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
-</p>
-
-#### 🎥 Luồng 2: Luồng Đầu Tư & Ký Hợp Đồng
-Quy trình nhà đầu tư đã xác minh tìm kiếm dự án cao cấp, gửi đề xuất thương vụ đầu tư và hoàn tất hợp đồng ký kết song phương ghi nhận on-chain.
-*   **Liên kết:** [Demo Luồng Đầu Tư](https://canva.link/xy69crzgvpohejd)
-*   [![Xem Demo trên Canva](https://img.shields.io/badge/Xem%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/xy69crzgvpohejd)
-
-<p align="center">
-  <iframe src="https://canva.link/xy69crzgvpohejd" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
-</p>
-
-#### 🎥 Luồng 3: Luồng Đặt Lịch Cố Vấn & Chi Trả
-Quy trình đặt lịch tư vấn với chuyên gia, thanh toán tự động qua cổng SePay bằng mã QR ngân hàng và cố vấn gửi báo cáo tư vấn.
-*   **Liên kết:** [Demo Đặt Lịch Cố Vấn](https://canva.link/rafqc7spgnqwwxp)
-*   [![Xem Demo trên Canva](https://img.shields.io/badge/Xem%20Demo-Canva-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/rafqc7spgnqwwxp)
-
-<p align="center">
-  <iframe src="https://canva.link/rafqc7spgnqwwxp" width="100%" height="450" allowfullscreen style="border: 1px solid #7C3AED; border-radius: 12px;"></iframe>
-</p>
+| 🎥 Luồng 1: Đăng Ký Dự Án & Bảo Hộ IP | 🎥 Luồng 2: Luồng Đầu Tư & Ký Hợp Đồng | 🎥 Luồng 3: Đặt Lịch Cố Vấn & Chi Trả |
+| :---: | :---: | :---: |
+| [![Luồng 1](https://img.shields.io/badge/XEM%20DEMO-DỰ%20ÁN%20%26%20IP-7C3AED?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/30ulra7hrp9gy33) | [![Luồng 2](https://img.shields.io/badge/XEM%20DEMO-LUỒNG%20ĐẦU%20TƯ-00B2A9?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/xy69crzgvpohejd) | [![Luồng 3](https://img.shields.io/badge/XEM%20DEMO-LỊCH%20CỐ%20VẤN-FFAD1F?style=for-the-badge&logo=canva&logoColor=white)](https://canva.link/rafqc7spgnqwwxp) |
+| [Mở Video Thuyết Trình 1 ↗](https://canva.link/30ulra7hrp9gy33) | [Mở Video Thuyết Trình 2 ↗](https://canva.link/xy69crzgvpohejd) | [Mở Video Thuyết Trình 3 ↗](https://canva.link/rafqc7spgnqwwxp) |
